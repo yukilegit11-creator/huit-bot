@@ -87,7 +87,7 @@
         "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "7662918962461429024",
@@ -98,11 +98,6 @@
       {
         "id": "387016397668099110",
         "name": "TBao Skien , ĐRL Vaa -",
-        "enabled": true
-      },
-      {
-        "id": "3211449471524750057",
-        "name": "Tbao đrl VAA",
         "enabled": true
       }
     ],
