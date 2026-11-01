@@ -258,7 +258,9 @@ def api_test_zalo_alert():
         "content": """🔔 THÔNG BÁO KIỂM TRA HỆ THỐNG BOT VAA 24/7
 Hệ thống cào tin Facebook Comet SSR và bắn Zalo tự động của Học Viện Hàng Không Việt Nam (Yuki 2) đang hoạt động ổn định và sẵn sàng nhận thông báo!
 https://forms.gle/testVAAForm2026""",
-        "post_url": "https://facebook.com/vaa.ys2016"
+        "post_url": "https://facebook.com/vaa.ys2016",
+        "is_manual_test": True,
+        "creation_time": datetime.now().timestamp()
     }
     ok = dispatcher.send_alert(test_post, "Học Viện Hàng Không Việt Nam (VAA)")
     if ok:

@@ -296,7 +296,9 @@ def api_test_zalo_alert():
 Link đăng ký: https://forms.gle/testHuitDocForm2026
 
 Chúc toàn thể sinh viên HUIT học tập thật tốt!""",
-        "post_url": "https://www.facebook.com/dtn.hsv.huit"
+        "post_url": "https://www.facebook.com/dtn.hsv.huit",
+        "is_manual_test": True,
+        "creation_time": datetime.now().timestamp()
     }
     sent = dispatcher.send_alert(test_post, "KÊNH KIỂM TRA BOT")
     if sent:
@@ -536,7 +538,9 @@ def api_bot2_test_zalo_alert():
 Link đăng ký: https://forms.gle/testBot2FormRegistration2026
 
 Chúc các bạn theo dõi thuận lợi!""",
-        "post_url": "https://www.facebook.com"
+        "post_url": "https://www.facebook.com",
+        "is_manual_test": True,
+        "creation_time": datetime.now().timestamp()
     }
     sent = dispatcher.send_alert(test_post, "KÊNH KIỂM TRA BOT 2")
     if sent:
@@ -628,24 +632,23 @@ def api_bot3_crawl_now():
     new_count = 0
     from iuh_bot import send_zalo_iuh
     for act in activities:
-        aid = act["activity_id"]
-        seen_act = database.get_seen_activity(aid, db_file=database.IUH_DB_FILE)
-        is_new = seen_act is None
-        is_reopened = False
-        if not is_new and cfg.get("scanner", {}).get("notify_reopened_slots", True):
-            prev_status = (seen_act.get("status") or "").lower()
-            curr_status = act.get("status", "").lower()
-            if "đủ số lượng" in prev_status and "đủ số lượng" not in curr_status:
-                is_reopened = True
-
-        if is_new or is_reopened:
-            new_count += 1
-            act_type = "REOPEN" if is_reopened else "NEW"
-            database.record_seen_activity(act, is_sent=True, db_file=database.IUH_DB_FILE)
-            database.add_crawled_activity(act, action_type=act_type, is_sent=True, db_file=database.IUH_DB_FILE)
-            send_zalo_iuh(zalo, act, is_reopened=is_reopened)
-        else:
+        aid = str(act["activity_id"])
+        
+        # 1. KIỂM TRA NGHIÊM NGẶT: Hoạt động đã từng gửi Zalo chưa?
+        if database.is_activity_already_sent_zalo(aid, title=act.get("title"), db_file=database.IUH_DB_FILE):
             database.update_activity_status(aid, act.get("status", ""), act.get("slots", ""), db_file=database.IUH_DB_FILE)
+            continue
+
+        seen_act = database.get_seen_activity(aid, db_file=database.IUH_DB_FILE)
+        if seen_act is not None:
+            database.update_activity_status(aid, act.get("status", ""), act.get("slots", ""), db_file=database.IUH_DB_FILE)
+            continue
+
+        # Hoạt động MỚI 100% -> Lưu DB và gửi Zalo đúng 1 lần duy nhất
+        new_count += 1
+        database.record_seen_activity(act, is_sent=True, db_file=database.IUH_DB_FILE)
+        database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=database.IUH_DB_FILE)
+        send_zalo_iuh(zalo, act, is_reopened=False)
 
     database.set_bot_status("bot_state", "running", db_file=database.IUH_DB_FILE)
     info_msg = f"Quét xong! Tìm thấy {len(activities)} hoạt động trên bảng (Bắn {new_count} tin mới/mở slot)"

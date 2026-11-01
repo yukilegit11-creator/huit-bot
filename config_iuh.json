@@ -34,7 +34,7 @@
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": false
+        "enabled": true
       }
     ],
     "cookies": {
@@ -50,7 +50,7 @@
   },
   "scanner": {
     "check_interval_seconds": 15,
-    "notify_reopened_slots": true,
+    "notify_reopened_slots": false,
     "max_post_age_hours": 0.1667,
     "max_post_age_minutes": 10
   },

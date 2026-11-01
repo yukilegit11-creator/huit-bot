@@ -4,7 +4,7 @@ import json
 import base64
 import threading
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -140,7 +140,7 @@ def push_to_github(source_dir: str = None, commit_message: str = "🔄 Auto-sync
             timeout=20
         )
         if ref_update.status_code in (200, 201):
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            now_str = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
             _last_sync_status.update({
                 "status": "success",
                 "last_sync_time": now_str,
