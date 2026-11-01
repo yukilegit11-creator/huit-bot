@@ -88,7 +88,7 @@
     "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
     "target_group_name": "demo",
-    "auto_tag_all": false,
+    "auto_tag_all": true,
     "target_groups": [
       {
         "id": "475259879796859360",
