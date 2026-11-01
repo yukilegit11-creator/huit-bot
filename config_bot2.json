@@ -1,14 +1,85 @@
 {
-  "instance_name": "Bot Kênh 2",
-  "targets": [],
-  "fb_cookies": {},
+  "instance_name": "Bot VAA / VAU (Kênh 2)",
+  "targets": [
+    {
+      "id": "target_1",
+      "name": "Nguồn 1",
+      "url": "https://www.facebook.com/vaa.ys2016"
+    },
+    {
+      "id": "target_2",
+      "name": "Nguồn 2",
+      "url": "https://www.facebook.com/drd.vau"
+    },
+    {
+      "id": "target_3",
+      "name": "Nguồn 3",
+      "url": "https://www.facebook.com/doanhoi.khoangoaingu.vaa"
+    },
+    {
+      "id": "target_4",
+      "name": "Nguồn 4",
+      "url": "https://www.facebook.com/doanhoikhoakythuathangkhong"
+    },
+    {
+      "id": "target_5",
+      "name": "Nguồn 5",
+      "url": "https://www.facebook.com/doanhoikhoakhaithachangkhong"
+    },
+    {
+      "id": "target_6",
+      "name": "Nguồn 6",
+      "url": "https://www.facebook.com/vaa.doanhoikhoaquantrikinhdoanh"
+    },
+    {
+      "id": "target_7",
+      "name": "Nguồn 7",
+      "url": "https://www.facebook.com/profile.php?id=61576624683756"
+    },
+    {
+      "id": "target_8",
+      "name": "Nguồn 8",
+      "url": "https://www.facebook.com/doanhoi.kinhtehangkhong.vaa"
+    },
+    {
+      "id": "target_9",
+      "name": "Nguồn 9",
+      "url": "https://www.facebook.com/profile.php?id=61595823548942"
+    },
+    {
+      "id": "target_10",
+      "name": "CLB Tổ Chức Sự Kiện VEPC - VAA",
+      "url": "https://www.facebook.com/vepc.vaa"
+    },
+    {
+      "id": "target_11",
+      "name": "Đoàn Thanh Niên - Hội Sinh Viên VAU",
+      "url": "https://www.facebook.com/DoanTNHoiSV.VAU"
+    }
+  ],
+  "fb_cookies": {
+    "datr": "ztfDaj_5NKGnBN3r1C3aKdB-",
+    "fr": "1zUlXfOTQIjkpccuj.AWcVG2vXGgJBH_u9AizYH5CDIdyfFFKeMBoCRf2Kohz1kii7bMM.Bq56My..AAA.0.0.Bq56My.AWd91CYQYht6ujMfx7u2Eq90Q3Y",
+    "xs": "13%3A5QhZm5V7iIIwyQ%3A2%3A1793565487%3A-1%3A-1%3A%3AAc1aq5Rg6b59kar4cAVxdf6OwKCC9ESJy5Lo5XMOBw",
+    "c_user": "61592903259792",
+    "sb": "ztfDagnfYuiIXElW1JBf_Lsy",
+    "ps_l": "1",
+    "ps_n": "1",
+    "wd": "1422x659"
+  },
   "zalo": {
     "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
-    "target_thread_id": "",
+    "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
-    "target_group_name": "",
+    "target_group_name": "demo",
     "auto_tag_all": true,
-    "target_groups": [],
+    "target_groups": [
+      {
+        "id": "475259879796859360",
+        "name": "demo",
+        "enabled": true
+      }
+    ],
     "cookies": {
       "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
       "_ga": "GA1.1.1518733191.1793162405",
