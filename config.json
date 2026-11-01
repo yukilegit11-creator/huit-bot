@@ -105,7 +105,7 @@
   },
   "scanner": {
     "max_post_age_hours": 3.0,
-    "check_interval_seconds": 600,
-    "delay_between_pages_seconds": 12
+    "check_interval_seconds": 30,
+    "delay_between_pages_seconds": 9
   }
 }
