@@ -57,17 +57,18 @@ def format_iuh_message(act: dict, is_reopened: bool = False, auto_tag_all: bool 
 def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False):
     config = load_config()
     zalo_cfg = config.get("zalo", {})
-    target_list = [t for t in zalo_cfg.get("target_groups", []) if t.get("enabled", True)]
-    
-    if not target_list:
+    configured_groups = zalo_cfg.get("target_groups")
+    if configured_groups is not None:
+        target_list = [t for t in configured_groups if t.get("enabled") is True or str(t.get("enabled", "")).lower() in ("true", "1")]
+        if not target_list:
+            print("⏸️ [IUH] Tất cả người nhận / nhóm Zalo đều đang ở trạng thái TẮT. Không gửi thông báo.")
+            return False
+    else:
         fallback_id = zalo_cfg.get("target_thread_id")
-        if fallback_id:
-            target_list = [{
-                "id": fallback_id,
-                "name": zalo_cfg.get("target_group_name", "demo"),
-                "type": zalo_cfg.get("target_type", "GROUP"),
-                "enabled": True
-            }]
+        target_list = [{"id": fallback_id, "name": zalo_cfg.get("target_group_name", "demo"), "type": zalo_cfg.get("target_type", "GROUP"), "enabled": True}] if fallback_id else []
+
+    if not target_list:
+        return False
 
     if not zalo.client:
         if not zalo.connect():
@@ -202,35 +203,8 @@ def run_bot():
         try:
             is_logged_in, msg, activities = scraper.fetch_activities()
             if not is_logged_in:
+                # Chỉ ghi log vào hệ thống và Web Dashboard, tuyệt đối không tự động gửi tin rác vào Zalo
                 database.set_bot_status("portal_cookie_status", "expired", db_file=DB_TARGET)
-                database.log_event("WARN", f"Cookie IUH (PHPSESSID) đã hết hạn hoặc chưa đăng nhập: {msg}", db_file=DB_TARGET)
-                now_ts = time.time()
-                if now_ts - last_warn_time > 1800:
-                    last_warn_time = now_ts
-                    try:
-                        warn_msg = (
-                            "⚠️ [IUH BOT CẢNH BÁO]\n"
-                            "━━━━━━━━━━━━━━━━━━━━\n"
-                            "Phiên đăng nhập web trường (PHPSESSID) đã hết hạn!\n"
-                            "Bot tạm thời không thể đọc dữ liệu từ doantn.iuh.edu.vn.\n\n"
-                            "👉 Vui lòng vào Web Dashboard cập nhật Cookie mới để Bot tiếp tục săn hoạt động!"
-                        )
-                        # CHỈ GỬI CẢNH BÁO VỀ ZALO CÁ NHÂN (USER), TUYỆT ĐỐI KHÔNG GỬI VÀO NHÓM
-                        user_targets = [
-                            t for t in config.get("zalo", {}).get("target_groups", []) 
-                            if t.get("enabled", True) and str(t.get("type", "")).upper() == "USER"
-                        ]
-                        if not user_targets:
-                            user_targets = [{"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}]
-
-                        for t in user_targets:
-                            tid = str(t["id"])
-                            zalo.client.send(Message(text=warn_msg), thread_id=tid, thread_type=ThreadType.USER)
-                            log_msg = f"Đã gửi cảnh báo Cookie hết hạn tới Zalo cá nhân [{t.get('name')}] ({tid})"
-                            print(f"⚠️ [Zalo] {log_msg}")
-                            database.log_event("WARN", log_msg, db_file=DB_TARGET)
-                    except Exception as e:
-                        print(f"❌ [Zalo] Lỗi gửi cảnh báo cá nhân: {e}")
             else:
                 database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
                 new_count = 0

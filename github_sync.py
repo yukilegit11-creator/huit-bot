@@ -3,6 +3,7 @@ import sys
 import json
 import base64
 import threading
+import time
 import requests
 from datetime import datetime, timezone, timedelta
 
@@ -70,9 +71,12 @@ def push_to_github(source_dir: str = None, commit_message: str = "🔄 Auto-sync
         parent_commit_sha = ref_res.json()["object"]["sha"] if ref_res.status_code == 200 else None
 
         # 3. Tạo Blobs cho các tệp
-        ignore_files = {".git", "__pycache__", ".vercel", "node_modules"}
+        ignore_files = {".git", "__pycache__", ".vercel", "node_modules", "venv", ".gemini", ".idea", ".vscode"}
         ignore_exts = {".db", ".sqlite", ".pyc", ".log", ".tmp"}
         tree_entries = []
+
+        session = requests.Session()
+        session.headers.update(HEADERS)
 
         for root, dirs, files in os.walk(source_dir):
             dirs[:] = [d for d in dirs if d not in ignore_files]
@@ -82,26 +86,31 @@ def push_to_github(source_dir: str = None, commit_message: str = "🔄 Auto-sync
                 full_path = os.path.join(root, file)
                 rel_path = os.path.relpath(full_path, source_dir).replace("\\", "/")
 
-                try:
-                    with open(full_path, "rb") as f:
-                        content_bytes = f.read()
-                    
-                    b64_content = base64.b64encode(content_bytes).decode("utf-8")
-                    blob_res = requests.post(
-                        f"{repo_url}/git/blobs",
-                        headers=HEADERS,
-                        json={"content": b64_content, "encoding": "base64"},
-                        timeout=20
-                    )
-                    if blob_res.status_code in (200, 201):
-                        tree_entries.append({
-                            "path": rel_path,
-                            "mode": "100755" if rel_path.endswith(".sh") or rel_path.endswith(".bat") else "100644",
-                            "type": "blob",
-                            "sha": blob_res.json()["sha"]
-                        })
-                except Exception as ex:
-                    print(f"Bỏ qua file {rel_path} do lỗi: {ex}")
+                for attempt in range(4):
+                    try:
+                        with open(full_path, "rb") as f:
+                            content_bytes = f.read()
+                        
+                        b64_content = base64.b64encode(content_bytes).decode("utf-8")
+                        blob_res = session.post(
+                            f"{repo_url}/git/blobs",
+                            json={"content": b64_content, "encoding": "base64"},
+                            timeout=25
+                        )
+                        if blob_res.status_code in (200, 201):
+                            tree_entries.append({
+                                "path": rel_path,
+                                "mode": "100755" if rel_path.endswith(".sh") or rel_path.endswith(".bat") else "100644",
+                                "type": "blob",
+                                "sha": blob_res.json()["sha"]
+                            })
+                            break
+                        else:
+                            time.sleep(1.0)
+                    except Exception as ex:
+                        if attempt == 3:
+                            print(f"Bỏ qua file {rel_path} sau 4 lần thử do lỗi: {ex}")
+                        time.sleep(1.5)
 
         if not tree_entries:
             _last_sync_status.update({"status": "idle", "message": "Không có tệp nào cần đồng bộ."})
