@@ -130,21 +130,34 @@ def set_bot_enabled(enabled: bool, db_file=None):
     conn.close()
     log_event("SYSTEM", f"Người dùng đã {'BẬT (Khởi động)' if enabled else 'TẮT (Tạm dừng)'} tiến trình Bot quét tự động.", db_file=db_file)
 
-def is_post_seen(post_hash: str, db_file=None) -> bool:
+def is_post_seen(post_hash: str, content: str = None, db_file=None) -> bool:
     conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (post_hash,))
     seen = cursor.fetchone() is not None
+    if not seen and content:
+        import hashlib
+        c_hash = hashlib.md5(content.strip()[:150].encode("utf-8")).hexdigest()
+        cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (c_hash,))
+        seen = cursor.fetchone() is not None
     conn.close()
     return seen
 
-def record_seen_post(post_hash: str, page_name: str, db_file=None):
+def record_seen_post(post_hash: str, page_name: str, content: str = None, db_file=None):
     conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute(
         "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
         (post_hash, page_name)
     )
+    if content:
+        import hashlib
+        c_hash = hashlib.md5(content.strip()[:150].encode("utf-8")).hexdigest()
+        if c_hash != post_hash:
+            cursor.execute(
+                "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
+                (c_hash, page_name)
+            )
     conn.commit()
     conn.close()
 

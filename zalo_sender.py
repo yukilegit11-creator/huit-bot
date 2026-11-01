@@ -13,6 +13,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from zlapi import ZaloAPI
 from zlapi.models import Message, Mention, ThreadType
 import re
+import hashlib
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
@@ -174,6 +175,28 @@ class ZaloDispatcher:
             print("⚠️ Chưa có nhóm Zalo nào được kích hoạt để gửi tin!")
             return False
 
+        # 1. Khử trùng lặp nhóm đích (chỉ gửi mỗi nhóm 1 lần duy nhất)
+        seen_gids = set()
+        clean_targets = []
+        for g in target_list:
+            gid = str(g.get("id"))
+            if gid not in seen_gids:
+                seen_gids.add(gid)
+                clean_targets.append(g)
+        target_list = clean_targets
+
+        # 2. Bộ nhớ đệm chống gửi trùng bài viết trong phiên chạy (tránh gửi 2 lần)
+        if not hasattr(self, "_sent_cache"):
+            self._sent_cache = {}
+        now_ts = time.time()
+        self._sent_cache = {k: v for k, v in self._sent_cache.items() if now_ts - v < 3600}
+
+        content_key = post_data.get("content", "").strip()[:80]
+        post_ident = f"{post_data.get('post_id', '')}_{content_key}"
+        if post_ident in self._sent_cache:
+            print(f"🛑 [Chống lặp] Bài viết '{content_key[:30]}...' đã được gửi trước đó, bỏ qua không gửi lần 2!")
+            return True
+
         formatted_text, form_links = self.format_message(post_data, page_name)
         target_type_str = self.zalo_cfg.get("target_type", "GROUP").upper()
         thread_type = ThreadType.GROUP if target_type_str == "GROUP" else ThreadType.USER
@@ -190,29 +213,28 @@ class ZaloDispatcher:
         for g in target_list:
             gid = str(g["id"])
             gname = g.get("name", gid)
-            for attempt in range(2):
+            try:
+                res = self.client.send(
+                    msg_obj,
+                    thread_id=gid,
+                    thread_type=thread_type
+                )
+                bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
+                form_info = f" (Kèm {len(form_links)} link form GG Doc)" if form_links else ""
+                print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công vào nhóm [{gname}] (ID: {gid}){form_info}")
                 try:
-                    res = self.client.send(
-                        msg_obj,
-                        thread_id=gid,
-                        thread_type=thread_type
-                    )
-                    bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
-                    form_info = f" (Kèm {len(form_links)} link form GG Doc)" if form_links else ""
-                    print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công vào nhóm [{gname}] (ID: {gid}){form_info}")
-                    try:
-                        import database
-                        db_target = "bot2.db" if "bot2" in str(self.config_file) else None
-                        database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] vào nhóm [{gname}]{form_info}", db_file=db_target)
-                    except Exception:
-                        pass
-                    any_success = True
-                    break
-                except Exception as e:
-                    print(f"⚠️ Thử gửi nhóm {gname} lần {attempt+1} thất bại: {e}")
-                    time.sleep(2)
-                    self.connect()
-            time.sleep(1.5)
+                    import database
+                    db_target = "bot2.db" if "bot2" in str(self.config_file) else None
+                    database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] vào nhóm [{gname}]{form_info}", db_file=db_target)
+                except Exception:
+                    pass
+                any_success = True
+            except Exception as e:
+                print(f"⚠️ Lỗi gửi tin vào nhóm {gname}: {e}")
+            time.sleep(1.0)
+
+        if any_success:
+            self._sent_cache[post_ident] = now_ts
 
         return any_success
 

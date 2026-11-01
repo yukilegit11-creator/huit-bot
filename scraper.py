@@ -5,8 +5,10 @@ import os
 import re
 import hashlib
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
+
+VN_TZ = timezone(timedelta(hours=7))
 
 DESKTOP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -112,7 +114,7 @@ class FacebookCometScraper:
                     if creation_time and isinstance(creation_time, (int, float)):
                         if creation_time > 1e11:
                             creation_time = creation_time / 1000.0
-                        post_time_str = datetime.fromtimestamp(creation_time).strftime("%d/%m/%Y %H:%M:%S")
+                        post_time_str = datetime.fromtimestamp(creation_time, tz=timezone.utc).astimezone(VN_TZ).strftime("%d/%m/%Y %H:%M:%S")
 
                     author = meta.get("author") or ""
                     if not author and obj.get("actors") and isinstance(obj["actors"], list) and len(obj["actors"]) > 0:

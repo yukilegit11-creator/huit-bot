@@ -129,7 +129,7 @@ def run_bot():
                 for p in posts:
                     ident = p.get("post_id") or hashlib.md5(p["content"][:150].encode("utf-8")).hexdigest()
                     
-                    if not database.is_post_seen(ident, db_file=DB_TARGET):
+                    if not database.is_post_seen(ident, content=p["content"], db_file=DB_TARGET):
                         total_new_posts += 1
                         author_name = p.get("author", "ẩn danh")
                         snippet = p.get("content", "")[:90].replace("\n", " ")
@@ -146,7 +146,7 @@ def run_bot():
                             posted_time=p.get("posted_time", ""),
                             db_file=DB_TARGET
                         )
-                        database.record_seen_post(ident, page_name, db_file=DB_TARGET)
+                        database.record_seen_post(ident, page_name, content=p["content"], db_file=DB_TARGET)
 
                         # 2. Đồng bộ Supabase nếu có
                         if supabase.enabled:
