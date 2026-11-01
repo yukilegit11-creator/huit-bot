@@ -110,6 +110,8 @@ class FacebookCometScraper:
                     creation_time = meta.get("creation_time") or obj.get("creation_time") or obj.get("publish_time")
                     post_time_str = ""
                     if creation_time and isinstance(creation_time, (int, float)):
+                        if creation_time > 1e11:
+                            creation_time = creation_time / 1000.0
                         post_time_str = datetime.fromtimestamp(creation_time).strftime("%d/%m/%Y %H:%M:%S")
 
                     author = meta.get("author") or ""
@@ -124,7 +126,7 @@ class FacebookCometScraper:
                         "content": txt,
                         "post_url": url,
                         "creation_time": creation_time,
-                        "posted_time": post_time_str or datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                        "posted_time": post_time_str,
                         "author": author or "Thành viên nhóm"
                     })
 

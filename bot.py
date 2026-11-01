@@ -119,8 +119,8 @@ def run_bot():
                         total_new_posts += 1
                         author_name = p.get("author", "ẩn danh")
                         snippet = p.get("content", "")[:90].replace("\n", " ")
-                        print(f"   ✨ [Bài #{total_new_posts}] Phát hiện bài mới từ '{author_name}': {snippet}...")
-                        database.log_event("POST", f"[{page_name}] Phát hiện bài mới từ '{author_name}': {snippet}...")
+                        print(f"   ✨ [Bài #{total_new_posts}] [Yuki 1 (HUIT)] Phát hiện bài mới từ '{author_name}': {snippet}...")
+                        database.log_event("POST", f"[Yuki 1 (HUIT)] [{page_name}] Phát hiện bài mới từ '{author_name}': {snippet}...")
 
                         # 1. Lưu vào cơ sở dữ liệu Web (SQLite)
                         database.save_crawled_post(
@@ -143,14 +143,14 @@ def run_bot():
                         filter_kws = config.get("filter_keywords", [])
                         has_kw, matched_kw = matches_filter_keywords(p.get("content", ""), filter_kws)
                         if has_kw:
-                            print(f"      🎯 Bài viết khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo...")
-                            database.log_event("FILTER", f"Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...")
+                            print(f"      🎯 [Yuki 1 (HUIT)] Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo...")
+                            database.log_event("FILTER", f"[Yuki 1 (HUIT)] Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...")
                             sent_zalo = zalo.send_alert(p, page_name)
                             if sent_zalo:
                                 database.mark_post_sent_zalo(ident)
                         else:
-                            print(f"      ⏩ Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
-                            database.log_event("FILTER", f"Bỏ qua gửi Zalo (bài viết không chứa từ khóa tuyển sinh/form/đăng ký/đrl)")
+                            print(f"      ⏩ [Yuki 1 (HUIT)] Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
+                            database.log_event("FILTER", f"[Yuki 1 (HUIT)] Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
 
                         # Nghỉ nhẹ giữa các bài gửi để tránh spam
                         time.sleep(random.uniform(2.5, 4.0))

@@ -59,6 +59,7 @@ class ZaloDispatcher:
         with open(self.config_file, "r", encoding="utf-8") as f:
             self.full_cfg = json.load(f)
             self.zalo_cfg = self.full_cfg.get("zalo", {})
+            self.bot_name = self.full_cfg.get("bot_name") or ("Yuki 2 (VAA)" if "bot2" in str(self.config_file) else "Yuki 1 (HUIT)")
 
     def connect(self):
         self.load_config()
@@ -140,6 +141,8 @@ class ZaloDispatcher:
         lines.append("━━━━━━━━━━━━━━━━━━━━")
         # Câu xin lỗi nếu làm phiền
         lines.append("🙏 Xin lỗi nếu thông báo này đã làm phiền các bạn!")
+        bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
+        lines.append(f"🤖 {bot_label}")
 
         formatted_text = "\n".join(lines)
         return formatted_text, form_links
@@ -194,11 +197,13 @@ class ZaloDispatcher:
                         thread_id=gid,
                         thread_type=thread_type
                     )
+                    bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
                     form_info = f" (Kèm {len(form_links)} link form GG Doc)" if form_links else ""
-                    print(f"📨 [Zalo] Bắn tin thành công vào nhóm [{gname}] (ID: {gid}){form_info}")
+                    print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công vào nhóm [{gname}] (ID: {gid}){form_info}")
                     try:
                         import database
-                        database.log_event("ZALO", f"Đã gửi bài của [{page_name}] vào nhóm [{gname}]{form_info}")
+                        db_target = "bot2.db" if "bot2" in str(self.config_file) else None
+                        database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] vào nhóm [{gname}]{form_info}", db_file=db_target)
                     except Exception:
                         pass
                     any_success = True

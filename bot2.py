@@ -133,8 +133,8 @@ def run_bot():
                         total_new_posts += 1
                         author_name = p.get("author", "ẩn danh")
                         snippet = p.get("content", "")[:90].replace("\n", " ")
-                        print(f"   ✨ [Bài #{total_new_posts}] Phát hiện bài mới từ '{author_name}': {snippet}...")
-                        database.log_event("POST", f"[{page_name}] Phát hiện bài mới từ '{author_name}': {snippet}...", db_file=DB_TARGET)
+                        print(f"   ✨ [Bài #{total_new_posts}] [Yuki 2 (VAA)] Phát hiện bài mới từ '{author_name}': {snippet}...")
+                        database.log_event("POST", f"[Yuki 2 (VAA)] [{page_name}] Phát hiện bài mới từ '{author_name}': {snippet}...", db_file=DB_TARGET)
 
                         # 1. Lưu vào database riêng của Bot 2
                         database.save_crawled_post(
@@ -158,14 +158,14 @@ def run_bot():
                         filter_kws = config.get("filter_keywords", [])
                         has_kw, matched_kw = matches_filter_keywords(p.get("content", ""), filter_kws)
                         if has_kw:
-                            print(f"      🎯 Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo Bot 2...")
-                            database.log_event("FILTER", f"Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...", db_file=DB_TARGET)
+                            print(f"      🎯 [Yuki 2 (VAA)] Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo Bot 2...")
+                            database.log_event("FILTER", f"[Yuki 2 (VAA)] Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...", db_file=DB_TARGET)
                             sent_zalo = zalo.send_alert(p, page_name)
                             if sent_zalo:
                                 database.mark_post_sent_zalo(ident, db_file=DB_TARGET)
                         else:
-                            print(f"      ⏩ Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
-                            database.log_event("FILTER", f"Bỏ qua gửi Zalo (bài viết không chứa từ khóa lọc)", db_file=DB_TARGET)
+                            print(f"      ⏩ [Yuki 2 (VAA)] Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
+                            database.log_event("FILTER", f"[Yuki 2 (VAA)] Bỏ qua gửi Zalo (bài viết không chứa từ khóa lọc)", db_file=DB_TARGET)
 
                         time.sleep(random.uniform(2.5, 4.0))
 
