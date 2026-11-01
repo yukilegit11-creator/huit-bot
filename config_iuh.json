@@ -16,13 +16,13 @@
         "id": "6906603484437051809",
         "name": "TB điểm rèn luyện IUH",
         "type": "GROUP",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "4567863637705237532",
         "name": "IUH-TBAO DRL",
         "type": "GROUP",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "475259879796859360",
