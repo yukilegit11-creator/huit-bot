@@ -87,7 +87,7 @@
         "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "387016397668099110",
@@ -105,7 +105,7 @@
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": true
+        "enabled": false
       }
     ],
     "cookies": {
@@ -144,8 +144,9 @@
     "Ngày rèn luyện"
   ],
   "scanner": {
-    "max_post_age_hours": 1.0,
+    "max_post_age_hours": 0.1667,
     "check_interval_seconds": 30,
-    "delay_between_pages_seconds": 9
+    "delay_between_pages_seconds": 9,
+    "max_post_age_minutes": 10
   }
 }

@@ -3,6 +3,9 @@
 # Lấy cổng do Render cấp phát (mặc định 8000 nếu chạy local)
 PORT=${PORT:-8000}
 
+# Múi giờ chuẩn Việt Nam GMT+7
+export TZ="Asia/Ho_Chi_Minh"
+
 echo "=========================================================="
 echo "🚀 ĐANG KHỞI ĐỘNG HỆ THỐNG TRÊN RENDER CLOUD 24/7"
 echo "🌐 Web Dashboard Port: $PORT"

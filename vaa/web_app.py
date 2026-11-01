@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 import database
 from zalo_sender import ZaloDispatcher
@@ -254,7 +254,7 @@ def api_test_zalo_alert():
     dispatcher = ZaloDispatcher(CONFIG_FILE)
     test_post = {
         "author": "Ban Quản Trị VAA (Trần Lê Phát)",
-        "posted_time": datetime.now().strftime("%H:%M - %d/%m/%Y"),
+        "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M - %d/%m/%Y"),
         "content": """🔔 THÔNG BÁO KIỂM TRA HỆ THỐNG BOT VAA 24/7
 Hệ thống cào tin Facebook Comet SSR và bắn Zalo tự động của Học Viện Hàng Không Việt Nam (Yuki 2) đang hoạt động ổn định và sẵn sàng nhận thông báo!
 https://forms.gle/testVAAForm2026""",
@@ -277,7 +277,7 @@ def api_crawl_now():
     supabase = SupabaseDispatcher(CONFIG_FILE)
     
     new_posts = []
-    database.set_bot_status("last_scan_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    database.set_bot_status("last_scan_time", datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S"))
     database.set_bot_status("bot_state", "scanning")
     database.log_event("SCAN", f"[Cào thủ công VAA] Bắt đầu quét nhanh qua {len(targets)} nguồn VAA...")
 

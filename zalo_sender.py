@@ -11,9 +11,11 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 from zlapi import ZaloAPI
+from zlapi import ZaloAPI
 from zlapi.models import Message, Mention, ThreadType
 import re
 import hashlib
+from datetime import datetime, timezone, timedelta
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
@@ -49,6 +51,36 @@ def extract_post_title(text: str, max_len: int = 150) -> str:
     if len(first_line) > max_len:
         first_line = first_line[:max_len].rsplit(" ", 1)[0] + "..."
     return first_line
+
+MAX_POST_AGE_MINUTES = 10.0
+
+def is_post_fresh_within_10_minutes(post_data: dict) -> tuple:
+    """
+    CHỐT CHẶN TRUNG TÂM - Chỉ cho phép gửi Zalo khi đây là BÀI MỚI THẬT SỰ:
+      - Phải có nội dung thật (không rỗng).
+      - Phải có creation_time dạng số do Facebook trả về (không đoán, không giả lập).
+      - Bài đăng cách hiện tại <= 10 phút.
+    Ngoại lệ duy nhất: người dùng bấm nút "Gửi thử" trên Web (is_manual_test=True).
+    Trả về (is_fresh: bool, reason: str)
+    """
+    if post_data.get("is_manual_test") is True:
+        return True, "Tin thử nghiệm do người dùng bấm thủ công trên Web"
+
+    if not str(post_data.get("content") or "").strip():
+        return False, "Bài viết rỗng, không phải bài mới thật sự"
+
+    c_time = post_data.get("creation_time")
+    if isinstance(c_time, bool) or not isinstance(c_time, (int, float)) or c_time <= 0:
+        return False, "Không có mốc thời gian đăng thật từ Facebook -> không xác minh được là bài mới"
+
+    if c_time > 1e11:
+        c_time = c_time / 1000.0
+    age_minutes = (time.time() - c_time) / 60.0
+    if age_minutes < -5.0:
+        return False, f"Mốc thời gian bất thường (tương lai {abs(age_minutes):.1f} phút)"
+    if age_minutes > MAX_POST_AGE_MINUTES:
+        return False, f"Đã trôi qua {age_minutes:.1f} phút (> {MAX_POST_AGE_MINUTES:.0f} phút quy định)"
+    return True, f"Mới đăng cách đây {max(age_minutes, 0):.1f} phút (<= {MAX_POST_AGE_MINUTES:.0f} phút)"
 
 class ZaloDispatcher:
     def __init__(self, config_file=CONFIG_PATH):
@@ -149,6 +181,26 @@ class ZaloDispatcher:
         return formatted_text, form_links
 
     def send_alert(self, post_data: dict, page_name: str, target_thread_id: str = None, matched_kw: str = "") -> bool:
+        # 0. CHỐT CHẶN: Cấm tự động gửi khi không phải bài mới thật sự
+        is_fresh, fresh_reason = is_post_fresh_within_10_minutes(post_data)
+        if not is_fresh:
+            bot_label = getattr(self, "bot_name", "Yuki Bot")
+            msg = f"⛔ [{bot_label}] CHẶN gửi Zalo: {fresh_reason}"
+            print(msg)
+            try:
+                import database
+                cfg_lower = str(self.config_file).lower()
+                if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                    db_g = database.BOT2_DB_FILE
+                elif "iuh" in cfg_lower:
+                    db_g = database.IUH_DB_FILE
+                else:
+                    db_g = database.DB_FILE
+                database.log_event("FILTER", msg, db_file=db_g)
+            except Exception:
+                pass
+            return False
+
         if not self.client:
             if not self.connect():
                 return False
@@ -198,13 +250,45 @@ class ZaloDispatcher:
         if not hasattr(self, "_sent_cache"):
             self._sent_cache = {}
         now_ts = time.time()
-        self._sent_cache = {k: v for k, v in self._sent_cache.items() if now_ts - v < 3600}
+        self._sent_cache = {k: v for k, v in self._sent_cache.items() if now_ts - v < 86400}
 
+        pid = str(post_data.get("post_id", ""))
         content_key = post_data.get("content", "").strip()[:80]
-        post_ident = f"{post_data.get('post_id', '')}_{content_key}"
+        post_ident = f"{pid}_{content_key}"
         if post_ident in self._sent_cache:
-            print(f"🛑 [Chống lặp] Bài viết '{content_key[:30]}...' đã được gửi trước đó, bỏ qua không gửi lần 2!")
+            print(f"🛑 [Chống lặp tuyệt đối] Bài viết '{content_key[:30]}...' đã gửi trước đó trong phiên, nghiêm cấm gửi lần 2!")
             return True
+
+        # 3. Kiểm tra trực tiếp cơ sở dữ liệu SQLite: Nghiêm cấm gửi lại bài đã gửi thành công
+        cfg_lower = str(self.config_file).lower()
+        try:
+            import database
+            if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                db_chk = database.BOT2_DB_FILE
+            elif "iuh" in cfg_lower:
+                db_chk = database.IUH_DB_FILE
+            else:
+                db_chk = database.DB_FILE
+
+            if database.is_post_already_sent_zalo(pid, post_data.get("content", ""), db_file=db_chk):
+                print(f"🛑 [Chống lặp tuyệt đối] Bài viết ID {pid} ('{content_key[:30]}...') đã được gửi thành công trước đó trong SQLite DB. Nghiêm cấm gửi lần 2!")
+                self._sent_cache[post_ident] = now_ts
+                return True
+        except Exception as ex_db_chk:
+            print(f"Lỗi kiểm tra trùng lặp DB: {ex_db_chk}")
+
+        # 4. KIỂM TRA QUY ĐỊNH 10 PHÚT: Cấm gửi bài nếu đã đăng quá 10 phút hoặc không có thời gian thực sự
+        is_fresh, fresh_reason = is_post_fresh_within_10_minutes(post_data)
+        if not is_fresh:
+            bot_label = getattr(self, "bot_name", "Yuki Bot")
+            print(f"⏳ [{bot_label}] Bỏ qua không gửi Zalo: {fresh_reason} (Bài: '{content_key[:40]}...')")
+            try:
+                import database
+                db_log = database.BOT2_DB_FILE if ("bot2" in cfg_lower or "vaa" in cfg_lower) else (database.IUH_DB_FILE if "iuh" in cfg_lower else database.DB_FILE)
+                database.log_event("FILTER", f"⏳ Bỏ qua không gửi Zalo vì không phải bài mới thực sự trong 10 phút: {fresh_reason}", db_file=db_log)
+            except Exception:
+                pass
+            return False
 
         formatted_text, form_links = self.format_message(post_data, page_name)
         target_type_str = self.zalo_cfg.get("target_type", "GROUP").upper()
@@ -212,8 +296,25 @@ class ZaloDispatcher:
 
         any_success = False
         for g in target_list:
-            gid = str(g["id"])
+            gid = str(g["id"]).strip()
             gname = g.get("name", gid)
+
+            # 4. Kiểm tra nhóm này đã từng nhận bài này chưa
+            try:
+                import database
+                if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                    db_target = database.BOT2_DB_FILE
+                elif "iuh" in cfg_lower:
+                    db_target = database.IUH_DB_FILE
+                else:
+                    db_target = database.DB_FILE
+
+                if database.is_post_already_sent_zalo(pid, post_data.get("content", ""), target_id=gid, db_file=db_target):
+                    print(f"🛑 [Chống lặp nhóm] Bài viết đã từng gửi tới nhóm [{gname}] (ID: {gid}) trước đó, bỏ qua!")
+                    continue
+            except Exception:
+                pass
+
             target_type = str(g.get("type") or self.zalo_cfg.get("target_type", "GROUP")).upper()
             is_user = (target_type == "USER")
             t_type = ThreadType.USER if is_user else ThreadType.GROUP

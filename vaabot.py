@@ -4,7 +4,7 @@ import time
 import json
 import random
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Đảm bảo UTF-8 trên Windows Terminal
 if sys.platform == "win32":
@@ -114,7 +114,7 @@ def run_bot():
             continue
 
         cycle += 1
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n[{now_str}] 🔄 === [BOT 2] VÒNG QUÉT THỨ #{cycle} ===")
         database.set_bot_status("last_scan_time", now_str, db_file=DB_TARGET)
         database.set_bot_status("scan_cycle", str(cycle), db_file=DB_TARGET)

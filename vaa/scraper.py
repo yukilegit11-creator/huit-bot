@@ -88,6 +88,10 @@ class FacebookCometScraper:
             if g in txt_lower:
                 return False
 
+        # Lọc bỏ bài ghim cũ HUIT ICONIC 2026 từ tháng 9
+        if "iconic" in txt_lower and "2026" in txt_lower and ("07/09" in text or "phát động" in txt_lower):
+            return False
+
         return True
 
     def _extract_messages_from_json(self, obj, posts, metadata_map, default_page_url=""):
@@ -97,31 +101,35 @@ class FacebookCometScraper:
                 if self.is_valid_post(txt):
                     pid = obj.get("post_id") or self.get_post_id_from_story_id(obj.get("id"))
                     meta = metadata_map.get(pid, {}) if pid else {}
-                    
                     url = meta.get("url") or obj.get("permalink_url") or obj.get("url") or ""
+                    
                     if not url and pid:
-                        if "/groups/" in default_page_url:
-                            base_grp = default_page_url.split("?")[0].rstrip("/")
-                            url = f"{base_grp}/posts/{pid}/"
+                        if "groups" in default_page_url:
+                            url = f"https://www.facebook.com/groups/sinhvienhuit/posts/{pid}/"
                         else:
                             url = f"https://www.facebook.com/{pid}"
 
-                    creation_time = meta.get("creation_time") or obj.get("creation_time")
+                    creation_time = meta.get("creation_time") or obj.get("creation_time") or obj.get("publish_time")
                     post_time_str = ""
                     if creation_time and isinstance(creation_time, (int, float)):
-                        post_time_str = datetime.fromtimestamp(creation_time, tz=VN_TZ).strftime("%d/%m/%Y %H:%M:%S")
+                        if creation_time > 1e11:
+                            creation_time = creation_time / 1000.0
+                        post_time_str = datetime.fromtimestamp(creation_time, tz=timezone.utc).astimezone(VN_TZ).strftime("%d/%m/%Y %H:%M:%S")
 
                     author = meta.get("author") or ""
                     if not author and obj.get("actors") and isinstance(obj["actors"], list) and len(obj["actors"]) > 0:
                         author = obj["actors"][0].get("name", "")
 
+                    if not pid:
+                        pid = hashlib.md5(txt[:150].encode("utf-8")).hexdigest()
+
                     posts.append({
+                        "post_id": pid,
                         "content": txt,
                         "post_url": url,
                         "creation_time": creation_time,
                         "posted_time": post_time_str,
-                        "author": author or "Ẩn danh",
-                        "post_id": pid
+                        "author": author or "Thành viên nhóm"
                     })
 
             for v in obj.values():
@@ -130,7 +138,7 @@ class FacebookCometScraper:
             for item in obj:
                 self._extract_messages_from_json(item, posts, metadata_map, default_page_url)
 
-    def parse_posts(self, html_text: str, max_age_hours: float = 1.0, page_url: str = "") -> list:
+    def parse_posts(self, html_text: str, max_age_hours: float = 0.1667, page_url: str = "") -> list:
         if not html_text:
             return []
 
@@ -144,54 +152,84 @@ class FacebookCometScraper:
                 if pid:
                     if pid not in metadata_map:
                         metadata_map[pid] = {}
-                    if d.get("creation_time"):
-                        metadata_map[pid]["creation_time"] = d["creation_time"]
+                    c_ts = d.get("creation_time") or d.get("publish_time") or d.get("post_creation_time")
+                    if c_ts:
+                        metadata_map[pid]["creation_time"] = c_ts
                     if d.get("actors") and isinstance(d["actors"], list) and len(d["actors"]) > 0:
                         name = d["actors"][0].get("name")
                         if name:
                             metadata_map[pid]["author"] = name
                     u = d.get("permalink_url") or d.get("wwwURL") or d.get("url")
-                    if u:
+                    if u and isinstance(u, str):
                         metadata_map[pid]["url"] = u
                 for v in d.values():
                     index_metadata(v)
             elif isinstance(d, list):
-                for item in d:
-                    index_metadata(item)
+                for v in d:
+                    index_metadata(v)
 
-        raw_posts = []
         for s in scripts:
             if not s.string:
                 continue
             try:
                 data = json.loads(s.string)
                 index_metadata(data)
-                self._extract_messages_from_json(data, raw_posts, metadata_map, page_url)
             except Exception:
+                pass
+
+        found_posts = []
+        for s in scripts:
+            if not s.string:
                 continue
+            if '"message":{"text":' in s.string or '"story":' in s.string or '"comet_sections":' in s.string:
+                try:
+                    data = json.loads(s.string)
+                    self._extract_messages_from_json(data, found_posts, metadata_map, page_url)
+                except Exception:
+                    pass
 
-        # Lọc trùng lặp & Lọc bài đăng trong vòng max_age_hours
-        now_ts = datetime.now(tz=VN_TZ).timestamp()
-        filtered = []
-        seen_ids = set()
+        # Regex fallback: Tuyệt đối KHÔNG giả lập time.time() để tránh bắn bài cũ
+        if not found_posts:
+            matches = re.findall(r'"message":\{"text":"(.*?)"\}', html_text)
+            for m in matches:
+                try:
+                    dec = json.loads(f'"{m}"')
+                except Exception:
+                    dec = m.encode("utf-8").decode("unicode_escape", errors="ignore")
+                if self.is_valid_post(dec):
+                    found_posts.append({
+                        "post_id": hashlib.md5(dec[:150].encode("utf-8")).hexdigest(),
+                        "content": dec,
+                        "post_url": page_url,
+                        "creation_time": None, # Không giả mạo timestamp
+                        "posted_time": "",
+                        "author": "Người dùng Facebook"
+                    })
 
-        for p in raw_posts:
-            ident = p.get("post_id") or hashlib.md5(p["content"][:150].encode("utf-8")).hexdigest()
-            if ident in seen_ids:
-                continue
-            seen_ids.add(ident)
+        # Khử trùng lặp nội dung giống nhau trong cùng 1 trang
+        unique_dict = {}
+        for p in found_posts:
+            key = p["content"].strip()
+            if key not in unique_dict:
+                unique_dict[key] = p
 
+        # Bộ lọc thời gian nghiêm ngặt: MẶC ĐỊNH <= 10 PHÚT (10/60 = 0.1667 giờ)
+        now_ts = time.time()
+        fresh_posts = []
+        for p in list(unique_dict.values()):
             c_time = p.get("creation_time")
             if c_time and isinstance(c_time, (int, float)):
-                age_hours = (now_ts - c_time) / 3600.0
-                if age_hours > max_age_hours:
-                    # Bỏ qua bài quá cũ
+                if c_time > 1e11:
+                    c_time = c_time / 1000.0
+                age_minutes = (now_ts - c_time) / 60.0
+                # Nếu đã trôi qua hơn 10 phút thì TUYỆT ĐỐI BỎ QUA không gửi
+                if age_minutes > 10.0 or age_minutes < -5.0:
                     continue
+                fresh_posts.append(p)
             else:
-                # Nếu không có mốc thời gian bóc tách được từ SSR Facebook,
-                # bỏ qua để tuyệt đối chống bắn bài ghim cũ
+                # Bỏ qua bài không có mốc thời gian thực sự để tuyệt đối không bắn bài cũ
                 continue
 
-            filtered.append(p)
-
-        return filtered
+        # Sắp xếp mới nhất lên đầu
+        fresh_posts.sort(key=lambda x: x.get("creation_time") or 0, reverse=True)
+        return fresh_posts

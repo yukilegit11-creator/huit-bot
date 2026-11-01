@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -97,6 +97,11 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False):
                 clean_text = formatted_msg[5:] if formatted_msg.startswith("@All\n") else formatted_msg
                 msg_obj = Message(text=clean_text)
 
+        # Kiểm tra nhóm/người nhận này đã từng nhận hoạt động này chưa
+        if database.is_activity_already_sent_zalo(str(act.get("activity_id", "")), title=act.get("title"), target_id=tid, db_file=DB_TARGET):
+            print(f"🛑 [Chống lặp IUH] Hoạt động [{act.get('title')}] đã được gửi tới {tname} ({tid}) trước đó, bỏ qua!")
+            continue
+
         try:
             zalo.client.send(msg_obj, thread_id=tid, thread_type=t_type)
             kind_str = "cá nhân" if is_user else "nhóm"
@@ -117,7 +122,7 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False):
                 zalo_target_name=tname,
                 target_type=target.get("type", "GROUP"),
                 status="SUCCESS",
-                crawled_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                crawled_at=datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S"),
                 db_file=DB_TARGET
             )
             any_success = True
@@ -139,7 +144,7 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False):
                 zalo_target_name=tname,
                 target_type=target.get("type", "GROUP"),
                 status="FAILED",
-                crawled_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                crawled_at=datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S"),
                 db_file=DB_TARGET
             )
 
@@ -190,7 +195,7 @@ def run_bot():
 
         cycle += 1
         database.set_bot_status("total_scans", str(cycle), db_file=DB_TARGET)
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
         database.set_bot_status("last_scan_time", now_str, db_file=DB_TARGET)
         database.set_bot_status("bot_state", "scanning", db_file=DB_TARGET)
 
@@ -229,33 +234,50 @@ def run_bot():
             else:
                 database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
                 new_count = 0
-                for act in activities:
-                    aid = act["activity_id"]
-                    seen_act = database.get_seen_activity(aid, db_file=DB_TARGET)
-                    
-                    is_new = seen_act is None
-                    is_reopened = False
-                    if not is_new and config.get("scanner", {}).get("notify_reopened_slots", True):
-                        prev_status = (seen_act.get("status") or "").lower()
-                        curr_status = act.get("status", "").lower()
-                        if "đủ số lượng" in prev_status and "đủ số lượng" not in curr_status:
-                            is_reopened = True
 
-                    if is_new or is_reopened:
-                        new_count += 1
-                        act_type = "REOPEN" if is_reopened else "NEW"
-                        database.record_seen_activity(act, is_sent=True, db_file=DB_TARGET)
-                        database.add_crawled_activity(act, action_type=act_type, is_sent=True, db_file=DB_TARGET)
-                        
-                        action_label = "MỞ THÊM SLOT" if is_reopened else "MỚI"
-                        database.log_event("ACTIVITY", f"Phát hiện hoạt động [{action_label}]: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
-                        
-                        send_zalo_iuh(zalo, act, is_reopened=is_reopened)
-                    else:
+                # CHẾ ĐỘ BASELINE: Lần quét hợp lệ đầu tiên (DB chưa có hoạt động nào)
+                # -> Chỉ lưu toàn bộ hoạt động đang có, KHÔNG gửi Zalo (đó là bài cũ, không phải bài mới thật sự)
+                try:
+                    _c = database.get_connection(DB_TARGET)
+                    seen_total = _c.execute("SELECT COUNT(*) FROM seen_activities").fetchone()[0]
+                    _c.close()
+                except Exception:
+                    seen_total = 1
+                if seen_total == 0 and activities:
+                    for act in activities:
+                        database.record_seen_activity(act, is_sent=False, db_file=DB_TARGET)
+                        database.add_crawled_activity(act, action_type="BASELINE", is_sent=False, db_file=DB_TARGET)
+                    msg_bl = f"📌 Baseline: đã ghi nhận {len(activities)} hoạt động đang có trên cổng IUH (không gửi Zalo vì không phải bài mới)."
+                    print(msg_bl)
+                    database.log_event("SYSTEM", msg_bl, db_file=DB_TARGET)
+                    activities = []
+
+                for act in activities:
+                    aid = str(act["activity_id"])
+                    
+                    # 1. KIỂM TRA NGHIÊM NGẶT: Hoạt động đã từng được gửi Zalo chưa?
+                    if database.is_activity_already_sent_zalo(aid, title=act.get("title"), db_file=DB_TARGET):
+                        # Đã từng gửi Zalo -> Cập nhật thông tin trong DB, NGHIÊM CẤM gửi lại lần 2
                         database.update_activity_status(aid, act.get("status", ""), act.get("slots", ""), db_file=DB_TARGET)
+                        continue
+
+                    seen_act = database.get_seen_activity(aid, db_file=DB_TARGET)
+                    if seen_act is not None:
+                        # Đã có trong DB -> Chỉ cập nhật thông tin, không gửi lại
+                        database.update_activity_status(aid, act.get("status", ""), act.get("slots", ""), db_file=DB_TARGET)
+                        continue
+
+                    # Hoạt động MỚI 100% (vừa xuất hiện trong chu kỳ này, <= 1 chu kỳ quét ~ vài giây)
+                    # -> Lưu DB TRƯỚC rồi gửi Zalo đúng 1 lần duy nhất
+                    new_count += 1
+                    database.record_seen_activity(act, is_sent=True, db_file=DB_TARGET)
+                    database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=DB_TARGET)
+                    
+                    database.log_event("ACTIVITY", f"Phát hiện hoạt động MỚI: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
+                    send_zalo_iuh(zalo, act, is_reopened=False)
 
                 if new_count > 0:
-                    print(f"🎉 [Chu kỳ #{cycle}] Bắn Zalo thành công {new_count} hoạt động mới / mở slot!")
+                    print(f"🎉 [Chu kỳ #{cycle}] Bắn Zalo thành công {new_count} hoạt động mới!")
 
         except Exception as e:
             print(f"⚠️ [Chu kỳ #{cycle}] Lỗi quét: {e}")

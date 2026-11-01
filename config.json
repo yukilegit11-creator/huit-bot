@@ -65,6 +65,11 @@
       "id": "target_13",
       "name": "TT Đổi mới Sáng tạo & Khởi nghiệp HUIT",
       "url": "https://www.facebook.com/hotrosinhvienssc.huit"
+    },
+    {
+      "id": "target_14",
+      "name": "Group Sinh Viên HUIT (Mới nhất)",
+      "url": "https://www.facebook.com/groups/sinhvienhuit/?sorting_setting=CHRONOLOGICAL"
     }
   ],
   "fb_cookies": {
@@ -146,8 +151,9 @@
     "drl"
   ],
   "scanner": {
-    "max_post_age_hours": 1.0,
+    "max_post_age_hours": 0.1667,
     "check_interval_seconds": 30,
-    "delay_between_pages_seconds": 9
+    "delay_between_pages_seconds": 9,
+    "max_post_age_minutes": 10
   }
 }

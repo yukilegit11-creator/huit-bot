@@ -1,9 +1,14 @@
 FROM python:3.11-slim
 
+# Múi giờ chuẩn Việt Nam GMT+7 (Render mặc định chạy UTC)
+ENV TZ=Asia/Ho_Chi_Minh
+
 # Cài đặt các gói hệ thống cơ bản
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

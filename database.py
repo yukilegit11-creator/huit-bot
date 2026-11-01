@@ -2,7 +2,26 @@ import sqlite3
 import os
 import json
 import sys
-from datetime import datetime
+import time
+from datetime import datetime, timezone, timedelta
+
+# Cấu hình múi giờ chuẩn Việt Nam GMT+7 (Asia/Ho_Chi_Minh)
+os.environ["TZ"] = "Asia/Ho_Chi_Minh"
+if hasattr(time, "tzset"):
+    try:
+        time.tzset()
+    except Exception:
+        pass
+
+VN_TZ = timezone(timedelta(hours=7))
+
+def get_vn_now() -> datetime:
+    """Lấy thời gian hiện tại chuẩn múi giờ Việt Nam (GMT+7)."""
+    return datetime.now(VN_TZ)
+
+def get_vn_now_str(fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    """Lấy chuỗi thời gian hiện tại chuẩn múi giờ Việt Nam (GMT+7)."""
+    return datetime.now(VN_TZ).strftime(fmt)
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -30,7 +49,7 @@ def init_db(db_file=None):
         CREATE TABLE IF NOT EXISTS seen_posts (
             post_hash TEXT PRIMARY KEY,
             page_name TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT (datetime('now','+7 hours'))
         )
     """)
     cursor.execute("""
@@ -42,7 +61,7 @@ def init_db(db_file=None):
             content TEXT,
             post_url TEXT,
             posted_time TEXT,
-            crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            crawled_at TIMESTAMP DEFAULT (datetime('now','+7 hours')),
             is_sent_zalo INTEGER DEFAULT 0,
             is_sent_supabase INTEGER DEFAULT 0
         )
@@ -51,7 +70,7 @@ def init_db(db_file=None):
         CREATE TABLE IF NOT EXISTS bot_status (
             key TEXT PRIMARY KEY,
             value TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT (datetime('now','+7 hours'))
         )
     """)
     cursor.execute("""
@@ -59,7 +78,7 @@ def init_db(db_file=None):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             level TEXT,
             message TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT (datetime('now','+7 hours'))
         )
     """)
     cursor.execute("""
@@ -86,7 +105,7 @@ def init_db(db_file=None):
             zalo_target_id TEXT,
             zalo_target_name TEXT,
             target_type TEXT DEFAULT 'GROUP',
-            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            sent_at TIMESTAMP DEFAULT (datetime('now','+7 hours')),
             status TEXT DEFAULT 'SUCCESS',
             extra_note TEXT DEFAULT ''
         )
@@ -162,49 +181,143 @@ def set_bot_enabled(enabled: bool, db_file=None):
     val = "true" if enabled else "false"
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
-        VALUES ('is_active', ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        VALUES ('is_active', ?, (datetime('now','+7 hours')))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = (datetime('now','+7 hours'))
     """, (val,))
     state = "running" if enabled else "paused"
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
-        VALUES ('bot_state', ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        VALUES ('bot_state', ?, (datetime('now','+7 hours')))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = (datetime('now','+7 hours'))
     """, (state,))
     conn.commit()
     conn.close()
     log_event("SYSTEM", f"Người dùng đã {'BẬT (Khởi động)' if enabled else 'TẮT (Tạm dừng)'} tiến trình Bot quét tự động.", db_file=db_file)
 
+def normalize_content_text(text: str) -> str:
+    if not text:
+        return ""
+    import re
+    return re.sub(r"\s+", " ", text.strip().lower())
+
 def is_post_seen(post_hash: str, content: str = None, db_file=None) -> bool:
+    """Kiểm tra tuyệt đối: Bài viết này đã từng được quét/bóc tách qua chưa (Chống quét trùng lặp)."""
     conn = get_connection(db_file)
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (post_hash,))
-    seen = cursor.fetchone() is not None
-    if not seen and content:
+    # 1. Kiểm tra trong seen_posts theo hash/id
+    cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (str(post_hash),))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 2. Kiểm tra trong crawled_posts theo post_id
+    cursor.execute("SELECT 1 FROM crawled_posts WHERE post_id = ?", (str(post_hash),))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 3. Kiểm tra trong delivery_history theo post_id
+    cursor.execute("SELECT 1 FROM delivery_history WHERE post_id = ? AND status = 'SUCCESS'", (str(post_hash),))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    if content:
         import hashlib
+        # Hash tiền tố 150 ký tự
         c_hash = hashlib.md5(content.strip()[:150].encode("utf-8")).hexdigest()
         cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (c_hash,))
-        seen = cursor.fetchone() is not None
+        if cursor.fetchone() is not None:
+            conn.close()
+            return True
+
+        # Hash toàn văn sau chuẩn hóa
+        norm_txt = normalize_content_text(content)
+        norm_hash = hashlib.md5(norm_txt.encode("utf-8")).hexdigest()
+        cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (norm_hash,))
+        if cursor.fetchone() is not None:
+            conn.close()
+            return True
+
+        # Kiểm tra đoạn trích nội dung trong delivery_history (chống trùng nội dung bài đăng)
+        snippet = content.strip()[:80]
+        if len(snippet) >= 25:
+            cursor.execute("SELECT 1 FROM delivery_history WHERE content_snippet LIKE ? AND status = 'SUCCESS'", (f"%{snippet}%",))
+            if cursor.fetchone() is not None:
+                conn.close()
+                return True
+
     conn.close()
-    return seen
+    return False
 
 def record_seen_post(post_hash: str, page_name: str, content: str = None, db_file=None):
+    """Ghi nhận bài viết vào bộ nhớ đã quét với nhiều tầng hash khác nhau để chống trùng triệt để."""
     conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute(
         "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
-        (post_hash, page_name)
+        (str(post_hash), page_name)
     )
     if content:
         import hashlib
         c_hash = hashlib.md5(content.strip()[:150].encode("utf-8")).hexdigest()
-        if c_hash != post_hash:
-            cursor.execute(
-                "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
-                (c_hash, page_name)
-            )
+        norm_txt = normalize_content_text(content)
+        norm_hash = hashlib.md5(norm_txt.encode("utf-8")).hexdigest()
+        for h in [c_hash, norm_hash]:
+            if h and h != str(post_hash):
+                cursor.execute(
+                    "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
+                    (h, page_name)
+                )
     conn.commit()
     conn.close()
+
+def is_post_already_sent_zalo(post_id: str, content: str = None, target_id: str = None, db_file=None) -> bool:
+    """Nghiêm cấm tuyệt đối: Kiểm tra bài viết đã từng gửi vào Zalo thành công chưa (Ngăn chặn bắn 2 lần)."""
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    
+    # 1. Kiểm tra trong delivery_history theo post_id
+    if target_id:
+        cursor.execute(
+            "SELECT 1 FROM delivery_history WHERE post_id = ? AND zalo_target_id = ? AND status = 'SUCCESS'",
+            (str(post_id), str(target_id))
+        )
+    else:
+        cursor.execute(
+            "SELECT 1 FROM delivery_history WHERE post_id = ? AND status = 'SUCCESS'",
+            (str(post_id),)
+        )
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 2. Kiểm tra trong crawled_posts theo is_sent_zalo = 1
+    cursor.execute("SELECT 1 FROM crawled_posts WHERE post_id = ? AND is_sent_zalo = 1", (str(post_id),))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 3. Kiểm tra nội dung bài viết trong delivery_history
+    if content:
+        snippet = content.strip()[:80]
+        if len(snippet) >= 25:
+            if target_id:
+                cursor.execute(
+                    "SELECT 1 FROM delivery_history WHERE content_snippet LIKE ? AND zalo_target_id = ? AND status = 'SUCCESS'",
+                    (f"%{snippet}%", str(target_id))
+                )
+            else:
+                cursor.execute(
+                    "SELECT 1 FROM delivery_history WHERE content_snippet LIKE ? AND status = 'SUCCESS'",
+                    (f"%{snippet}%",)
+                )
+            if cursor.fetchone() is not None:
+                conn.close()
+                return True
+
+    conn.close()
+    return False
 
 def save_crawled_post(post_id: str, page_name: str, author: str, content: str, post_url: str, posted_time: str, is_sent_zalo: int = 0, db_file=None) -> int:
     conn = get_connection(db_file)
@@ -283,8 +396,8 @@ def set_bot_status(key: str, value: str, db_file=None):
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
-        VALUES (?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        VALUES (?, ?, (datetime('now','+7 hours')))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = (datetime('now','+7 hours'))
     """, (key, str(value)))
     conn.commit()
     conn.close()
@@ -304,8 +417,8 @@ def init_iuh_db(db_file=None):
             status TEXT,
             slots TEXT,
             details TEXT,
-            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            first_seen TIMESTAMP DEFAULT (datetime('now','+7 hours')),
+            last_updated TIMESTAMP DEFAULT (datetime('now','+7 hours')),
             is_sent INTEGER DEFAULT 1
         )
     """)
@@ -322,14 +435,14 @@ def init_iuh_db(db_file=None):
             details TEXT,
             action_type TEXT DEFAULT 'NEW',
             is_sent_zalo INTEGER DEFAULT 0,
-            crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            crawled_at TIMESTAMP DEFAULT (datetime('now','+7 hours'))
         )
     """)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS bot_status (
             key TEXT PRIMARY KEY,
             value TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT (datetime('now','+7 hours'))
         )
     """)
     cursor.execute("""
@@ -337,7 +450,7 @@ def init_iuh_db(db_file=None):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             level TEXT,
             message TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT (datetime('now','+7 hours'))
         )
     """)
     # BẢNG LỊCH SỬ BẤT BIẾN - KHÔNG BAO GIỜ ĐƯỢC PHÉP XOÁ
@@ -379,12 +492,12 @@ def record_seen_activity(act: dict, is_sent: bool = True, db_file=None):
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO seen_activities (activity_id, title, semester, points, deadline, status, slots, details, is_sent, last_updated)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (datetime('now','+7 hours')))
         ON CONFLICT(activity_id) DO UPDATE SET
             status = excluded.status,
             slots = excluded.slots,
             details = excluded.details,
-            last_updated = CURRENT_TIMESTAMP
+            last_updated = (datetime('now','+7 hours'))
     """, (
         str(act.get("activity_id", "")),
         str(act.get("title", "")),
@@ -411,13 +524,66 @@ def get_seen_activity(activity_id: str, db_file=None):
 def is_activity_seen(activity_id: str, db_file=None) -> bool:
     return get_seen_activity(activity_id, db_file) is not None
 
+def is_activity_already_sent_zalo(activity_id: str, title: str = None, target_id: str = None, db_file=None) -> bool:
+    """Nghiêm cấm tuyệt đối: Kiểm tra hoạt động IUH đã từng gửi Zalo thành công chưa (Ngăn chặn bắn 2 lần)."""
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    # 1. Kiểm tra trong seen_activities where is_sent = 1
+    cursor.execute("SELECT 1 FROM seen_activities WHERE activity_id = ? AND is_sent = 1", (str(activity_id),))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 2. Kiểm tra trong crawled_activities where is_sent_zalo = 1
+    cursor.execute("SELECT 1 FROM crawled_activities WHERE activity_id = ? AND is_sent_zalo = 1", (str(activity_id),))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 3. Kiểm tra trong delivery_history theo post_id (hoặc theo target_id nếu có)
+    if target_id:
+        cursor.execute(
+            "SELECT 1 FROM delivery_history WHERE post_id = ? AND zalo_target_id = ? AND status = 'SUCCESS'",
+            (str(activity_id), str(target_id))
+        )
+    else:
+        cursor.execute(
+            "SELECT 1 FROM delivery_history WHERE post_id = ? AND status = 'SUCCESS'",
+            (str(activity_id),)
+        )
+    if cursor.fetchone() is not None:
+        conn.close()
+        return True
+
+    # 4. Kiểm tra theo tiêu đề hoạt động trong delivery_history
+    if title:
+        clean_title = str(title).strip()
+        if len(clean_title) >= 10:
+            if target_id:
+                cursor.execute(
+                    "SELECT 1 FROM delivery_history WHERE post_title = ? AND zalo_target_id = ? AND status = 'SUCCESS'",
+                    (clean_title, str(target_id))
+                )
+            else:
+                cursor.execute(
+                    "SELECT 1 FROM delivery_history WHERE post_title = ? AND status = 'SUCCESS'",
+                    (clean_title,)
+                )
+            if cursor.fetchone() is not None:
+                conn.close()
+                return True
+
+    conn.close()
+    return False
+
 def update_activity_status(activity_id: str, status: str, slots: str = "", db_file=None):
     target = db_file or IUH_DB_FILE
     conn = get_connection(target)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE seen_activities 
-        SET status = ?, slots = ?, last_updated = CURRENT_TIMESTAMP 
+        SET status = ?, slots = ?, last_updated = (datetime('now','+7 hours')) 
         WHERE activity_id = ?
     """, (status, slots, str(activity_id)))
     conn.commit()
@@ -509,7 +675,7 @@ def record_delivery(
     conn = get_connection(db_file)
     cursor = conn.cursor()
     try:
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = get_vn_now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute("""
             INSERT INTO delivery_history (
                 post_id, post_title, source_page, author, post_url, 

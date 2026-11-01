@@ -138,7 +138,7 @@ class FacebookCometScraper:
             for item in obj:
                 self._extract_messages_from_json(item, posts, metadata_map, default_page_url)
 
-    def parse_posts(self, html_text: str, max_age_hours: float = 1.0, page_url: str = "") -> list:
+    def parse_posts(self, html_text: str, max_age_hours: float = 0.1667, page_url: str = "") -> list:
         if not html_text:
             return []
 
@@ -188,7 +188,7 @@ class FacebookCometScraper:
                 except Exception:
                     pass
 
-        # Regex fallback nếu Comet scripts bị mã hóa hoặc lồng phức tạp
+        # Regex fallback: Tuyệt đối KHÔNG giả lập time.time() để tránh bắn bài cũ
         if not found_posts:
             matches = re.findall(r'"message":\{"text":"(.*?)"\}', html_text)
             for m in matches:
@@ -201,8 +201,8 @@ class FacebookCometScraper:
                         "post_id": hashlib.md5(dec[:150].encode("utf-8")).hexdigest(),
                         "content": dec,
                         "post_url": page_url,
-                        "creation_time": time.time(),
-                        "posted_time": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                        "creation_time": None, # Không giả mạo timestamp
+                        "posted_time": "",
                         "author": "Người dùng Facebook"
                     })
 
@@ -213,18 +213,21 @@ class FacebookCometScraper:
             if key not in unique_dict:
                 unique_dict[key] = p
 
-        # Bộ lọc thời gian (mặc định <= 1.0 tiếng, bỏ qua bài không rõ thời gian đăng)
+        # Bộ lọc thời gian nghiêm ngặt: MẶC ĐỊNH <= 10 PHÚT (10/60 = 0.1667 giờ)
         now_ts = time.time()
         fresh_posts = []
         for p in list(unique_dict.values()):
             c_time = p.get("creation_time")
             if c_time and isinstance(c_time, (int, float)):
-                age_hours = (now_ts - c_time) / 3600.0
-                if age_hours > max_age_hours:
+                if c_time > 1e11:
+                    c_time = c_time / 1000.0
+                age_minutes = (now_ts - c_time) / 60.0
+                # Nếu đã trôi qua hơn 10 phút thì TUYỆT ĐỐI BỎ QUA không gửi
+                if age_minutes > 10.0 or age_minutes < -5.0:
                     continue
                 fresh_posts.append(p)
             else:
-                # Bỏ qua bài không có mốc thời gian để tuyệt đối không bắn bài cũ
+                # Bỏ qua bài không có mốc thời gian thực sự để tuyệt đối không bắn bài cũ
                 continue
 
         # Sắp xếp mới nhất lên đầu

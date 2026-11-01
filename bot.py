@@ -4,7 +4,7 @@ import time
 import json
 import random
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Đảm bảo UTF-8 trên Windows Terminal
 if sys.platform == "win32":
@@ -17,6 +17,7 @@ CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
 
 from scraper import FacebookCometScraper
 from zalo_sender import ZaloDispatcher
+import zalo_sender
 from supabase_client import SupabaseDispatcher
 import database
 
@@ -43,7 +44,7 @@ def run_bot():
     targets = config.get("targets", [])
     fb_cookies = config.get("fb_cookies", {})
     scanner_cfg = config.get("scanner", {})
-    max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
+    max_age_hours = scanner_cfg.get("max_post_age_hours", 0.1667)
     check_interval = scanner_cfg.get("check_interval_seconds", 600)
     delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 12)
 
@@ -84,7 +85,7 @@ def run_bot():
             continue
 
         cycle += 1
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n[{now_str}] 🔄 === VÒNG QUÉT THỨ #{cycle} ===")
         database.set_bot_status("last_scan_time", now_str)
         database.set_bot_status("scan_cycle", str(cycle))
@@ -95,7 +96,7 @@ def run_bot():
             config = load_config()
             targets = config.get("targets", [])
             scanner_cfg = config.get("scanner", {})
-            max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
+            max_age_hours = scanner_cfg.get("max_post_age_hours", 0.1667)
             check_interval = scanner_cfg.get("check_interval_seconds", 30)
             delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
         except Exception:
@@ -153,6 +154,18 @@ def run_bot():
                         filter_kws = config.get("filter_keywords", [])
                         has_kw, matched_kw = matches_filter_keywords(p.get("content", ""), filter_kws)
                         if has_kw:
+                            # 3.1. Kiểm tra nghiêm ngặt quy định 10 phút trước khi gửi
+                            is_fresh, fresh_reason = zalo_sender.is_post_fresh_within_10_minutes(p)
+                            if not is_fresh:
+                                print(f"      ⏳ [Yuki 1 (HUIT)] Bỏ qua gửi Zalo: {fresh_reason}")
+                                database.log_event("FILTER", f"[Yuki 1 (HUIT)] Bỏ qua gửi Zalo do đã quá 10 phút: {fresh_reason}")
+                                continue
+
+                            # 3.2. Nghiêm cấm gửi trùng lặp bài viết đã gửi thành công trước đó
+                            if database.is_post_already_sent_zalo(ident, content=p.get("content", "")):
+                                print(f"      🛑 [Yuki 1 (HUIT)] Bài viết [{ident}] đã từng gửi Zalo trước đó, nghiêm cấm gửi lần 2!")
+                                continue
+
                             print(f"      🎯 [Yuki 1 (HUIT)] Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo...")
                             database.log_event("FILTER", f"[Yuki 1 (HUIT)] Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...")
                             sent_zalo = zalo.send_alert(p, page_name, matched_kw=matched_kw)

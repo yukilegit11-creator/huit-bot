@@ -4,7 +4,7 @@ import time
 import json
 import random
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Đảm bảo UTF-8 trên Windows Terminal
 if sys.platform == "win32":
@@ -22,6 +22,7 @@ if not os.path.exists(CONFIG_FILE):
 
 from scraper import FacebookCometScraper
 from zalo_sender import ZaloDispatcher
+import zalo_sender
 from supabase_client import SupabaseDispatcher
 import database
 import github_sync
@@ -50,7 +51,7 @@ def run_bot():
     targets = config.get("targets", [])
     fb_cookies = config.get("fb_cookies", {})
     scanner_cfg = config.get("scanner", {})
-    max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
+    max_age_hours = scanner_cfg.get("max_post_age_hours", 0.1667)
     check_interval = scanner_cfg.get("check_interval_seconds", 30)
     delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
 
@@ -96,7 +97,7 @@ def run_bot():
             fb_cookies = config.get("fb_cookies", {})
             scraper.cookies = fb_cookies
             scanner_cfg = config.get("scanner", {})
-            max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
+            max_age_hours = scanner_cfg.get("max_post_age_hours", 0.1667)
             check_interval = scanner_cfg.get("check_interval_seconds", 30)
             delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
         except Exception:
@@ -116,7 +117,7 @@ def run_bot():
             continue
 
         cycle += 1
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n[{now_str}] 🔄 === [BOT VAA] VÒNG QUÉT THỨ #{cycle} ===")
         database.set_bot_status("last_scan_time", now_str)
         database.set_bot_status("scan_cycle", str(cycle))

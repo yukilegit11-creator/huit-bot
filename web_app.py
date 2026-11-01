@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 import database
 from zalo_sender import ZaloDispatcher
@@ -92,7 +92,7 @@ def api_crawl_now():
     supabase = SupabaseDispatcher(CONFIG_FILE)
     
     new_posts = []
-    database.set_bot_status("last_scan_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    database.set_bot_status("last_scan_time", datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S"))
     database.set_bot_status("bot_state", "scanning")
     database.log_event("SCAN", f"[Cào thủ công] Bắt đầu quét nhanh qua {len(targets)} nguồn...")
 
@@ -105,32 +105,38 @@ def api_crawl_now():
             html = scraper.fetch_url(purl)
             posts = scraper.parse_posts(html, max_age_hours=3.0, page_url=purl)
             for p in posts:
-                ident = p.get("post_id") or hashlib.md5(p["content"][:150].encode("utf-8")).hexdigest()
-                if not database.is_post_seen(ident):
+                content_txt = p.get("content", "")
+                ident = p.get("post_id") or hashlib.md5(content_txt[:150].encode("utf-8")).hexdigest()
+                if not database.is_post_seen(ident, content=content_txt):
                     database.save_crawled_post(
                         post_id=ident,
                         page_name=pname,
                         author=p.get("author", "Thành viên nhóm"),
-                        content=p.get("content", ""),
+                        content=content_txt,
                         post_url=p.get("post_url", ""),
                         posted_time=p.get("posted_time", "")
                     )
-                    database.record_seen_post(ident, pname)
-                    database.log_event("POST", f"[{pname}] Bóc tách bài mới: {p.get('content', '')[:70]}...")
+                    database.record_seen_post(ident, pname, content=content_txt)
+                    database.log_event("POST", f"[{pname}] Bóc tách bài mới: {content_txt[:70]}...")
 
                     if supabase.enabled:
                         supabase.push_post(p, pname)
                     
                     filter_kws = cfg.get("filter_keywords", [])
-                    txt_lower = p.get("content", "").lower()
+                    txt_lower = content_txt.lower()
                     has_kw = not filter_kws or any(kw.lower() in txt_lower for kw in filter_kws)
-                    if has_kw:
+                    
+                    already_sent = database.is_post_already_sent_zalo(ident, content=content_txt)
+                    if has_kw and not already_sent:
                         database.log_event("FILTER", f"Khớp từ khóa -> Đang gửi vào Zalo...")
-                        zalo.send_alert(p, pname)
-                        database.mark_post_sent_zalo(ident)
+                        sent_ok = zalo.send_alert(p, pname)
+                        if sent_ok:
+                            database.mark_post_sent_zalo(ident)
+                    elif already_sent:
+                        database.log_event("FILTER", f"🛑 [Chống lặp] Bài viết đã từng gửi Zalo trước đó, bỏ qua không gửi lần 2.")
                     else:
                         database.log_event("FILTER", f"Bỏ qua Zalo (không chứa từ khóa lọc)")
-                    new_posts.append({"page": pname, "author": p.get("author"), "id": ident, "sent_zalo": has_kw})
+                    new_posts.append({"page": pname, "author": p.get("author"), "id": ident, "sent_zalo": has_kw and not already_sent})
         except Exception as e:
             database.log_event("ERROR", f"Lỗi quét {pname}: {e}")
             database.set_bot_status("last_error", str(e))
@@ -282,7 +288,7 @@ def api_test_zalo_alert():
     dispatcher = ZaloDispatcher(CONFIG_FILE)
     test_post = {
         "author": "Ban Quản Trị HUIT",
-        "posted_time": datetime.now().strftime("%H:%M - %d/%m/%Y"),
+        "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M - %d/%m/%Y"),
         "content": """🔔 THÔNG BÁO KIỂM TRA HỆ THỐNG BOT 24/7
 
 📌 Bài viết thử nghiệm: Mở đăng ký tham gia chương trình Sinh viên Tình nguyện (Được cộng 10 Điểm Rèn Luyện).
@@ -522,7 +528,7 @@ def api_bot2_test_zalo_alert():
     dispatcher = ZaloDispatcher(CONFIG_BOT2_FILE)
     test_post = {
         "author": "Ban Quản Trị Bot Kênh 2",
-        "posted_time": datetime.now().strftime("%H:%M - %d/%m/%Y"),
+        "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M - %d/%m/%Y"),
         "content": """🔔 THÔNG BÁO KIỂM TRA BOT KÊNH 2 (RIÊNG BIỆT)
 
 📌 Bài viết thử nghiệm: Mở form đăng ký tham gia chương trình hoạt động.
@@ -607,7 +613,7 @@ def api_bot3_crawl_now():
     scraper = IUHPortalScraper(phpsessid)
     zalo = ZaloDispatcher(CONFIG_IUH_FILE)
     
-    database.set_bot_status("last_scan_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), db_file=database.IUH_DB_FILE)
+    database.set_bot_status("last_scan_time", datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S"), db_file=database.IUH_DB_FILE)
     database.set_bot_status("bot_state", "scanning", db_file=database.IUH_DB_FILE)
     database.log_event("SCAN", "[Cào thủ công] Bắt đầu quét cổng hoạt động Đoàn TN IUH...", db_file=database.IUH_DB_FILE)
     
@@ -717,7 +723,7 @@ def api_bot3_test_zalo_alert():
         "title": "Hoạt động thử nghiệm kiểm tra kết nối Bot IUH & Bắn Zalo",
         "semester": "1/2026 - 2027",
         "points": 3.0,
-        "deadline": datetime.now().strftime("%d-%m-%Y"),
+        "deadline": datetime.now(timezone(timedelta(hours=7))).strftime("%d-%m-%Y"),
         "status": "Đang mở",
         "slots": "150/150",
         "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
