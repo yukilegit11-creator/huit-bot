@@ -35,6 +35,23 @@ def get_config():
 def save_config(cfg):
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
+    try:
+        import github_sync
+        github_sync.push_async(commit_message="🔄 Auto-sync: Cập nhật cấu hình Bot 1 (HUIT)")
+    except Exception:
+        pass
+
+@app.post("/api/github/sync")
+def api_github_sync(msg: Optional[str] = Form(None)):
+    import github_sync
+    commit_msg = msg or "🚀 Thủ công đồng bộ dữ liệu lên GitHub từ Web Dashboard"
+    ok, message = github_sync.push_to_github(commit_message=commit_msg)
+    return {"status": "ok" if ok else "error", "message": message, "detail": github_sync.get_sync_status()}
+
+@app.get("/api/github/status")
+def api_github_status():
+    import github_sync
+    return {"status": "ok", "sync": github_sync.get_sync_status()}
 
 # ==================== API ENDPOINTS ====================
 
@@ -274,6 +291,18 @@ def get_config_bot2():
 def save_config_bot2(cfg):
     with open(CONFIG_BOT2_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
+    # Đồng bộ sang các file VAA
+    for p in [os.path.join(SCRIPT_DIR, "vaabot.json"), os.path.join(SCRIPT_DIR, "vaa", "config.json"), os.path.join(SCRIPT_DIR, "vaa", "vaabot.json")]:
+        try:
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+    try:
+        import github_sync
+        github_sync.push_async(commit_message="🔄 Auto-sync: Cập nhật cấu hình Bot 2 (VAA)")
+    except Exception:
+        pass
 
 @app.get("/api/bot2/posts")
 def api_bot2_get_posts(limit: int = 50, page_name: Optional[str] = None, search: Optional[str] = None):
@@ -523,6 +552,27 @@ def dashboard_view():
       </div>
 
       <div class="flex items-center space-x-3">
+        <!-- ADMIN PROFILE: TRẦN LÊ PHÁT -->
+        <div class="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-xl border border-slate-200 transition">
+          <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-blue-500/50 shadow-xs" alt="Admin Avatar">
+          <div class="text-left">
+            <div class="flex items-center gap-1.5 leading-none">
+              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Admin Active"></span>
+            </div>
+            <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-blue-600 flex items-center gap-1 font-mono leading-tight mt-1">
+              <i class="fa-brands fa-github text-slate-700"></i> yukilegit11-creator
+            </a>
+          </div>
+        </div>
+
+        <!-- GITHUB SYNC BUTTON -->
+        <button id="btn-sync-github-bot1" onclick="syncWithGitHub()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs transition flex items-center gap-2" title="Đồng bộ toàn bộ thay đổi lên GitHub">
+          <i class="fa-brands fa-github text-slate-900"></i>
+          <span id="github-sync-label-bot1">GitHub Sync</span>
+          <span id="github-sync-dot-bot1" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </button>
+
         <button id="bot-toggle-btn" onclick="toggleBotPower()" class="px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 {active_class}">
           <span id="bot-toggle-icon" class="w-2.5 h-2.5 rounded-full {'bg-white animate-pulse' if is_bot_active else 'bg-white'}"></span>
           <span id="bot-toggle-text">{active_text}</span>
@@ -1236,6 +1286,35 @@ def dashboard_view():
       }}
     }}
 
+    async function syncWithGitHub() {{
+      const btn = document.getElementById('btn-sync-github-bot1');
+      const label = document.getElementById('github-sync-label-bot1');
+      const dot = document.getElementById('github-sync-dot-bot1');
+      if (label) label.innerText = 'Đang đồng bộ...';
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
+      try {{
+        const res = await fetch('/api/github/sync', {{ method: 'POST' }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          if (label) label.innerText = 'Đã đồng bộ!';
+          if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+          alert('☁️ Đã đồng bộ toàn bộ mã nguồn & dữ liệu lên GitHub thành công!\\n' + (data.message || ''));
+        }} else {{
+          if (label) label.innerText = 'Lỗi sync';
+          if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+          alert('⚠️ Lỗi đồng bộ: ' + (data.message || 'Thất bại'));
+        }}
+      }} catch (e) {{
+        if (label) label.innerText = 'Lỗi kết nối';
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        alert('⚠️ Không thể kết nối tới GitHub API: ' + e);
+      }}
+      setTimeout(() => {{
+        if (label) label.innerText = 'GitHub Sync';
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+      }}, 3000);
+    }}
+
     renderPosts(allPosts);
     renderTargets(allTargets);
     renderTargetGroups(allTargetGroups);
@@ -1319,6 +1398,27 @@ def dashboard_view_bot2():
       </div>
 
       <div class="flex items-center space-x-3">
+        <!-- ADMIN PROFILE: TRẦN LÊ PHÁT -->
+        <div class="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-xl border border-slate-200 transition">
+          <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-sky-500/50 shadow-xs" alt="Admin Avatar">
+          <div class="text-left">
+            <div class="flex items-center gap-1.5 leading-none">
+              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Admin Active"></span>
+            </div>
+            <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-sky-600 flex items-center gap-1 font-mono leading-tight mt-1">
+              <i class="fa-brands fa-github text-slate-700"></i> yukilegit11-creator
+            </a>
+          </div>
+        </div>
+
+        <!-- GITHUB SYNC BUTTON -->
+        <button id="btn-sync-github-bot2" onclick="syncWithGitHub()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs transition flex items-center gap-2" title="Đồng bộ toàn bộ thay đổi lên GitHub">
+          <i class="fa-brands fa-github text-slate-900"></i>
+          <span id="github-sync-label-bot2">GitHub Sync</span>
+          <span id="github-sync-dot-bot2" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </button>
+
         <button id="bot-toggle-btn" onclick="toggleBotPower()" class="px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 {active_class}">
           <span id="bot-toggle-icon" class="w-2.5 h-2.5 rounded-full {'bg-white animate-pulse' if is_bot_active else 'bg-white'}"></span>
           <span id="bot-toggle-text">{active_text}</span>
@@ -2088,6 +2188,35 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }} catch (err) {{
         console.error('Lỗi cập nhật định kỳ:', err);
       }}
+    }}
+
+    async function syncWithGitHub() {{
+      const btn = document.getElementById('btn-sync-github-bot2');
+      const label = document.getElementById('github-sync-label-bot2');
+      const dot = document.getElementById('github-sync-dot-bot2');
+      if (label) label.innerText = 'Đang đồng bộ...';
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
+      try {{
+        const res = await fetch('/api/github/sync', {{ method: 'POST' }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          if (label) label.innerText = 'Đã đồng bộ!';
+          if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+          alert('☁️ Đã đồng bộ toàn bộ mã nguồn & dữ liệu lên GitHub thành công!\\n' + (data.message || ''));
+        }} else {{
+          if (label) label.innerText = 'Lỗi sync';
+          if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+          alert('⚠️ Lỗi đồng bộ: ' + (data.message || 'Thất bại'));
+        }}
+      }} catch (e) {{
+        if (label) label.innerText = 'Lỗi kết nối';
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        alert('⚠️ Không thể kết nối tới GitHub API: ' + e);
+      }}
+      setTimeout(() => {{
+        if (label) label.innerText = 'GitHub Sync';
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+      }}, 3000);
     }}
 
     renderPosts(allPosts);

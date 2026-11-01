@@ -1,6 +1,14 @@
 {
-  "instance_name": "Bot VAA / VAU (Kênh 2)",
+  "instance_name": "Bot VAA / VAU (Học Viện Hàng Không)",
   "bot_name": "Yuki 2 (VAA)",
+  "admin": {
+    "name": "Trần Lê Phát",
+    "github": "yukilegit11-creator",
+    "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
+    "role": "Admin & Lead Developer",
+    "zalo_uid": "7662918962461429024",
+    "auto_sync_github": true
+  },
   "targets": [
     {
       "id": "target_1",
@@ -78,6 +86,7 @@
       {
         "id": "475259879796859360",
         "name": "demo",
+        "type": "GROUP",
         "enabled": true
       },
       {
