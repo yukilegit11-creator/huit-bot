@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Lấy cổng do Render cấp phát (mặc định 8000 nếu chạy local)
+PORT=${PORT:-8000}
+
+echo "=========================================================="
+echo "🚀 ĐANG KHỞI ĐỘNG HỆ THỐNG TRÊN RENDER CLOUD 24/7"
+echo "🌐 Web Dashboard Port: $PORT"
+echo "=========================================================="
+
+# 1. Khởi chạy Web Dashboard ở chế độ nền
+uvicorn web_app:app --host 0.0.0.0 --port $PORT &
+
+# 2. Khởi chạy Bot quét Facebook và bắn Zalo liên tục ở chế độ chính (foreground)
+python -u bot.py

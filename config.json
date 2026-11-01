@@ -1,0 +1,111 @@
+{
+  "targets": [
+    {
+      "id": "target_1",
+      "name": "CLB Đại sứ Truyền thông HUIT",
+      "url": "https://www.facebook.com/Daisutruyenthonghuit"
+    },
+    {
+      "id": "target_2",
+      "name": "BOT CHECK TB",
+      "url": "https://www.facebook.com/people/BOT-CHECK-TB/61595823548942/"
+    },
+    {
+      "id": "target_3",
+      "name": "Đoàn - Hội HUIT (ĐTN - HSV)",
+      "url": "https://www.facebook.com/dtn.hsv.huit"
+    },
+    {
+      "id": "target_4",
+      "name": "Khoa Ngoại ngữ (1)",
+      "url": "https://www.facebook.com/profile.php?id=61578463850940"
+    },
+    {
+      "id": "target_5",
+      "name": "Khoa Công nghệ Thông tin",
+      "url": "https://www.facebook.com/HUITFIT"
+    },
+    {
+      "id": "target_6",
+      "name": "Khoa Thương mại",
+      "url": "https://www.facebook.com/LCD.KhoaTM.HUIT"
+    },
+    {
+      "id": "target_7",
+      "name": "Khoa Công nghệ Thực phẩm",
+      "url": "https://www.facebook.com/khoacntphuit"
+    },
+    {
+      "id": "target_8",
+      "name": "LCĐ Khoa Công nghệ Thực phẩm",
+      "url": "https://www.facebook.com/lcdkhoacntp"
+    },
+    {
+      "id": "target_9",
+      "name": "Khoa Ngoại ngữ (2)",
+      "url": "https://www.facebook.com/profile.php?id=61585958458668"
+    },
+    {
+      "id": "target_10",
+      "name": "Khoa Quản trị Kinh doanh",
+      "url": "https://www.facebook.com/DOANKHOAQTKD.HUIT"
+    },
+    {
+      "id": "target_11",
+      "name": "Khoa Sinh học và Môi trường HUIT",
+      "url": "https://www.facebook.com/shmt.huit"
+    },
+    {
+      "id": "target_12",
+      "name": "Phòng Công tác Sinh viên HUIT",
+      "url": "https://www.facebook.com/ctsv.huit"
+    },
+    {
+      "id": "target_13",
+      "name": "TT Đổi mới Sáng tạo & Khởi nghiệp HUIT",
+      "url": "https://www.facebook.com/hotrosinhvienssc.huit"
+    },
+    {
+      "id": "target_14",
+      "name": "Group Sinh Viên HUIT (Mới nhất)",
+      "url": "https://www.facebook.com/groups/sinhvienhuit/?sorting_setting=CHRONOLOGICAL"
+    }
+  ],
+  "fb_cookies": {
+    "datr": "QbjDap5S3XtDDPF8wUPLvuRU",
+    "fr": "1FY5Bow7D6XcJftMv.AWfp38T4Wx0A9Ab9Wxaz5FoR3NJby5yXlSl76d-zx2SiE3r_U1U.Bq54po..AAA.0.0.Bq54po.AWe-Xvi62pncNSW9JS1eCy0pExg",
+    "xs": "20%3ADnGCXmH-2sB1vQ%3A2%3A1792852867%3A-1%3A-1%3A%3AAc3lYDPrBuhjl21yprnKu92s0vXiAH47zpgUHNbQKx4",
+    "c_user": "100087432870248",
+    "sb": "QbjDantBe3VGruYaEe2PSt3i",
+    "ps_l": "1",
+    "ps_n": "1",
+    "dpr": "1.5",
+    "wd": "1276x574"
+  },
+  "zalo": {
+    "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
+    "target_thread_id": "3556085774387844897",
+    "target_type": "GROUP",
+    "target_group_name": "TBao điểm rèn luyện",
+    "cookies": {
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "_ga": "GA1.1.1518733191.1793162405",
+      "_zlang": "vn",
+      "zpw_sek": "FTPC.466784528.a0.XEsTdep25GOFjv1hFYP2S6G49niz7602Is1fGcj0B3jHJWap9X5rNr8K30Du6tzIOYZuFKpxJoT_9o---Kn2S0",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "app.event.zalo.me": "3236038380622178657",
+      "zoaw_sek": "0X11.1070774772.3.n_VJv4eu5tA-WSLDIZWNSaeu5t9AE1ToIrUSbo0u5t8",
+      "zpsid": "0kOr.466784528.3.6r-wV8ACtyQI7GtTZepVnlV_hVAqkkZ-jhdj_emsafLVWOYcW-4H8EYCtyO"
+    }
+  },
+  "supabase": {
+    "enabled": true,
+    "url": "https://wublzmpogybrhtbulbtm.supabase.co",
+    "anon_key": "sb_publishable_Wnhcf9l6VAuAiyM7KoFp7w_y3Ohwu3S"
+  },
+  "scanner": {
+    "max_post_age_hours": 3.0,
+    "check_interval_seconds": 600,
+    "delay_between_pages_seconds": 12
+  }
+}

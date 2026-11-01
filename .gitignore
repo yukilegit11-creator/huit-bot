@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+huit_bot.db
+*.log
+.env
+.venv

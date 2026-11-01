@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: huit-social-bot
+    env: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/stats
+    autoDeploy: true
