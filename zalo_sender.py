@@ -92,46 +92,36 @@ class ZaloDispatcher:
             return []
 
     def format_message(self, post_data: dict, page_name: str) -> tuple:
-        author = post_data.get("author", "").strip() or "Thành viên nhóm"
-        posted_time = post_data.get("posted_time", "").strip()
+        posted_time = post_data.get("posted_time", "").strip() or "Vừa xong"
         text = post_data.get("content", "").strip()
         url = post_data.get("post_url", "").strip()
 
         form_links = extract_form_links(text)
         tag_str = "@All " if self.zalo_cfg.get("auto_tag_all", True) else ""
 
-        header = f"{tag_str}📢 [THÔNG BÁO MỚI - {page_name.upper()}]"
+        # Định dạng chuẩn theo yêu cầu:
+        # TAG TẤT CẢ - TÊN NHÓM ĐĂNG - THỜI GIAN ĐĂNG - LINK FORM NẾU CÓ - LINK BÀI VIẾT - CÂU XIN LỖI
         lines = [
-            header,
-            f"👤 Người đăng: {author}"
+            f"{tag_str}📢 [THÔNG BÁO MỚI]",
+            f"📌 Tên nhóm đăng: {page_name}",
+            f"🕒 Thời gian đăng: {posted_time}"
         ]
-        if posted_time:
-            lines.append(f"🕒 Thời gian: {posted_time}")
-        lines.append("━━━━━━━━━━━━━━━━━━━━")
 
-        # Yêu cầu: Thông báo chỉ gửi form đăng ký gg doc (nếu bài đó có form)
+        # Link Form nếu có
         if form_links:
-            lines.append("📝 LINK FORM ĐĂNG KÝ (Google Form / Doc):")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append("📝 LINK FORM ĐĂNG KÝ:")
             for flink in form_links:
                 lines.append(f"👉 {flink}")
-            lines.append("━━━━━━━━━━━━━━━━━━━━")
 
-            # Kèm dòng tiêu đề đầu tiên của bài để sinh viên nắm được ngữ cảnh
-            first_line = text.split("\n")[0].strip() if text else ""
-            if first_line:
-                lines.append(f"📌 {first_line[:140]}...")
-                lines.append("━━━━━━━━━━━━━━━━━━━━")
-        else:
-            # Nếu bài không có link form trực tiếp, gửi tóm tắt nội dung
-            if len(text) > 400:
-                lines.append(text[:400] + "...\n(Xem tiếp tại link bài viết bên dưới)")
-            else:
-                lines.append(text)
-            lines.append("━━━━━━━━━━━━━━━━━━━━")
-
+        # Link bài viết
         if url:
-            lines.append(f"🔗 Link Facebook: {url}")
-        lines.append("⚡ Cập nhật tự động 24/7 từ hệ thống HUIT Bot")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"🔗 Link bài viết: {url}")
+
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        # Câu xin lỗi nếu làm phiền
+        lines.append("🙏 Xin lỗi nếu thông báo này đã làm phiền các bạn!")
 
         formatted_text = "\n".join(lines)
         return formatted_text, form_links

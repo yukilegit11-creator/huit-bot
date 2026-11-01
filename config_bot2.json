@@ -109,7 +109,7 @@
     "drl"
   ],
   "scanner": {
-    "max_post_age_hours": 3.0,
+    "max_post_age_hours": 1.0,
     "check_interval_seconds": 30,
     "delay_between_pages_seconds": 9
   }

@@ -107,7 +107,7 @@ class FacebookCometScraper:
                         else:
                             url = f"https://www.facebook.com/{pid}"
 
-                    creation_time = meta.get("creation_time") or obj.get("creation_time")
+                    creation_time = meta.get("creation_time") or obj.get("creation_time") or obj.get("publish_time")
                     post_time_str = ""
                     if creation_time and isinstance(creation_time, (int, float)):
                         post_time_str = datetime.fromtimestamp(creation_time).strftime("%d/%m/%Y %H:%M:%S")
@@ -123,7 +123,7 @@ class FacebookCometScraper:
                         "post_id": pid,
                         "content": txt,
                         "post_url": url,
-                        "creation_time": creation_time or time.time(),
+                        "creation_time": creation_time,
                         "posted_time": post_time_str or datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
                         "author": author or "Thành viên nhóm"
                     })
@@ -134,7 +134,7 @@ class FacebookCometScraper:
             for item in obj:
                 self._extract_messages_from_json(item, posts, metadata_map, default_page_url)
 
-    def parse_posts(self, html_text: str, max_age_hours: float = 3.0, page_url: str = "") -> list:
+    def parse_posts(self, html_text: str, max_age_hours: float = 1.0, page_url: str = "") -> list:
         if not html_text:
             return []
 
@@ -148,8 +148,9 @@ class FacebookCometScraper:
                 if pid:
                     if pid not in metadata_map:
                         metadata_map[pid] = {}
-                    if d.get("creation_time"):
-                        metadata_map[pid]["creation_time"] = d["creation_time"]
+                    c_ts = d.get("creation_time") or d.get("publish_time") or d.get("post_creation_time")
+                    if c_ts:
+                        metadata_map[pid]["creation_time"] = c_ts
                     if d.get("actors") and isinstance(d["actors"], list) and len(d["actors"]) > 0:
                         name = d["actors"][0].get("name")
                         if name:
@@ -208,7 +209,7 @@ class FacebookCometScraper:
             if key not in unique_dict:
                 unique_dict[key] = p
 
-        # Bộ lọc thời gian (mặc định <= 3.0 tiếng)
+        # Bộ lọc thời gian (mặc định <= 1.0 tiếng, bỏ qua bài không rõ thời gian đăng)
         now_ts = time.time()
         fresh_posts = []
         for p in list(unique_dict.values()):
@@ -217,7 +218,10 @@ class FacebookCometScraper:
                 age_hours = (now_ts - c_time) / 3600.0
                 if age_hours > max_age_hours:
                     continue
-            fresh_posts.append(p)
+                fresh_posts.append(p)
+            else:
+                # Bỏ qua bài không có mốc thời gian để tuyệt đối không bắn bài cũ
+                continue
 
         # Sắp xếp mới nhất lên đầu
         fresh_posts.sort(key=lambda x: x.get("creation_time") or 0, reverse=True)

@@ -43,7 +43,7 @@ def run_bot():
     targets = config.get("targets", [])
     fb_cookies = config.get("fb_cookies", {})
     scanner_cfg = config.get("scanner", {})
-    max_age_hours = scanner_cfg.get("max_post_age_hours", 3.0)
+    max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
     check_interval = scanner_cfg.get("check_interval_seconds", 600)
     delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 12)
 
@@ -85,7 +85,7 @@ def run_bot():
             config = load_config()
             targets = config.get("targets", [])
             scanner_cfg = config.get("scanner", {})
-            max_age_hours = scanner_cfg.get("max_post_age_hours", 3.0)
+            max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
             check_interval = scanner_cfg.get("check_interval_seconds", 30)
             delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
         except Exception:
