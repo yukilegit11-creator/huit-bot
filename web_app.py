@@ -3,7 +3,7 @@ import json
 import sqlite3
 from typing import Optional
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import hashlib
@@ -30,6 +30,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def handle_head_and_monitor_requests(request: Request, call_next):
+    # Trả về 200 OK ngay lập tức cho các yêu cầu kiểm tra trạng thái sống (HEAD method từ UptimeRobot / BetterStack / Render)
+    if request.method == "HEAD":
+        return Response(status_code=200, headers={"Content-Type": "text/html; charset=utf-8"})
+    return await call_next(request)
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health_check():
+    return {
+        "status": "ok", 
+        "service": "huit-bot", 
+        "timestamp": datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+@app.api_route("/ping", methods=["GET", "HEAD"])
+def ping_check():
+    return Response(content="pong", media_type="text/plain", status_code=200)
 
 def get_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
