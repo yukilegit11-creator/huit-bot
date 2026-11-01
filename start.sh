@@ -11,5 +11,5 @@ echo "=========================================================="
 # 1. Khởi chạy Web Dashboard ở chế độ nền
 uvicorn web_app:app --host 0.0.0.0 --port $PORT &
 
-# 2. Khởi chạy Bot quét Facebook và bắn Zalo liên tục ở chế độ chính (foreground)
-python -u bot.py
+# 2. Khởi chạy đồng thời cả 2 Bot (HUIT + VAA) liên tục 24/7 ở chế độ chính (foreground)
+python -u run_all.py

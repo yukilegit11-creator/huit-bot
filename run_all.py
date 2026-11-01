@@ -23,7 +23,8 @@ def main():
     print("=" * 60)
 
     t1 = threading.Thread(target=run_proc, args=("bot.py", "Bot 1 (HUIT)"), daemon=True)
-    t2 = threading.Thread(target=run_proc, args=("bot2.py", "Bot 2 (Kênh Riêng)"), daemon=True)
+    bot2_script = "vaabot.py" if os.path.exists(os.path.join(SCRIPT_DIR, "vaabot.py")) else "bot2.py"
+    t2 = threading.Thread(target=run_proc, args=(bot2_script, "Bot 2 (VAA - Yuki 2)"), daemon=True)
 
     t1.start()
     time.sleep(2)
