@@ -103,7 +103,7 @@
       {
         "id": "7086011981379160878",
         "name": "Săn drl Hu ít",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "979670734727637728",
@@ -113,7 +113,7 @@
       {
         "id": "6036269726715046333",
         "name": "Thông báo ‼️",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "7662918962461429024",
