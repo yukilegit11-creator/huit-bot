@@ -501,13 +501,24 @@ def dashboard_view():
   <!-- TOP NAVBAR -->
   <header class="glass sticky top-0 z-50 border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-          <i class="fa-solid fa-graduation-cap text-lg"></i>
+      <div class="flex items-center space-x-5">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <i class="fa-solid fa-graduation-cap text-lg"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg leading-tight text-slate-900">HUIT Social Feed & Bot (Yuki 1)</h1>
+            <p class="text-xs text-slate-500 font-medium">Bóc tách Comet SSR 24/7 & Lọc Form Bắn Zalo</p>
+          </div>
         </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight text-slate-900">HUIT Social Feed & Bot</h1>
-          <p class="text-xs text-slate-500 font-medium">Bóc tách Comet SSR 24/7 & Lọc Form Bắn Zalo</p>
+
+        <div class="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+          <a href="/" class="px-3 py-1.5 rounded-lg bg-white text-blue-700 shadow-xs">
+            🎓 Bot 1: HUIT (Yuki 1)
+          </a>
+          <a href="/bot2" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            ✈️ Bot 2: VAA (Yuki 2)
+          </a>
         </div>
       </div>
 
@@ -1255,17 +1266,18 @@ def dashboard_view_bot2():
     targets_json = json.dumps(targets, ensure_ascii=False)
     stats_json = json.dumps(stats, ensure_ascii=False)
     target_groups_json = json.dumps(target_groups, ensure_ascii=False)
+    filter_kws_json = json.dumps(filter_kws, ensure_ascii=False)
 
     is_bot_active = stats.get("is_active", True)
     active_class = "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" if is_bot_active else "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20"
-    active_text = "🟢 BOT 2 ĐANG CHẠY" if is_bot_active else "🔴 BOT 2 ĐÃ TẮT"
+    active_text = "🟢 BOT 2 (VAA) ĐANG CHẠY" if is_bot_active else "🔴 BOT 2 (VAA) ĐÃ TẮT"
 
     html = f"""<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bot Kênh 2 Monitor 24/7</title>
+  <title>VAA Feed & Zalo Bot Monitor 24/7 (Yuki 2)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -1276,6 +1288,7 @@ def dashboard_view_bot2():
     #console-stream::-webkit-scrollbar {{ width: 6px; }}
     #console-stream::-webkit-scrollbar-track {{ background: #0f172a; }}
     #console-stream::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 3px; }}
+    #console-stream::-webkit-scrollbar-thumb:hover {{ background: #475569; }}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -1285,21 +1298,21 @@ def dashboard_view_bot2():
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-5">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-500/20">
-            <i class="fa-solid fa-robot text-lg"></i>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-700 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+            <i class="fa-solid fa-plane-departure text-lg"></i>
           </div>
           <div>
-            <h1 class="font-bold text-lg leading-tight text-slate-900">Bot Kênh 2 (Riêng Biệt)</h1>
-            <p class="text-xs text-slate-500 font-medium">Bóc tách Facebook Comet 24/7 & Lọc Form Bắn Zalo</p>
+            <h1 class="font-bold text-lg leading-tight text-slate-900">VAA Social Feed & Bot (Yuki 2)</h1>
+            <p class="text-xs text-slate-500 font-medium">Bóc tách Comet SSR 24/7 & Lọc Form Bắn Zalo</p>
           </div>
         </div>
 
         <div class="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
           <a href="/" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
-            🎓 Kênh 1: HUIT Bot
+            🎓 Bot 1: HUIT (Yuki 1)
           </a>
-          <a href="/bot2" class="px-3 py-1.5 rounded-lg bg-white text-purple-700 shadow-xs">
-            🤖 Kênh 2: Bot Riêng
+          <a href="/bot2" class="px-3 py-1.5 rounded-lg bg-white text-sky-700 shadow-xs">
+            ✈️ Bot 2: VAA (Yuki 2)
           </a>
         </div>
       </div>
@@ -1309,7 +1322,8 @@ def dashboard_view_bot2():
           <span id="bot-toggle-icon" class="w-2.5 h-2.5 rounded-full {'bg-white animate-pulse' if is_bot_active else 'bg-white'}"></span>
           <span id="bot-toggle-text">{active_text}</span>
         </button>
-        <button onclick="fetchLatestData()" class="p-2.5 text-slate-500 hover:text-purple-600 rounded-xl hover:bg-slate-100 transition border border-slate-200 shadow-xs" title="Làm mới">
+
+        <button onclick="fetchLatestData()" class="p-2.5 text-slate-500 hover:text-sky-600 rounded-xl hover:bg-slate-100 transition border border-slate-200 shadow-xs" title="Làm mới dữ liệu">
           <i class="fa-solid fa-rotate text-sm"></i>
         </button>
       </div>
@@ -1325,9 +1339,9 @@ def dashboard_view_bot2():
         <div>
           <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Bài Bóc Tách</p>
           <h3 id="stat-total-posts" class="text-3xl font-extrabold text-slate-900 mt-1">{stats['total_posts']}</h3>
-          <p class="text-xs text-slate-400 mt-1">Lưu trữ bot2.db riêng</p>
+          <p class="text-xs text-slate-400 mt-1">Lưu trữ Web & DB (bot2.db)</p>
         </div>
-        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
           <i class="fa-solid fa-newspaper"></i>
         </div>
       </div>
@@ -1336,7 +1350,7 @@ def dashboard_view_bot2():
         <div>
           <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đã Bắn Vào Zalo</p>
           <h3 id="stat-total-zalo" class="text-3xl font-extrabold text-indigo-600 mt-1">{stats['total_zalo_sent']}</h3>
-          <p id="stat-zalo-groups-count" class="text-xs text-slate-400 mt-1">{len([g for g in target_groups if g.get('enabled')])} nhóm nhận tin</p>
+          <p id="stat-zalo-groups-count" class="text-xs text-slate-400 mt-1">{len([g for g in target_groups if g.get('enabled')])} nhóm đang nhận tin</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
           <i class="fa-solid fa-paper-plane"></i>
@@ -1345,9 +1359,9 @@ def dashboard_view_bot2():
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <div>
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nguồn Quét Riêng</p>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nguồn Quét (2p30s/vòng)</p>
           <h3 id="stat-total-targets" class="text-3xl font-extrabold text-slate-900 mt-1">{len(targets)}</h3>
-          <p class="text-xs text-slate-400 mt-1">Group & Fanpage FB</p>
+          <p class="text-xs text-slate-400 mt-1">{len(targets)} Fanpage + CLB VEPC/VAU</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
           <i class="fa-solid fa-bullseye"></i>
@@ -1356,7 +1370,7 @@ def dashboard_view_bot2():
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <div>
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vòng Quét Bot 2</p>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vòng Quét Hiện Tại</p>
           <h3 id="stat-scan-cycle" class="text-2xl font-bold text-slate-900 mt-1">Vòng #{stats['scan_cycle']}</h3>
           <p id="stat-last-scan" class="text-xs text-slate-400 mt-1 truncate max-w-[150px]">{stats['last_scan_time']}</p>
         </div>
@@ -1368,32 +1382,42 @@ def dashboard_view_bot2():
 
     <!-- TABS NAVIGATION -->
     <div class="flex border-b border-slate-200 space-x-6 overflow-x-auto pb-0.5">
-      <button onclick="switchTab('feed')" id="tab-btn-feed" class="pb-3 text-sm font-semibold border-b-2 border-purple-600 text-purple-600 flex items-center gap-2 whitespace-nowrap">
+      <button onclick="switchTab('feed')" id="tab-btn-feed" class="pb-3 text-sm font-semibold border-b-2 border-sky-600 text-sky-600 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-stream"></i> Bảng Tin Mới Nhất
       </button>
       <button onclick="switchTab('console')" id="tab-btn-console" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-terminal"></i> Live Console Terminal
       </button>
-      <button onclick="switchTab('cookies')" id="tab-btn-cookies" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
-        <i class="fa-solid fa-cookie-bite"></i> Cài Đặt Cookie Facebook
-      </button>
       <button onclick="switchTab('zalo')" id="tab-btn-zalo" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
-        <i class="fa-solid fa-comments"></i> Cấu Hình Nhóm Zalo ({len([g for g in target_groups if g.get('enabled')])}/{len(target_groups)})
+        <i class="fa-solid fa-comments"></i> Cấu Hình Nhóm Zalo (<span id="tab-zalo-counter">{len([g for g in target_groups if g.get('enabled')])}/{len(target_groups)}</span>)
       </button>
       <button onclick="switchTab('targets')" id="tab-btn-targets" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-link"></i> Quản Lý Nguồn Quét ({len(targets)})
+      </button>
+      <button onclick="switchTab('cookies')" id="tab-btn-cookies" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-cookie-bite"></i> Cài Đặt Cookie Facebook
       </button>
     </div>
 
     <!-- TAB 1: FEED VIEW -->
     <div id="tab-feed" class="space-y-6">
-      <div class="bg-white p-4 rounded-xl border border-slate-200/80 flex gap-4 items-center justify-between">
-        <div class="relative w-full max-w-md">
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="relative w-full md:w-80">
           <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
-          <input type="text" id="search-input" onkeyup="filterPosts()" placeholder="Tìm nội dung, tác giả..." class="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <input type="text" id="search-input" onkeyup="filterPosts()" placeholder="Tìm kiếm nội dung, tác giả..." class="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
+        </div>
+        <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          <button onclick="setFilterPage('')" class="page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white">Tất cả</button>
+          <button onclick="setFilterPage('VEPC')" class="page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">CLB VEPC</button>
+          <button onclick="setFilterPage('Đoàn Thanh Niên')" class="page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">ĐTN - HSV VAU</button>
+          <button onclick="setFilterPage('Kỹ thuật')" class="page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Khoa KT Hàng Không</button>
+          <button onclick="setFilterPage('Khai thác')" class="page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Khoa Khai Thác HK</button>
         </div>
       </div>
-      <div id="posts-container" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+
+      <div id="posts-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Rendered by JS -->
+      </div>
     </div>
 
     <!-- TAB 2: LIVE CONSOLE LOG -->
@@ -1405,28 +1429,177 @@ def dashboard_view_bot2():
             <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
             <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
             <span class="ml-2 text-xs font-mono text-slate-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-terminal text-purple-400"></i> Bot 2 Live Output Stream (Tự động 2.5s)
+              <i class="fa-solid fa-terminal text-sky-400"></i> VAA Bot Live Output Stream (Tự động cập nhật 2.5s)
             </span>
           </div>
           <div class="flex items-center space-x-3">
             <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer select-none">
-              <input type="checkbox" id="console-autoscroll" checked class="rounded text-purple-500 bg-slate-800 border-slate-700"> Auto Scroll
+              <input type="checkbox" id="console-autoscroll" checked class="rounded text-sky-500 bg-slate-800 border-slate-700">
+              Auto Scroll
             </label>
-            <button onclick="clearConsoleView()" class="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-slate-800 rounded-md transition">Xóa</button>
-            <button onclick="fetchLogs()" class="px-2.5 py-1 text-xs text-purple-400 bg-purple-950/60 border border-purple-800/60 rounded-md transition">Làm mới</button>
+            <button onclick="clearConsoleView()" class="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md transition">
+              <i class="fa-solid fa-broom"></i> Xóa Màn Hình
+            </button>
+            <button onclick="fetchLogs()" class="px-2.5 py-1 text-xs text-sky-400 hover:text-sky-300 bg-sky-950/60 border border-sky-800/60 rounded-md transition">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
           </div>
         </div>
-        <div id="console-stream" class="p-4 font-mono text-xs text-slate-300 h-[500px] overflow-y-auto space-y-2 bg-[#0b0f19]">
-          <div class="text-slate-500 italic">Đang tải nhật ký Bot 2...</div>
+
+        <div id="console-stream" class="p-4 font-mono text-xs text-slate-300 h-[520px] overflow-y-auto space-y-2 bg-[#0b0f19]">
+          <div class="text-slate-500 italic">Đang tải luồng nhật ký từ hệ thống Bot 2 (VAA)...</div>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: COOKIES -->
+    <!-- TAB 3: ZALO SETTINGS & MULTI-GROUP SELECTION -->
+    <div id="tab-zalo" class="hidden space-y-6">
+      
+      <!-- QUICK FEATURES: TAG ALL & FORM ONLY FILTER -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- AUTO TAG ALL TOGGLE -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-at"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">Tự Động Tag @All Khi Có Bài</h4>
+              <p class="text-xs text-slate-500">Gọi toàn bộ thành viên nhóm để không bỏ lỡ tin.</p>
+            </div>
+          </div>
+          <button id="btn-toggle-tag-all" onclick="toggleTagAll()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 { 'bg-emerald-50 text-emerald-700 border border-emerald-200' if auto_tag_all else 'bg-slate-100 text-slate-600 border border-slate-300' }">
+            <i class="fa-solid { 'fa-toggle-on text-emerald-600 text-base' if auto_tag_all else 'fa-toggle-off text-slate-400 text-base' }"></i>
+            <span id="tag-all-status-text">{'BẬT' if auto_tag_all else 'TẮT'}</span>
+          </button>
+        </div>
+
+        <!-- FORM EXTRACTOR INFO -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+              <i class="fa-brands fa-google-drive"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">Ưu Tiên Link Form Google Doc</h4>
+              <p class="text-xs text-slate-500">Tự động bóc tách link forms.gle / gg docs đưa lên đầu.</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            Đã Kích Hoạt
+          </span>
+        </div>
+      </div>
+
+      <!-- KEYWORDS FILTER INFO -->
+      <div class="bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200/80 rounded-2xl p-5 shadow-xs">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+            <i class="fa-solid fa-filter"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-900 text-sm">Bộ Lọc Từ Khóa Bắn Zalo Bắt Buộc</h4>
+            <p class="text-xs text-slate-600 mt-1">
+              Chỉ bài viết chứa ít nhất một trong các từ khóa sau mới được gửi vào nhóm Zalo (mọi bài khác vẫn lưu Web đầy đủ):
+            </p>
+            <div class="flex flex-wrap gap-1.5 mt-2.5">
+              <span class="px-2.5 py-1 bg-white border border-sky-200 rounded-md text-xs font-semibold text-sky-700">📌 Link đăng ký</span>
+              <span class="px-2.5 py-1 bg-white border border-sky-200 rounded-md text-xs font-semibold text-sky-700">📝 Form</span>
+              <span class="px-2.5 py-1 bg-white border border-sky-200 rounded-md text-xs font-semibold text-sky-700">✍️ Đăng ký</span>
+              <span class="px-2.5 py-1 bg-white border border-sky-200 rounded-md text-xs font-semibold text-sky-700">⭐ Điểm rèn luyện / ĐRL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP LIST WITH TOGGLE SWITCHES -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h4 class="font-bold text-slate-900 text-base">Danh Sách Nhóm Zalo Nhận Thông Báo (Bot 2 - VAA)</h4>
+            <p class="text-xs text-slate-500">Bật hoặc tắt nhóm nào bạn muốn Bot 2 nhận tin nhắn tự động.</p>
+          </div>
+          <button onclick="testSendZaloAlert()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Bắn Thử Tin Nhắn Test (@All)
+          </button>
+        </div>
+
+        <div id="zalo-groups-list" class="divide-y divide-slate-100">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- ADD NEW GROUP SECTION -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div>
+            <h4 class="font-bold text-slate-900 text-sm">Thêm Nhanh Từ Zalo Đang Đăng Nhập</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Tải danh sách các nhóm mà tài khoản Zalo của bạn đang tham gia.</p>
+          </div>
+
+          <div class="flex gap-2">
+            <select id="select-scanned-groups" class="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="">-- Bấm "Quét danh sách" để nạp nhóm --</option>
+            </select>
+            <button onclick="fetchZaloAccountGroups()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition whitespace-nowrap flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Quét
+            </button>
+          </div>
+
+          <button onclick="handleAddSelectedZaloGroup()" class="w-full px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-plus"></i> Thêm Nhóm Đã Chọn Vào Bot 2
+          </button>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div>
+            <h4 class="font-bold text-slate-900 text-sm">Thêm Thủ Công Bằng Group ID</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Dán ID Thread nhóm Zalo nếu bạn đã biết trước.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
+            <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm Sự Kiện VAA)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
+          </div>
+
+          <button onclick="handleAddManualZaloGroup()" class="w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i> Lưu Nhóm Thủ Công
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: TARGET MANAGEMENT -->
+    <div id="tab-targets" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <h3 class="font-bold text-slate-900 text-base mb-1">Thêm Đường Link Fanpage / Group Cần Quét (Bot 2)</h3>
+        <p class="text-xs text-slate-500 mb-4">Điền link trang Facebook VAA / CLB, hệ thống sẽ tự động quét và bóc tách bài đăng mới 24/7 (với cơ chế lật trang Comet SSR).</p>
+        <form onsubmit="handleAddTarget(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input type="text" id="new-target-name" required placeholder="Tên Fanpage / CLB (vd: CLB Tổ Chức Sự Kiện VEPC - VAA)" class="px-4 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
+          <input type="url" id="new-target-url" required placeholder="https://www.facebook.com/..." class="px-4 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 sm:col-span-2">
+          <div class="sm:col-span-3 flex justify-end">
+            <button type="submit" class="px-5 py-2.5 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 shadow-xs flex items-center gap-2">
+              <i class="fa-solid fa-plus"></i> Thêm Trang Theo Dõi
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+          <h4 class="font-bold text-slate-900 text-sm">Danh Sách Mục Tiêu Đang Quét ({len(targets)})</h4>
+        </div>
+        <div id="targets-table-body" class="divide-y divide-slate-100">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: COOKIES -->
     <div id="tab-cookies" class="hidden space-y-6">
       <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs max-w-3xl space-y-4">
         <div>
-          <h3 class="font-bold text-slate-900 text-base">Cài Đặt Cookie Tài Khoản Facebook Cho Bot 2</h3>
+          <h3 class="font-bold text-slate-900 text-base">Cài Đặt Cookie Tài Khoản Facebook Cho Bot 2 (VAA)</h3>
           <p class="text-xs text-slate-500 mt-1">Dán Cookie tài khoản Facebook riêng của bạn vào đây (Dạng JSON từ Cookie Editor hoặc chuỗi cookie header c_user=...; xs=...).</p>
         </div>
 
@@ -1442,93 +1615,40 @@ def dashboard_view_bot2():
 
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1.5">Dán mã Cookie Facebook vào ô bên dưới:</label>
-          <textarea id="cookie-input" rows="7" placeholder="[\n  {{\"name\": \"c_user\", \"value\": \"...\"}},\n  {{\"name\": \"xs\", \"value\": \"...\"}}\n]\nHoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mono text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50"></textarea>
+          <textarea id="cookie-input" rows="7" placeholder="[
+  {{"name": "c_user", "value": "..."}},
+  {{"name": "xs", "value": "..."}}
+]
+Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mono text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50"></textarea>
         </div>
 
         <div class="flex justify-end">
-          <button onclick="saveFacebookCookie()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2">
+          <button onclick="saveFacebookCookie()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2">
             <i class="fa-solid fa-floppy-disk"></i> Lưu & Áp Dụng Cookie Facebook Cho Bot 2
           </button>
         </div>
       </div>
     </div>
 
-    <!-- TAB 4: ZALO SETTINGS -->
-    <div id="tab-zalo" class="hidden space-y-6">
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h4 class="font-bold text-slate-900 text-base">Danh Sách Nhóm Zalo Nhận Thông Báo (Bot 2)</h4>
-            <p class="text-xs text-slate-500">Bật hoặc tắt nhóm bạn muốn Bot 2 gửi thông báo.</p>
-          </div>
-          <button onclick="testSendZaloAlert()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
-            <i class="fa-solid fa-paper-plane"></i> Bắn Thử Tin Nhắn (@All)
-          </button>
-        </div>
-        <div id="zalo-groups-list" class="divide-y divide-slate-100"></div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-          <h4 class="font-bold text-slate-900 text-sm">Thêm Nhanh Từ Zalo Bot</h4>
-          <div class="flex gap-2">
-            <select id="select-scanned-groups" class="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white">
-              <option value="">-- Bấm "Quét" để tải nhóm --</option>
-            </select>
-            <button onclick="fetchZaloAccountGroups()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">Quét</button>
-          </div>
-          <button onclick="handleAddSelectedZaloGroup()" class="w-full px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg">Thêm Vào Nhận Tin</button>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-          <h4 class="font-bold text-slate-900 text-sm">Thêm Thủ Công ID Nhóm</h4>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm Zalo" class="px-3 py-2 text-xs rounded-lg border border-slate-200 col-span-2">
-            <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm" class="px-3 py-2 text-xs rounded-lg border border-slate-200 col-span-2">
-          </div>
-          <button onclick="handleAddManualZaloGroup()" class="w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg">Lưu Nhóm</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 5: TARGETS -->
-    <div id="tab-targets" class="hidden space-y-6">
-      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-        <h3 class="font-bold text-slate-900 text-base mb-1">Thêm Group / Fanpage Cho Bot 2 Quét</h3>
-        <p class="text-xs text-slate-500 mb-4">Điền link group hoặc trang Facebook bạn muốn Bot 2 theo dõi.</p>
-        <form onsubmit="handleAddTarget(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input type="text" id="new-target-name" required placeholder="Tên Group / Fanpage" class="px-4 py-2.5 text-sm rounded-lg border border-slate-200">
-          <input type="url" id="new-target-url" required placeholder="https://www.facebook.com/..." class="px-4 py-2.5 text-sm rounded-lg border border-slate-200 sm:col-span-2">
-          <div class="sm:col-span-3 flex justify-end">
-            <button type="submit" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow-xs">Thêm Mục Tiêu</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100">
-          <h4 class="font-bold text-slate-900 text-sm">Danh Sách Mục Tiêu Của Bot 2 ({len(targets)})</h4>
-        </div>
-        <div id="targets-table-body" class="divide-y divide-slate-100"></div>
-      </div>
-    </div>
-
   </main>
 
+  <!-- JAVASCRIPT LOGIC -->
   <script>
     const API_BASE = '/api/bot2';
     let allPosts = {posts_json};
     let allTargets = {targets_json};
     let allTargetGroups = {target_groups_json};
-    let isBotActive = {'true' if is_bot_active else 'false'};
+    let currentFilterPage = '';
+    let isBotActive = { 'true' if is_bot_active else 'false' };
+    let autoTagAll = { 'true' if auto_tag_all else 'false' };
 
     function switchTab(tab) {{
-      ['feed', 'console', 'cookies', 'zalo', 'targets'].forEach(t => {{
+      ['feed', 'console', 'zalo', 'targets', 'cookies'].forEach(t => {{
         const el = document.getElementById('tab-' + t);
         const btn = document.getElementById('tab-btn-' + t);
         if (el) el.classList.add('hidden');
         if (btn) {{
-          btn.classList.remove('border-purple-600', 'text-purple-600');
+          btn.classList.remove('border-sky-600', 'text-sky-600');
           btn.classList.add('border-transparent', 'text-slate-500');
         }}
       }});
@@ -1536,13 +1656,18 @@ def dashboard_view_bot2():
       const targetBtn = document.getElementById('tab-btn-' + tab);
       if (targetEl) targetEl.classList.remove('hidden');
       if (targetBtn) {{
-        targetBtn.classList.add('border-purple-600', 'text-purple-600');
+        targetBtn.classList.add('border-sky-600', 'text-sky-600');
         targetBtn.classList.remove('border-transparent', 'text-slate-500');
       }}
-      if (tab === 'console') fetchLogs();
-      else if (tab === 'zalo') renderTargetGroups(allTargetGroups);
+
+      if (tab === 'console') {{
+        fetchLogs();
+      }} else if (tab === 'zalo') {{
+        renderTargetGroups(allTargetGroups);
+      }}
     }}
 
+    // ================= BOT ON/OFF TOGGLE =================
     async function toggleBotPower() {{
       const btn = document.getElementById('bot-toggle-btn');
       btn.disabled = true;
@@ -1554,31 +1679,40 @@ def dashboard_view_bot2():
           updateBotButtonUI(isBotActive);
           fetchLogs();
         }}
-      }} catch (err) {{ alert('Lỗi: ' + err); }}
-      finally {{ btn.disabled = false; }}
+      }} catch (err) {{
+        alert('Lỗi thao tác bật/tắt bot: ' + err);
+      }} finally {{
+        btn.disabled = false;
+      }}
     }}
 
     function updateBotButtonUI(active) {{
       const btn = document.getElementById('bot-toggle-btn');
       const text = document.getElementById('bot-toggle-text');
       const icon = document.getElementById('bot-toggle-icon');
+
       if (active) {{
-        btn.className = 'px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white';
-        text.innerText = '🟢 BOT 2 ĐANG CHẠY';
+        btn.className = 'px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20';
+        text.innerText = '🟢 BOT 2 (VAA) ĐANG CHẠY';
         icon.className = 'w-2.5 h-2.5 rounded-full bg-white animate-pulse';
       }} else {{
-        btn.className = 'px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white';
-        text.innerText = '🔴 BOT 2 ĐÃ TẮT';
+        btn.className = 'px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20';
+        text.innerText = '🔴 BOT 2 (VAA) ĐÃ TẮT';
         icon.className = 'w-2.5 h-2.5 rounded-full bg-white';
       }}
     }}
 
+    // ================= LIVE CONSOLE LOGS =================
     async function fetchLogs() {{
       try {{
         const res = await fetch(API_BASE + '/logs?limit=80');
         const data = await res.json();
-        if (data.status === 'ok') renderLogs(data.logs || []);
-      }} catch (err) {{ console.error('Lỗi tải logs:', err); }}
+        if (data.status === 'ok') {{
+          renderLogs(data.logs || []);
+        }}
+      }} catch (err) {{
+        console.error('Lỗi tải logs:', err);
+      }}
     }}
 
     function renderLogs(logs) {{
@@ -1587,15 +1721,19 @@ def dashboard_view_bot2():
         container.innerHTML = '<div class="text-slate-500">Chưa có nhật ký ghi nhận...</div>';
         return;
       }}
-      const rev = [...logs].reverse();
-      container.innerHTML = rev.map(l => {{
+
+      const chronologicalLogs = [...logs].reverse();
+
+      container.innerHTML = chronologicalLogs.map(l => {{
         let badgeColor = 'bg-blue-900/60 text-blue-400 border-blue-800';
         if (l.level === 'SCAN') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
         else if (l.level === 'POST') badgeColor = 'bg-emerald-950 text-emerald-400 border-emerald-800';
         else if (l.level === 'FILTER') badgeColor = 'bg-amber-950 text-amber-300 border-amber-800';
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
+
         const timeStr = l.created_at ? l.created_at.split(' ')[1] || l.created_at : '';
+
         return `
           <div class="flex items-start gap-2.5 hover:bg-slate-800/40 px-2 py-1 rounded transition">
             <span class="text-slate-500 shrink-0 text-[11px]">${{timeStr}}</span>
@@ -1604,32 +1742,63 @@ def dashboard_view_bot2():
           </div>
         `;
       }}).join('');
-      if (document.getElementById('console-autoscroll').checked) container.scrollTop = container.scrollHeight;
+
+      if (document.getElementById('console-autoscroll').checked) {{
+        container.scrollTop = container.scrollHeight;
+      }}
     }}
 
     function clearConsoleView() {{
-      document.getElementById('console-stream').innerHTML = '<div class="text-slate-500">Màn hình đã xóa.</div>';
+      document.getElementById('console-stream').innerHTML = '<div class="text-slate-500">Màn hình đã xóa. Đang chờ log tiếp theo...</div>';
     }}
 
+    // ================= POSTS RENDERING =================
     function renderPosts(posts) {{
       const container = document.getElementById('posts-container');
       if (!posts || posts.length === 0) {{
-        container.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400"><p class="font-medium">Chưa có bài viết nào từ Bot 2.</p></div>';
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-400">
+            <i class="fa-solid fa-inbox text-4xl mb-3 text-slate-300"></i>
+            <p class="font-medium">Chưa có bài viết nào được ghi nhận từ Bot 2.</p>
+            <p class="text-xs text-slate-400 mt-1">Bot đang chạy quét Facebook trong nền...</p>
+          </div>
+        `;
         return;
       }}
+
       container.innerHTML = posts.map(p => `
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between gap-2 mb-3">
-              <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-100">${{p.page_name || 'Trang'}}</span>
-              <span class="text-xs text-slate-400">${{p.posted_time || p.crawled_at || ''}}</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-100">
+                ${{p.page_name || 'Fanpage'}}
+              </span>
+              <span class="text-xs text-slate-400 flex items-center gap-1">
+                <i class="fa-regular fa-clock"></i> ${{p.posted_time || p.crawled_at || ''}}
+              </span>
             </div>
-            <p class="text-xs font-bold text-slate-800 mb-2">${{p.author || 'Ẩn danh'}}</p>
-            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 line-clamp-6">${{p.content}}</p>
+
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">
+                ${{(p.author || 'U')[0]}}
+              </div>
+              <span class="text-xs font-bold text-slate-800">${{p.author || 'Người đăng ẩn danh'}}</span>
+            </div>
+
+            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 line-clamp-6">
+              ${{p.content}}
+            </p>
           </div>
+
           <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span>${{p.is_sent_zalo ? '<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-check-circle"></i> Đã gửi Zalo</span>' : '<span class="text-slate-400">Không khớp lọc</span>'}}</span>
-            ${{p.post_url ? `<a href="${{p.post_url}}" target="_blank" class="text-purple-600 hover:underline font-semibold">Xem bài viết <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>` : ''}}
+            <div class="flex items-center gap-2">
+              ${{p.is_sent_zalo ? '<span class="text-emerald-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-check-circle"></i> Đã gửi Zalo</span>' : '<span class="text-slate-400">Không khớp bộ lọc từ khóa</span>'}}
+            </div>
+            ${{p.post_url ? `
+              <a href="${{p.post_url}}" target="_blank" rel="noopener noreferrer" class="font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-1">
+                Xem trên Facebook <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+            ` : ''}}
           </div>
         </div>
       `).join('');
@@ -1637,9 +1806,27 @@ def dashboard_view_bot2():
 
     function filterPosts() {{
       const q = document.getElementById('search-input').value.toLowerCase().trim();
-      renderPosts(allPosts.filter(p => (p.content || '').toLowerCase().includes(q) || (p.author || '').toLowerCase().includes(q)));
+      const filtered = allPosts.filter(p => {{
+        const matchText = (p.content || '').toLowerCase().includes(q) || (p.author || '').toLowerCase().includes(q);
+        const matchPage = !currentFilterPage || (p.page_name || '').toLowerCase().includes(currentFilterPage.toLowerCase());
+        return matchText && matchPage;
+      }});
+      renderPosts(filtered);
     }}
 
+    function setFilterPage(page) {{
+      currentFilterPage = page;
+      document.querySelectorAll('.page-filter-btn').forEach(btn => {{
+        if (btn.innerText.includes(page) || (page === '' && btn.innerText === 'Tất cả')) {{
+          btn.className = 'page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white';
+        }} else {{
+          btn.className = 'page-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
+        }}
+      }});
+      filterPosts();
+    }}
+
+    // ================= TARGETS RENDERING =================
     function renderTargets(targets) {{
       const container = document.getElementById('targets-table-body');
       if (!targets || targets.length === 0) {{
@@ -1652,10 +1839,12 @@ def dashboard_view_bot2():
             <span class="w-6 text-xs text-slate-400 font-bold">${{idx + 1}}</span>
             <div>
               <p class="text-sm font-bold text-slate-900">${{t.name}}</p>
-              <a href="${{t.url}}" target="_blank" class="text-xs text-purple-600 hover:underline truncate max-w-md block">${{t.url}}</a>
+              <a href="${{t.url}}" target="_blank" class="text-xs text-sky-600 hover:underline truncate max-w-md block">${{t.url}}</a>
             </div>
           </div>
-          <button onclick="handleDeleteTarget('${{t.id}}')" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><i class="fa-regular fa-trash-can"></i></button>
+          <button onclick="handleDeleteTarget('${{t.id}}')" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Xóa nguồn này">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
         </div>
       `).join('');
     }}
@@ -1664,10 +1853,11 @@ def dashboard_view_bot2():
       e.preventDefault();
       const name = document.getElementById('new-target-name').value;
       const url = document.getElementById('new-target-url').value;
-      const fd = new FormData();
-      fd.append('name', name);
-      fd.append('url', url);
-      const res = await fetch(API_BASE + '/targets', {{ method: 'POST', body: fd }});
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('url', url);
+
+      const res = await fetch(API_BASE + '/targets', {{ method: 'POST', body: formData }});
       if (res.ok) {{
         document.getElementById('new-target-name').value = '';
         document.getElementById('new-target-url').value = '';
@@ -1676,35 +1866,42 @@ def dashboard_view_bot2():
     }}
 
     async function handleDeleteTarget(id) {{
-      if (!confirm('Xóa nguồn này khỏi Bot 2?')) return;
+      if (!confirm('Bạn có chắc muốn xóa nguồn này khỏi Bot 2?')) return;
       const res = await fetch(API_BASE + '/targets/' + id, {{ method: 'DELETE' }});
       if (res.ok) fetchLatestData();
     }}
 
+    // ================= ZALO GROUPS MANAGEMENT =================
     function renderTargetGroups(groups) {{
       const container = document.getElementById('zalo-groups-list');
       if (!groups || groups.length === 0) {{
-        container.innerHTML = '<div class="p-6 text-center text-slate-400 text-xs">Chưa có nhóm Zalo nào.</div>';
+        container.innerHTML = '<div class="p-6 text-center text-slate-400 text-xs">Chưa cấu hình nhóm Zalo nào.</div>';
         return;
       }}
+
       container.innerHTML = groups.map(g => `
         <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl ${{g.enabled ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-400'}} flex items-center justify-center font-bold text-sm">
+            <div class="w-10 h-10 rounded-xl ${{g.enabled ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-400'}} flex items-center justify-center font-bold text-sm">
               <i class="fa-solid fa-users"></i>
             </div>
             <div>
               <p class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                ${{g.name}} ${{g.enabled ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Bật</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600">Tắt</span>'}}
+                ${{g.name}}
+                ${{g.enabled ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Đang nhận tin</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600">Đã tắt</span>'}}
               </p>
               <p class="text-xs text-slate-400 font-mono">Thread ID: ${{g.id}}</p>
             </div>
           </div>
+
           <div class="flex items-center gap-3">
-            <button onclick="toggleZaloGroup('${{g.id}}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${{g.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-300'}}">
+            <button onclick="toggleZaloGroup('${{g.id}}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${{g.enabled ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'}}">
+              <i class="fa-solid ${{g.enabled ? 'fa-toggle-on text-emerald-600 text-base' : 'fa-toggle-off text-slate-400 text-base'}}"></i>
               ${{g.enabled ? 'BẬT' : 'TẮT'}}
             </button>
-            <button onclick="deleteZaloGroup('${{g.id}}')" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><i class="fa-regular fa-trash-can"></i></button>
+            <button onclick="deleteZaloGroup('${{g.id}}')" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Xóa khỏi danh sách">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
           </div>
         </div>
       `).join('');
@@ -1713,45 +1910,85 @@ def dashboard_view_bot2():
     async function toggleZaloGroup(groupId) {{
       const fd = new FormData();
       fd.append('group_id', groupId);
-      const res = await fetch(API_BASE + '/zalo/toggle_group', {{ method: 'POST', body: fd }});
-      const data = await res.json();
-      if (data.status === 'ok') {{
-        allTargetGroups = data.target_groups;
-        renderTargetGroups(allTargetGroups);
+      try {{
+        const res = await fetch(API_BASE + '/zalo/toggle_group', {{ method: 'POST', body: fd }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          allTargetGroups = data.target_groups;
+          renderTargetGroups(allTargetGroups);
+          updateZaloStatsBadge();
+        }}
+      }} catch (err) {{
+        alert('Lỗi đổi trạng thái nhóm: ' + err);
+      }}
+    }}
+
+    async function toggleTagAll() {{
+      try {{
+        const res = await fetch(API_BASE + '/zalo/toggle_tag_all', {{ method: 'POST' }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          autoTagAll = data.auto_tag_all;
+          const btn = document.getElementById('btn-toggle-tag-all');
+          const txt = document.getElementById('tag-all-status-text');
+          if (autoTagAll) {{
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200';
+            btn.innerHTML = '<i class="fa-solid fa-toggle-on text-emerald-600 text-base"></i> <span>BẬT</span>';
+          }} else {{
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 text-slate-600 border border-slate-300';
+            btn.innerHTML = '<i class="fa-solid fa-toggle-off text-slate-400 text-base"></i> <span>TẮT</span>';
+          }}
+        }}
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
       }}
     }}
 
     async function deleteZaloGroup(groupId) {{
-      if (!confirm('Xóa nhóm Zalo này khỏi Bot 2?')) return;
-      const res = await fetch(API_BASE + '/zalo/target_groups/' + groupId, {{ method: 'DELETE' }});
-      if (res.ok) {{
-        allTargetGroups = allTargetGroups.filter(g => String(g.id) !== String(groupId));
-        renderTargetGroups(allTargetGroups);
+      if (!confirm('Bạn có chắc muốn xóa nhóm này khỏi Bot 2?')) return;
+      try {{
+        const res = await fetch(API_BASE + '/zalo/target_groups/' + groupId, {{ method: 'DELETE' }});
+        if (res.ok) {{
+          allTargetGroups = allTargetGroups.filter(g => String(g.id) !== String(groupId));
+          renderTargetGroups(allTargetGroups);
+          updateZaloStatsBadge();
+        }}
+      }} catch (err) {{
+        alert('Lỗi xóa nhóm: ' + err);
       }}
     }}
 
     async function fetchZaloAccountGroups() {{
       const select = document.getElementById('select-scanned-groups');
-      select.innerHTML = '<option value="">Đang tải...</option>';
-      const res = await fetch('/api/zalo/groups');
-      const data = await res.json();
-      if (data.groups && data.groups.length > 0) {{
-        select.innerHTML = data.groups.map(g => `<option value="${{g.id}}" data-name="${{g.name}}">${{g.name}} (${{g.id}})</option>`).join('');
+      select.innerHTML = '<option value="">Đang tải danh sách từ Zalo...</option>';
+      try {{
+        const res = await fetch('/api/zalo/groups');
+        const data = await res.json();
+        if (data.groups && data.groups.length > 0) {{
+          select.innerHTML = data.groups.map(g => `<option value="${{g.id}}" data-name="${{g.name}}">${{g.name}} (${{g.id}})</option>`).join('');
+        }} else {{
+          select.innerHTML = '<option value="">Không tìm thấy nhóm nào</option>';
+        }}
+      }} catch (err) {{
+        select.innerHTML = '<option value="">Lỗi nạp nhóm</option>';
       }}
     }}
 
     async function handleAddSelectedZaloGroup() {{
       const select = document.getElementById('select-scanned-groups');
       const opt = select.options[select.selectedIndex];
-      if (!opt || !opt.value) return alert('Vui lòng chọn 1 nhóm');
+      if (!opt || !opt.value) return alert('Vui lòng chọn 1 nhóm từ danh sách');
+
       const fd = new FormData();
       fd.append('group_id', opt.value);
       fd.append('group_name', opt.getAttribute('data-name') || opt.value);
+
       const res = await fetch(API_BASE + '/zalo/add_group', {{ method: 'POST', body: fd }});
       const data = await res.json();
       if (data.status === 'ok') {{
         allTargetGroups = data.target_groups;
         renderTargetGroups(allTargetGroups);
+        updateZaloStatsBadge();
         alert('Đã thêm nhóm vào Bot 2 thành công!');
       }}
     }}
@@ -1760,28 +1997,46 @@ def dashboard_view_bot2():
       const gid = document.getElementById('manual-group-id').value.trim();
       const gname = document.getElementById('manual-group-name').value.trim();
       if (!gid || !gname) return alert('Vui lòng nhập cả ID và Tên nhóm');
+
       const fd = new FormData();
       fd.append('group_id', gid);
       fd.append('group_name', gname);
+
       const res = await fetch(API_BASE + '/zalo/add_group', {{ method: 'POST', body: fd }});
       const data = await res.json();
       if (data.status === 'ok') {{
         allTargetGroups = data.target_groups;
         renderTargetGroups(allTargetGroups);
+        updateZaloStatsBadge();
         document.getElementById('manual-group-id').value = '';
         document.getElementById('manual-group-name').value = '';
-        alert('Đã thêm nhóm thành công!');
+        alert('Đã thêm nhóm vào Bot 2 thành công!');
       }}
     }}
 
     async function testSendZaloAlert() {{
-      if (!confirm('Gửi tin nhắn thử nghiệm tới tất cả nhóm Zalo Bot 2 đang bật?')) return;
-      const res = await fetch(API_BASE + '/zalo/test_alert', {{ method: 'POST' }});
-      const data = await res.json();
-      if (data.status === 'ok') alert('✅ ' + data.message);
-      else alert('❌ ' + (data.message || 'Lỗi gửi tin'));
+      if (!confirm('Gửi tin nhắn mẫu thử nghiệm tới TẤT CẢ các nhóm Zalo Bot 2 đang được BẬT?')) return;
+      try {{
+        const res = await fetch(API_BASE + '/zalo/test_alert', {{ method: 'POST' }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          alert('✅ ' + data.message);
+          fetchLogs();
+        }} else {{
+          alert('❌ ' + (data.message || 'Lỗi gửi tin'));
+        }}
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
     }}
 
+    function updateZaloStatsBadge() {{
+      const enabledCount = allTargetGroups.filter(g => g.enabled).length;
+      document.getElementById('stat-zalo-groups-count').innerText = enabledCount + ' nhóm đang nhận tin';
+      document.getElementById('tab-btn-zalo').innerHTML = `<i class="fa-solid fa-comments"></i> Cấu Hình Nhóm Zalo (<span id="tab-zalo-counter">${{enabledCount}}/${{allTargetGroups.length}}</span>)`;
+    }}
+
+    // ================= FACEBOOK COOKIE SAVER =================
     async function saveFacebookCookie() {{
       const text = document.getElementById('cookie-input').value.trim();
       if (!text) return alert('Vui lòng dán cookie vào ô trước');
@@ -1799,6 +2054,7 @@ def dashboard_view_bot2():
       }}
     }}
 
+    // ================= DATA REFRESH LOOP =================
     async function fetchLatestData() {{
       try {{
         const [postsRes, statsRes, targetsRes, logsRes] = await Promise.all([
@@ -1828,7 +2084,7 @@ def dashboard_view_bot2():
         renderTargets(allTargets);
         renderLogs(logsData.logs || []);
       }} catch (err) {{
-        console.error('Lỗi định kỳ:', err);
+        console.error('Lỗi cập nhật định kỳ:', err);
       }}
     }}
 
