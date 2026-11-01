@@ -103,6 +103,18 @@
     "url": "https://wublzmpogybrhtbulbtm.supabase.co",
     "anon_key": "sb_publishable_Wnhcf9l6VAuAiyM7KoFp7w_y3Ohwu3S"
   },
+  "filter_keywords": [
+    "link đăng ký",
+    "link dang ky",
+    "form",
+    "forms.gle",
+    "đăng ký",
+    "dang ky",
+    "điểm rèn luyện",
+    "diem ren luyen",
+    "đrl",
+    "drl"
+  ],
   "scanner": {
     "max_post_age_hours": 3.0,
     "check_interval_seconds": 30,

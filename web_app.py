@@ -80,10 +80,18 @@ def api_crawl_now():
                     database.record_seen_post(ident, pname)
                     if supabase.enabled:
                         supabase.push_post(p, pname)
-                    zalo.send_alert(p, pname)
-                    new_posts.append({"page": pname, "author": p.get("author"), "id": ident})
+                    
+                    # Kiểm tra bộ lọc từ khóa trước khi bắn Zalo
+                    filter_kws = cfg.get("filter_keywords", [])
+                    txt_lower = p.get("content", "").lower()
+                    has_kw = not filter_kws or any(kw.lower() in txt_lower for kw in filter_kws)
+                    if has_kw:
+                        zalo.send_alert(p, pname)
+                        database.mark_post_sent_zalo(ident)
+                    new_posts.append({"page": pname, "author": p.get("author"), "id": ident, "sent_zalo": has_kw})
         except Exception as e:
             database.set_bot_status("last_error", str(e))
+
 
     database.set_bot_status("bot_state", "sleeping")
     return {"status": "ok", "new_posts_count": len(new_posts), "posts": new_posts}

@@ -24,6 +24,16 @@ def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def matches_filter_keywords(text: str, keywords: list) -> tuple:
+    if not keywords:
+        return True, "mặc định"
+    txt_lower = text.lower()
+    for kw in keywords:
+        if kw.lower() in txt_lower:
+            return True, kw
+    return False, ""
+
+
 def run_bot():
     print("=" * 60)
     print("🚀 HỆ THỐNG TỰ ĐỘNG CÀO FACEBOOK - ĐẨY WEB & BẮN ZALO 24/7")
@@ -108,12 +118,19 @@ def run_bot():
                             if supabase_ok:
                                 database.mark_post_sent_supabase(ident)
 
-                        # 3. Gửi thông báo tức thì vào nhóm Zalo
-                        sent_zalo = zalo.send_alert(p, page_name)
-                        if sent_zalo:
-                            database.mark_post_sent_zalo(ident)
+                        # 3. Gửi thông báo tức thì vào nhóm Zalo (nếu khớp bộ lọc từ khóa)
+                        filter_kws = config.get("filter_keywords", [])
+                        has_kw, matched_kw = matches_filter_keywords(p.get("content", ""), filter_kws)
+                        if has_kw:
+                            print(f"      🎯 Bài viết khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo...")
+                            sent_zalo = zalo.send_alert(p, page_name)
+                            if sent_zalo:
+                                database.mark_post_sent_zalo(ident)
+                        else:
+                            print(f"      ⏩ Bỏ qua gửi Zalo (nội dung không chứa từ khóa: Link đăng ký, Form, Đăng ký, ĐRL)")
 
                         # Nghỉ nhẹ giữa các bài gửi để tránh spam
+
                         time.sleep(random.uniform(2.5, 4.0))
 
             except Exception as e:
