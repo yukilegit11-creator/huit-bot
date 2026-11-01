@@ -94,6 +94,11 @@
         "name": "Trần Lê Phát",
         "type": "USER",
         "enabled": false
+      },
+      {
+        "id": "234324334324",
+        "name": "324324324",
+        "enabled": true
       }
     ],
     "cookies": {
