@@ -66,6 +66,16 @@ def run_bot():
     database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
     database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot Kênh 2 quét tự động.", db_file=DB_TARGET)
 
+    # Tải danh sách bài viết từ Supabase Cloud để chống gửi lặp khi khởi động lại
+    if supabase.enabled:
+        try:
+            cloud_seen = supabase.get_seen_identifiers()
+            for s_id in cloud_seen:
+                database.record_seen_post(s_id, "Cloud_Synced", db_file=DB_TARGET)
+            print(f"☁️ [Cloud] Đã nạp {len(cloud_seen)} bài cũ từ Supabase để chống trùng lặp tuyệt đối!")
+        except Exception as e:
+            pass
+
     while True:
         # 1. Kiểm tra trạng thái Bật / Tắt của Bot từ Web Dashboard
         if not database.is_bot_enabled(db_file=DB_TARGET):
