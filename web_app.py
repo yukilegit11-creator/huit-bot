@@ -1048,14 +1048,15 @@ def dashboard_view():
         <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl ${{g.enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400'}} flex items-center justify-center font-bold text-sm">
-              <i class="fa-solid fa-users"></i>
+              <i class="fa-solid ${{g.type === 'USER' ? 'fa-user' : 'fa-users'}}"></i>
             </div>
             <div>
               <p class="text-sm font-bold text-slate-900 flex items-center gap-2">
                 ${{g.name}}
+                ${{g.type === 'USER' ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">Cá nhân</span>' : ''}}
                 ${{g.enabled ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Đang nhận tin</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600">Đã tắt</span>'}}
               </p>
-              <p class="text-xs text-slate-400 font-mono">Thread ID: ${{g.id}}</p>
+              <p class="text-xs text-slate-400 font-mono">${{g.type === 'USER' ? 'Zalo UID' : 'Thread ID'}}: ${{g.id}}</p>
             </div>
           </div>
 
@@ -1883,14 +1884,15 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl ${{g.enabled ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-400'}} flex items-center justify-center font-bold text-sm">
-              <i class="fa-solid fa-users"></i>
+              <i class="fa-solid ${{g.type === 'USER' ? 'fa-user' : 'fa-users'}}"></i>
             </div>
             <div>
               <p class="text-sm font-bold text-slate-900 flex items-center gap-2">
                 ${{g.name}}
+                ${{g.type === 'USER' ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">Cá nhân</span>' : ''}}
                 ${{g.enabled ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Đang nhận tin</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600">Đã tắt</span>'}}
               </p>
-              <p class="text-xs text-slate-400 font-mono">Thread ID: ${{g.id}}</p>
+              <p class="text-xs text-slate-400 font-mono">${{g.type === 'USER' ? 'Zalo UID' : 'Thread ID'}}: ${{g.id}}</p>
             </div>
           </div>
 

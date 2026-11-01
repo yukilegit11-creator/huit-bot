@@ -201,31 +201,43 @@ class ZaloDispatcher:
         target_type_str = self.zalo_cfg.get("target_type", "GROUP").upper()
         thread_type = ThreadType.GROUP if target_type_str == "GROUP" else ThreadType.USER
 
-        # Chuẩn bị Message với @All mention nếu gửi vào Group và auto_tag_all = True
-        auto_tag = self.zalo_cfg.get("auto_tag_all", True)
-        if thread_type == ThreadType.GROUP and auto_tag:
-            mention = Mention(uid="-1", length=len("@All"), offset=0)
-            msg_obj = Message(text=formatted_text, mention=mention)
-        else:
-            msg_obj = Message(text=formatted_text)
-
         any_success = False
         for g in target_list:
             gid = str(g["id"])
             gname = g.get("name", gid)
+            target_type = str(g.get("type") or self.zalo_cfg.get("target_type", "GROUP")).upper()
+            is_user = (target_type == "USER")
+            t_type = ThreadType.USER if is_user else ThreadType.GROUP
+
+            # Nếu gửi cá nhân thì bỏ @All, nếu gửi nhóm và bật auto_tag thì đính kèm mention @All
+            if is_user:
+                clean_text = formatted_text
+                if clean_text.startswith("@All "):
+                    clean_text = clean_text[5:]
+                msg_obj = Message(text=clean_text)
+            else:
+                auto_tag = self.zalo_cfg.get("auto_tag_all", True)
+                if auto_tag and formatted_text.startswith("@All"):
+                    mention = Mention(uid="-1", length=len("@All"), offset=0)
+                    msg_obj = Message(text=formatted_text, mention=mention)
+                else:
+                    clean_text = formatted_text[5:] if formatted_text.startswith("@All ") else formatted_text
+                    msg_obj = Message(text=clean_text)
+
             try:
                 res = self.client.send(
                     msg_obj,
                     thread_id=gid,
-                    thread_type=thread_type
+                    thread_type=t_type
                 )
                 bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
                 form_info = f" (Kèm {len(form_links)} link form GG Doc)" if form_links else ""
-                print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công vào nhóm [{gname}] (ID: {gid}){form_info}")
+                target_kind = "cá nhân" if is_user else "nhóm"
+                print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công tới {target_kind} [{gname}] (ID: {gid}){form_info}")
                 try:
                     import database
                     db_target = "bot2.db" if "bot2" in str(self.config_file) else None
-                    database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] vào nhóm [{gname}]{form_info}", db_file=db_target)
+                    database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] tới {target_kind} [{gname}]{form_info}", db_file=db_target)
                 except Exception:
                     pass
                 any_success = True
