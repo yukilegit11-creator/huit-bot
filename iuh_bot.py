@@ -210,12 +210,22 @@ def run_bot():
                             "Bot tạm thời không thể đọc dữ liệu từ doantn.iuh.edu.vn.\n\n"
                             "👉 Vui lòng vào Web Dashboard cập nhật Cookie mới để Bot tiếp tục săn hoạt động!"
                         )
-                        target_list = [t for t in config.get("zalo", {}).get("target_groups", []) if t.get("enabled", True)]
-                        for t in target_list:
-                            t_type = ThreadType.USER if str(t.get("type")).upper() == "USER" else ThreadType.GROUP
-                            zalo.client.send(Message(text=warn_msg), thread_id=str(t["id"]), thread_type=t_type)
-                    except Exception:
-                        pass
+                        # CHỈ GỬI CẢNH BÁO VỀ ZALO CÁ NHÂN (USER), TUYỆT ĐỐI KHÔNG GỬI VÀO NHÓM
+                        user_targets = [
+                            t for t in config.get("zalo", {}).get("target_groups", []) 
+                            if t.get("enabled", True) and str(t.get("type", "")).upper() == "USER"
+                        ]
+                        if not user_targets:
+                            user_targets = [{"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}]
+
+                        for t in user_targets:
+                            tid = str(t["id"])
+                            zalo.client.send(Message(text=warn_msg), thread_id=tid, thread_type=ThreadType.USER)
+                            log_msg = f"Đã gửi cảnh báo Cookie hết hạn tới Zalo cá nhân [{t.get('name')}] ({tid})"
+                            print(f"⚠️ [Zalo] {log_msg}")
+                            database.log_event("WARN", log_msg, db_file=DB_TARGET)
+                    except Exception as e:
+                        print(f"❌ [Zalo] Lỗi gửi cảnh báo cá nhân: {e}")
             else:
                 database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
                 new_count = 0
