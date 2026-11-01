@@ -87,7 +87,34 @@
     "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
     "target_group_name": "demo",
-
+    "auto_tag_all": true,
+    "target_groups": [
+      {
+        "id": "475259879796859360",
+        "name": "demo",
+        "enabled": true
+      },
+      {
+        "id": "3556085774387844897",
+        "name": "TBao điểm rèn luyện",
+        "enabled": false
+      },
+      {
+        "id": "7086011981379160878",
+        "name": "Săn drl Hu ít",
+        "enabled": false
+      },
+      {
+        "id": "979670734727637728",
+        "name": "Thông báo drl",
+        "enabled": false
+      },
+      {
+        "id": "6036269726715046333",
+        "name": "Thông báo ‼️",
+        "enabled": false
+      }
+    ],
     "cookies": {
       "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
       "_ga": "GA1.1.1518733191.1793162405",

@@ -1,7 +1,15 @@
 import sqlite3
 import os
 import json
+import sys
 from datetime import datetime
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "huit_bot.db")
 
@@ -42,11 +50,83 @@ def init_db():
         )
     """)
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS system_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            level TEXT,
+            message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_crawled_posts_crawled_at 
         ON crawled_posts (crawled_at DESC)
     """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_system_logs_created_at
+        ON system_logs (id DESC)
+    """)
+    
+    # Mặc định bật bot nếu chưa có thiết lập
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
+
     conn.commit()
     conn.close()
+
+def log_event(level: str, message: str):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO system_logs (level, message) VALUES (?, ?)", (level.upper(), message))
+        
+        # Giữ lại 300 logs gần nhất để tối ưu dung lượng
+        cursor.execute("""
+            DELETE FROM system_logs WHERE id NOT IN (
+                SELECT id FROM system_logs ORDER BY id DESC LIMIT 300
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Lỗi ghi log: {e}")
+
+def get_recent_logs(limit: int = 100):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT ?", (limit,))
+    rows = cursor.fetchall()
+    results = [dict(row) for row in rows]
+    conn.close()
+    return results
+
+def is_bot_enabled() -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM bot_status WHERE key = 'is_active'")
+    row = cursor.fetchone()
+    conn.close()
+    if row and row["value"].lower() == "false":
+        return False
+    return True
+
+def set_bot_enabled(enabled: bool):
+    conn = get_connection()
+    cursor = conn.cursor()
+    val = "true" if enabled else "false"
+    cursor.execute("""
+        INSERT INTO bot_status (key, value, updated_at) 
+        VALUES ('is_active', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    """, (val,))
+    state = "running" if enabled else "paused"
+    cursor.execute("""
+        INSERT INTO bot_status (key, value, updated_at) 
+        VALUES ('bot_state', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    """, (state,))
+    conn.commit()
+    conn.close()
+    log_event("SYSTEM", f"Người dùng đã {'BẬT (Khởi động)' if enabled else 'TẮT (Tạm dừng)'} tiến trình Bot quét tự động.")
 
 def is_post_seen(post_hash: str) -> bool:
     conn = get_connection()
@@ -134,7 +214,8 @@ def get_stats():
         "total_pages_active": total_pages,
         "last_scan_time": status_map.get("last_scan_time", "Chưa chạy"),
         "scan_cycle": status_map.get("scan_cycle", "0"),
-        "bot_state": status_map.get("bot_state", "idle"),
+        "bot_state": status_map.get("bot_state", "running"),
+        "is_active": status_map.get("is_active", "true").lower() == "true",
         "last_error": status_map.get("last_error", "")
     }
 

@@ -63,8 +63,16 @@ def run_bot():
     total_new_posts = 0
 
     database.set_bot_status("bot_state", "running")
+    database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot quét tự động.")
 
     while True:
+        # 1. Kiểm tra trạng thái Bật / Tắt của Bot từ Web Dashboard
+        if not database.is_bot_enabled():
+            database.set_bot_status("bot_state", "paused")
+            print("⏸️ Bot đang ở chế độ TẮT (Tạm dừng bởi người dùng trên Web). Đang chờ kích hoạt lại...")
+            time.sleep(5)
+            continue
+
         cycle += 1
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n[{now_str}] 🔄 === VÒNG QUÉT THỨ #{cycle} ===")
@@ -72,14 +80,25 @@ def run_bot():
         database.set_bot_status("scan_cycle", str(cycle))
         database.set_bot_status("bot_state", "scanning")
 
-        # Cập nhật lại config mới nhất (nếu người dùng vừa thêm link từ Web)
+        # Cập nhật lại config mới nhất (nếu người dùng vừa thêm/bớt nhóm Zalo, link FB, từ khóa)
         try:
             config = load_config()
             targets = config.get("targets", [])
+            scanner_cfg = config.get("scanner", {})
+            max_age_hours = scanner_cfg.get("max_post_age_hours", 3.0)
+            check_interval = scanner_cfg.get("check_interval_seconds", 30)
+            delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
         except Exception:
             pass
 
+        database.log_event("SCAN", f"Bắt đầu vòng quét #{cycle} trên {len(targets)} trang mục tiêu.")
+
         for idx, target in enumerate(targets):
+            # Kiểm tra lại bot có bị ngắt ngang xương giữa vòng quét không
+            if not database.is_bot_enabled():
+                print("⏸️ Nhận lệnh TẮT bot giữa vòng quét. Tạm dừng.")
+                break
+
             page_name = target.get("name", f"Trang #{idx+1}")
             page_url = target.get("url", "")
 
@@ -98,8 +117,10 @@ def run_bot():
                     # Kiểm tra xem bài đã gửi/lưu chưa
                     if not database.is_post_seen(ident):
                         total_new_posts += 1
-                        print(f"   ✨ [Bài #{total_new_posts}] Phát hiện bài mới từ '{p.get('author', 'ẩn danh')}':")
-                        print(f"      📝 {p.get('content', '')[:100]}...")
+                        author_name = p.get("author", "ẩn danh")
+                        snippet = p.get("content", "")[:90].replace("\n", " ")
+                        print(f"   ✨ [Bài #{total_new_posts}] Phát hiện bài mới từ '{author_name}': {snippet}...")
+                        database.log_event("POST", f"[{page_name}] Phát hiện bài mới từ '{author_name}': {snippet}...")
 
                         # 1. Lưu vào cơ sở dữ liệu Web (SQLite)
                         database.save_crawled_post(
@@ -123,19 +144,21 @@ def run_bot():
                         has_kw, matched_kw = matches_filter_keywords(p.get("content", ""), filter_kws)
                         if has_kw:
                             print(f"      🎯 Bài viết khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo...")
+                            database.log_event("FILTER", f"Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...")
                             sent_zalo = zalo.send_alert(p, page_name)
                             if sent_zalo:
                                 database.mark_post_sent_zalo(ident)
                         else:
-                            print(f"      ⏩ Bỏ qua gửi Zalo (nội dung không chứa từ khóa: Link đăng ký, Form, Đăng ký, ĐRL)")
+                            print(f"      ⏩ Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
+                            database.log_event("FILTER", f"Bỏ qua gửi Zalo (bài viết không chứa từ khóa tuyển sinh/form/đăng ký/đrl)")
 
                         # Nghỉ nhẹ giữa các bài gửi để tránh spam
-
                         time.sleep(random.uniform(2.5, 4.0))
 
             except Exception as e:
                 err_msg = f"Lỗi quét {page_name}: {e}"
                 print(f"   ⚠️ {err_msg}")
+                database.log_event("ERROR", err_msg)
                 database.set_bot_status("last_error", err_msg)
 
             # Nghỉ giữa các trang để chống chặn rate limit từ Facebook
@@ -144,6 +167,7 @@ def run_bot():
 
         database.set_bot_status("bot_state", "sleeping")
         print(f"💤 Đã hoàn thành vòng #{cycle}. Tạm nghỉ {check_interval} giây trước vòng tiếp theo...")
+        database.log_event("SCAN", f"Hoàn thành vòng quét #{cycle}. Tạm nghỉ {check_interval}s trước vòng tiếp theo.")
         time.sleep(check_interval)
 
 if __name__ == "__main__":
@@ -151,4 +175,6 @@ if __name__ == "__main__":
         run_bot()
     except KeyboardInterrupt:
         print("\n🛑 Người dùng dừng bot thủ công.")
+        database.log_event("SYSTEM", "🛑 Người dùng đã dừng tiến trình Bot thủ công (KeyboardInterrupt).")
         database.set_bot_status("bot_state", "stopped")
+
