@@ -36,6 +36,19 @@ def extract_form_links(text: str) -> list:
                 found.append(clean_m)
     return found
 
+def extract_post_title(text: str, max_len: int = 150) -> str:
+    if not text:
+        return "Thông báo mới"
+    lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+    if not lines:
+        return "Thông báo mới"
+    first_line = lines[0]
+    if len(first_line) < 15 and len(lines) > 1:
+        first_line = f"{first_line} - {lines[1]}"
+    if len(first_line) > max_len:
+        first_line = first_line[:max_len].rsplit(" ", 1)[0] + "..."
+    return first_line
+
 class ZaloDispatcher:
     def __init__(self, config_file=CONFIG_PATH):
         self.config_file = config_file
@@ -95,24 +108,29 @@ class ZaloDispatcher:
         posted_time = post_data.get("posted_time", "").strip() or "Vừa xong"
         text = post_data.get("content", "").strip()
         url = post_data.get("post_url", "").strip()
+        title = extract_post_title(text)
 
         form_links = extract_form_links(text)
         tag_str = "@All " if self.zalo_cfg.get("auto_tag_all", True) else ""
 
-        # Định dạng chuẩn theo yêu cầu:
-        # TAG TẤT CẢ - TÊN NHÓM ĐĂNG - THỜI GIAN ĐĂNG - LINK FORM NẾU CÓ - LINK BÀI VIẾT - CÂU XIN LỖI
-        lines = [
-            f"{tag_str}📢 [THÔNG BÁO MỚI]",
-            f"📌 Tên nhóm đăng: {page_name}",
-            f"🕒 Thời gian đăng: {posted_time}"
-        ]
-
-        # Link Form nếu có
+        lines = []
         if form_links:
+            # Khi phát hiện có link form: Ưu tiên nhấn mạnh vào form đăng ký sự kiện
+            lines.append(f"{tag_str}🔥 [CÓ FORM ĐĂNG KÝ SỰ KIỆN] 🔥")
+            lines.append(f"📰 Tiêu đề: {title}")
             lines.append("━━━━━━━━━━━━━━━━━━━━")
-            lines.append("📝 LINK FORM ĐĂNG KÝ:")
+            lines.append("🎯 LINK FORM ĐĂNG KÝ SỰ KIỆN:")
             for flink in form_links:
                 lines.append(f"👉 {flink}")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"📌 Tên nhóm đăng: {page_name}")
+            lines.append(f"🕒 Thời gian đăng: {posted_time}")
+        else:
+            # Thông báo bài viết thường
+            lines.append(f"{tag_str}📢 [THÔNG BÁO MỚI]")
+            lines.append(f"📰 Tiêu đề: {title}")
+            lines.append(f"📌 Tên nhóm đăng: {page_name}")
+            lines.append(f"🕒 Thời gian đăng: {posted_time}")
 
         # Link bài viết
         if url:
