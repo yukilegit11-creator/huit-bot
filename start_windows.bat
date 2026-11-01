@@ -13,9 +13,10 @@ start "Web Dashboard (Port 8000)" cmd /k "python -m uvicorn web_app:app --host 0
 timeout /t 2 >nul
 start http://localhost:8000
 
-:: Khởi chạy con Bot quét Facebook và bắn Zalo
+:: Khởi chạy cả 3 Bot (HUIT, VAA, IUH) quét và bắn Zalo
 echo.
-echo 🔄 Đang khởi động Bot quét Facebook...
-python -u bot.py
+echo 🔄 Đang khởi động đồng thời cả 3 Bot (HUIT + VAA + IUH)...
+python -u run_all.py
+
 
 pause

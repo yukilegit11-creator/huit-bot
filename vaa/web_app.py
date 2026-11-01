@@ -63,6 +63,11 @@ def api_get_logs(limit: int = 100):
     logs = database.get_recent_logs(limit=limit)
     return {"status": "ok", "count": len(logs), "logs": logs}
 
+@app.get("/api/history")
+@app.get("/api/delivery_history")
+def api_get_delivery_history(limit: int = 50, page: int = 1, search: Optional[str] = None, target_id: Optional[str] = None):
+    return database.get_delivery_history(limit=limit, page=page, search=search, target_id=target_id)
+
 @app.post("/api/bot/toggle")
 def api_toggle_bot():
     current_state = database.is_bot_enabled()
@@ -154,29 +159,45 @@ def api_get_target_groups():
     return {"status": "ok", "target_groups": zalo_cfg.get("target_groups", [])}
 
 @app.post("/api/zalo/toggle_group")
-def api_toggle_zalo_group(group_id: str = Form(...)):
+def api_toggle_zalo_group(group_id: str = Form(...), enabled: Optional[str] = Form(None)):
     cfg = get_config()
     if "zalo" not in cfg:
         cfg["zalo"] = {}
     target_groups = cfg["zalo"].get("target_groups", [])
     
+    gid_clean = str(group_id).strip()
     found = False
     new_status = False
     gname = group_id
+
+    explicit_val = None
+    if enabled is not None:
+        explicit_val = str(enabled).strip().lower() in ("true", "1", "yes")
+
+    seen_ids = set()
+    deduped_groups = []
     for g in target_groups:
-        if str(g.get("id")) == str(group_id):
-            g["enabled"] = not g.get("enabled", False)
-            new_status = g["enabled"]
-            gname = g.get("name", group_id)
+        cur_id = str(g.get("id")).strip()
+        if cur_id == gid_clean:
             found = True
-            break
+            gname = g.get("name", group_id)
+            if explicit_val is not None:
+                g["enabled"] = explicit_val
+            else:
+                g["enabled"] = not g.get("enabled", False)
+            new_status = g["enabled"]
+
+        if cur_id not in seen_ids:
+            seen_ids.add(cur_id)
+            deduped_groups.append(g)
             
     if not found:
         raise HTTPException(status_code=404, detail="Không tìm thấy người nhận hoặc nhóm")
         
+    cfg["zalo"]["target_groups"] = deduped_groups
     save_config(cfg)
     database.log_event("ZALO", f"Đã {'BẬT' if new_status else 'TẮT'} nhận tin cho [{gname}]")
-    return {"status": "ok", "enabled": new_status, "target_groups": target_groups}
+    return {"status": "ok", "enabled": new_status, "target_groups": deduped_groups}
 
 @app.post("/api/zalo/toggle_tag_all")
 def api_toggle_tag_all():
@@ -371,9 +392,16 @@ def dashboard_view():
           </div>
         </div>
 
-        <div class="hidden sm:flex items-center bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200 text-xs font-bold text-sky-800 gap-1.5">
-          <i class="fa-solid fa-server text-sky-600"></i>
-          <span>Hệ Thống Độc Lập 100%</span>
+        <div class="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+          <a href="http://localhost:8000/" target="_blank" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🎓 Bot 1: HUIT
+          </a>
+          <a href="/" class="px-3 py-1.5 rounded-lg bg-white text-sky-700 shadow-xs">
+            ✈️ Bot 2: VAA
+          </a>
+          <a href="http://localhost:8000/bot3" target="_blank" class="px-3 py-1.5 rounded-lg text-rose-700 hover:text-rose-900 transition">
+            🔴 Bot 3: IUH (ĐRL)
+          </a>
         </div>
       </div>
 
@@ -477,6 +505,9 @@ def dashboard_view():
       </button>
       <button onclick="switchTab('cookies')" id="tab-btn-cookies" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-cookie-bite"></i> Cài Đặt Cookie Facebook
+      </button>
+      <button onclick="switchTab('history')" id="tab-btn-history" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-clock-rotate-left"></i> 📜 Lịch Sử Bắn Tin ({stats.get('total_zalo_sent', 0)})
       </button>
     </div>
 
@@ -711,6 +742,56 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       </div>
     </div>
 
+    <!-- TAB 6: DELIVERY HISTORY (IMMUTABLE) -->
+    <div id="tab-history" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-emerald-600"></i> Lịch Sử Bắn Tin Zalo Bất Biến
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Không Thể Bị Xóa</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Lưu trữ vĩnh viễn bài viết nào đã cào, bài nào gửi Zalo, vào nhóm/người nhận nào, lúc mấy giờ. Dữ liệu được bảo vệ bằng SQLite Trigger.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="history-search-input" onkeyup="if(event.key==='Enter') fetchDeliveryHistory(1)" placeholder="Tìm bài, nhóm nhận..." class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </div>
+            <button onclick="fetchDeliveryHistory(1)" class="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Thời gian bắn tin</th>
+                <th class="px-4 py-3">Nguồn Fanpage</th>
+                <th class="px-4 py-3">Tiêu đề / Nội dung bài viết</th>
+                <th class="px-4 py-3">Đích nhận Zalo</th>
+                <th class="px-4 py-3">Trạng thái</th>
+                <th class="px-4 py-3 text-center">Liên kết</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Đang tải lịch sử...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="history-pagination" class="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500">
+          <span id="history-page-info">Trang 1</span>
+          <div class="flex items-center gap-2">
+            <button id="history-prev-btn" onclick="changeHistoryPage(-1)" class="px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Trước</button>
+            <button id="history-next-btn" onclick="changeHistoryPage(1)" class="px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Sau</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- JAVASCRIPT LOGIC -->
@@ -724,7 +805,7 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
     let autoTagAll = { 'true' if auto_tag_all else 'false' };
 
     function switchTab(tab) {{
-      ['feed', 'console', 'zalo', 'targets', 'cookies'].forEach(t => {{
+      ['feed', 'console', 'zalo', 'targets', 'cookies', 'history'].forEach(t => {{
         const el = document.getElementById('tab-' + t);
         const btn = document.getElementById('tab-btn-' + t);
         if (el) el.classList.add('hidden');
@@ -744,7 +825,9 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       if (tab === 'console') {{
         fetchLogs();
       }} else if (tab === 'zalo') {{
-        renderTargetGroups(allTargetGroups);
+        fetchTargetGroups();
+      }} else if (tab === 'history') {{
+        fetchDeliveryHistory(1);
       }}
     }}
 

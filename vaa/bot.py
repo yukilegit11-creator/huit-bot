@@ -174,7 +174,7 @@ def run_bot():
                         if has_kw:
                             print(f"      🎯 [Yuki 2 (VAA)] Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo...")
                             database.log_event("FILTER", f"Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...")
-                            sent_zalo = zalo.send_alert(p, page_name)
+                            sent_zalo = zalo.send_alert(p, page_name, matched_kw=matched_kw)
                             if sent_zalo:
                                 database.mark_post_sent_zalo(ident)
                         else:

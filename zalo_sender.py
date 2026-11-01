@@ -148,7 +148,7 @@ class ZaloDispatcher:
         formatted_text = "\n".join(lines)
         return formatted_text, form_links
 
-    def send_alert(self, post_data: dict, page_name: str, target_thread_id: str = None) -> bool:
+    def send_alert(self, post_data: dict, page_name: str, target_thread_id: str = None, matched_kw: str = "") -> bool:
         if not self.client:
             if not self.connect():
                 return False
@@ -159,11 +159,20 @@ class ZaloDispatcher:
         if target_thread_id:
             target_list = [{"id": str(target_thread_id), "name": "Mục chỉ định"}]
         else:
-            configured_groups = self.zalo_cfg.get("target_groups", [])
-            enabled_groups = [g for g in configured_groups if g.get("enabled")]
-            if enabled_groups:
+            configured_groups = self.zalo_cfg.get("target_groups")
+            if configured_groups is not None:
+                # Có danh sách nhóm được cấu hình: CHỈ gửi các nhóm có enabled rõ ràng là True
+                enabled_groups = [
+                    g for g in configured_groups
+                    if g.get("enabled") is True or str(g.get("enabled", "")).lower() in ("true", "1")
+                ]
+                if not enabled_groups:
+                    bot_label = getattr(self, "bot_name", "Yuki Bot")
+                    print(f"⏸️ [{bot_label}] Tất cả các nhóm Zalo đều đang ở trạng thái TẮT (Disabled). Bỏ qua gửi tin bài này.")
+                    return False
                 target_list = enabled_groups
             else:
+                # Chỉ khi file cấu hình hoàn toàn không có target_groups (legacy)
                 fallback_id = str(self.zalo_cfg.get("target_thread_id", ""))
                 if fallback_id:
                     target_list = [{
@@ -179,7 +188,7 @@ class ZaloDispatcher:
         seen_gids = set()
         clean_targets = []
         for g in target_list:
-            gid = str(g.get("id"))
+            gid = str(g.get("id")).strip()
             if gid not in seen_gids:
                 seen_gids.add(gid)
                 clean_targets.append(g)
@@ -237,12 +246,51 @@ class ZaloDispatcher:
                 try:
                     import database
                     db_target = "bot2.db" if "bot2" in str(self.config_file) else None
+                    title = extract_post_title(post_data.get("content", ""))
+                    database.record_delivery(
+                        post_id=post_data.get("post_id") or hashlib.md5(post_data.get("content", "")[:150].encode("utf-8")).hexdigest(),
+                        post_title=title,
+                        source_page=page_name,
+                        author=post_data.get("author", "Ẩn danh"),
+                        post_url=post_data.get("post_url") or post_data.get("url", ""),
+                        content_snippet=post_data.get("content", "")[:300],
+                        has_form=1 if form_links else 0,
+                        matched_keyword=matched_kw or "Mặc định",
+                        zalo_target_id=gid,
+                        zalo_target_name=gname,
+                        target_type=target_type,
+                        status="SUCCESS",
+                        crawled_at=post_data.get("posted_time", ""),
+                        db_file=db_target
+                    )
                     database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] tới {target_kind} [{gname}]{form_info}", db_file=db_target)
-                except Exception:
-                    pass
+                except Exception as ex_db:
+                    print(f"Lỗi ghi DB: {ex_db}")
                 any_success = True
             except Exception as e:
-                print(f"⚠️ Lỗi gửi tin vào nhóm {gname}: {e}")
+                print(f"⚠️ Lỗi gửi tin vào {target_kind} {gname}: {e}")
+                try:
+                    import database
+                    db_target = "bot2.db" if "bot2" in str(self.config_file) else None
+                    title = extract_post_title(post_data.get("content", ""))
+                    database.record_delivery(
+                        post_id=post_data.get("post_id") or hashlib.md5(post_data.get("content", "")[:150].encode("utf-8")).hexdigest(),
+                        post_title=title,
+                        source_page=page_name,
+                        author=post_data.get("author", "Ẩn danh"),
+                        post_url=post_data.get("post_url") or post_data.get("url", ""),
+                        content_snippet=post_data.get("content", "")[:300],
+                        has_form=1 if form_links else 0,
+                        matched_keyword=matched_kw or "Mặc định",
+                        zalo_target_id=gid,
+                        zalo_target_name=gname,
+                        target_type=target_type,
+                        status=f"FAILED: {e}",
+                        crawled_at=post_data.get("posted_time", ""),
+                        db_file=db_target
+                    )
+                except Exception:
+                    pass
             time.sleep(1.0)
 
         if any_success:

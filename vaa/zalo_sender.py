@@ -52,6 +52,8 @@ def extract_post_title(text: str, max_len: int = 150) -> str:
         first_line = first_line[:max_len].rsplit(" ", 1)[0] + "..."
     return first_line
 
+import database
+
 class ZaloDispatcher:
     def __init__(self, config_file=CONFIG_PATH):
         self.config_file = config_file
@@ -132,24 +134,45 @@ class ZaloDispatcher:
         final_text = "\n".join([p for p in msg_parts if p.strip()])
         return final_text, (not is_user and not form_links and self.zalo_cfg.get("auto_tag_all", True)) or (not is_user and bool(form_links))
 
-    def send_alert(self, post_data: dict, page_name: str) -> bool:
+    def send_alert(self, post_data: dict, page_name: str, matched_kw: str = "", db_file=None) -> bool:
         if not self.client:
             if not self.connect():
                 print("❌ Không thể gửi Zalo vì chưa đăng nhập.")
                 return False
 
         self.load_config()
-        target_groups = self.zalo_cfg.get("target_groups", [])
-
-        if not target_groups:
+        configured_groups = self.zalo_cfg.get("target_groups")
+        if configured_groups is not None:
+            active_targets = [
+                g for g in configured_groups 
+                if g.get("enabled") is True or str(g.get("enabled", "")).lower() in ("true", "1")
+            ]
+        else:
             thread_id = self.zalo_cfg.get("target_thread_id")
             thread_type_str = self.zalo_cfg.get("target_type", "GROUP")
-            target_groups = [{"id": thread_id, "name": "Mặc định", "type": thread_type_str, "enabled": True}]
+            active_targets = [{"id": thread_id, "name": "Mặc định", "type": thread_type_str, "enabled": True}] if thread_id else []
 
-        active_targets = [g for g in target_groups if g.get("enabled", True)]
         if not active_targets:
-            print("⚠️ Không có nhóm hoặc người nhận Zalo nào được bật (enabled: true).")
+            print("⏸️ [VAA] Không có nhóm hoặc người nhận Zalo nào được BẬT (enabled: true). Bỏ qua gửi tin bài này.")
             return False
+
+        # Khử trùng lặp ID người nhận/nhóm
+        seen_gids = set()
+        clean_targets = []
+        for g in active_targets:
+            gid = str(g.get("id")).strip()
+            if gid not in seen_gids:
+                seen_gids.add(gid)
+                clean_targets.append(g)
+        active_targets = clean_targets
+
+        content = post_data.get("content", "")
+        title = extract_post_title(content)
+        form_links = extract_form_links(content)
+        ident = post_data.get("post_id") or hashlib.md5(content[:150].encode("utf-8")).hexdigest()
+        author = post_data.get("author", "Ẩn danh")
+        post_url = post_data.get("post_url", "")
+        crawled_at = post_data.get("posted_time", "")
 
         success_count = 0
         for target in active_targets:
@@ -157,6 +180,7 @@ class ZaloDispatcher:
             target_name = target.get("name", "Người nhận")
             is_user = target.get("type") == "USER"
             target_type = ThreadType.USER if is_user else ThreadType.GROUP
+            target_type_str = "USER" if is_user else "GROUP"
 
             msg_text, need_tag = self.format_alert_message(post_data, page_name, is_user=is_user)
 
@@ -171,8 +195,44 @@ class ZaloDispatcher:
                 self.client.send(msg_obj, thread_id=target_id, thread_type=target_type)
                 print(f"   🚀 Đã gửi thành công tới: {target_name} ({'Cá nhân' if is_user else 'Nhóm'}) [{target_id}]")
                 success_count += 1
+
+                # Ghi lịch sử bất biến không bao giờ xóa
+                database.record_delivery(
+                    post_id=ident,
+                    post_title=title,
+                    source_page=page_name,
+                    author=author,
+                    post_url=post_url,
+                    content_snippet=content[:300],
+                    has_form=1 if form_links else 0,
+                    matched_keyword=matched_kw,
+                    zalo_target_id=target_id,
+                    zalo_target_name=target_name,
+                    target_type=target_type_str,
+                    status="SUCCESS",
+                    crawled_at=crawled_at,
+                    db_file=db_file
+                )
+
                 time.sleep(1.0)
             except Exception as e:
                 print(f"   ❌ Lỗi gửi tin tới {target_name} ({target_id}): {e}")
+                # Ghi nhận lỗi vào lịch sử
+                database.record_delivery(
+                    post_id=ident,
+                    post_title=title,
+                    source_page=page_name,
+                    author=author,
+                    post_url=post_url,
+                    content_snippet=content[:300],
+                    has_form=1 if form_links else 0,
+                    matched_keyword=matched_kw,
+                    zalo_target_id=target_id,
+                    zalo_target_name=target_name,
+                    target_type=target_type_str,
+                    status=f"FAILED: {e}",
+                    crawled_at=crawled_at,
+                    db_file=db_file
+                )
 
         return success_count > 0

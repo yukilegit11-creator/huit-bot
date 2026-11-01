@@ -13,10 +13,13 @@ import database
 from zalo_sender import ZaloDispatcher
 from scraper import FacebookCometScraper
 from supabase_client import SupabaseDispatcher
+from iuh_scraper import IUHPortalScraper
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
 CONFIG_BOT2_FILE = os.path.join(SCRIPT_DIR, "config_bot2.json")
+CONFIG_IUH_FILE = os.path.join(SCRIPT_DIR, "config_iuh.json")
+
 
 app = FastAPI(title="HUIT Social Crawler Dashboard", version="2.5")
 
@@ -64,10 +67,9 @@ def api_get_posts(limit: int = 50, page_name: Optional[str] = None, search: Opti
 def api_get_stats():
     return database.get_stats()
 
-@app.get("/api/logs")
-def api_get_logs(limit: int = 100):
-    logs = database.get_recent_logs(limit=limit)
-    return {"status": "ok", "count": len(logs), "logs": logs}
+@app.get("/api/history")
+def api_get_delivery_history(limit: int = 50, page: int = 1, search: Optional[str] = None, target_id: Optional[str] = None):
+    return database.get_delivery_history(limit=limit, page=page, search=search, target_id=target_id)
 
 @app.post("/api/bot/toggle")
 def api_toggle_bot():
@@ -186,29 +188,46 @@ def api_get_target_groups():
     return {"status": "ok", "target_groups": zalo_cfg.get("target_groups", [])}
 
 @app.post("/api/zalo/toggle_group")
-def api_toggle_zalo_group(group_id: str = Form(...)):
+def api_toggle_zalo_group(group_id: str = Form(...), enabled: Optional[str] = Form(None)):
     cfg = get_config()
     if "zalo" not in cfg:
         cfg["zalo"] = {}
     target_groups = cfg["zalo"].get("target_groups", [])
     
+    gid_clean = str(group_id).strip()
     found = False
     new_status = False
     gname = group_id
+
+    # Parse giá trị enabled tường minh nếu có
+    explicit_val = None
+    if enabled is not None:
+        explicit_val = str(enabled).strip().lower() in ("true", "1", "yes")
+
+    seen_ids = set()
+    deduped_groups = []
     for g in target_groups:
-        if str(g.get("id")) == str(group_id):
-            g["enabled"] = not g.get("enabled", False)
-            new_status = g["enabled"]
-            gname = g.get("name", group_id)
+        cur_id = str(g.get("id")).strip()
+        if cur_id == gid_clean:
             found = True
-            break
+            gname = g.get("name", group_id)
+            if explicit_val is not None:
+                g["enabled"] = explicit_val
+            else:
+                g["enabled"] = not g.get("enabled", False)
+            new_status = g["enabled"]
+
+        if cur_id not in seen_ids:
+            seen_ids.add(cur_id)
+            deduped_groups.append(g)
             
     if not found:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhóm")
         
+    cfg["zalo"]["target_groups"] = deduped_groups
     save_config(cfg)
     database.log_event("ZALO", f"Đã {'BẬT' if new_status else 'TẮT'} nhận tin cho nhóm Zalo [{gname}]")
-    return {"status": "ok", "enabled": new_status, "target_groups": target_groups}
+    return {"status": "ok", "enabled": new_status, "target_groups": deduped_groups}
 
 @app.post("/api/zalo/toggle_tag_all")
 def api_toggle_tag_all():
@@ -318,6 +337,15 @@ def api_bot2_get_logs(limit: int = 100):
     logs = database.get_recent_logs(limit=limit, db_file=database.BOT2_DB_FILE)
     return {"status": "ok", "count": len(logs), "logs": logs}
 
+@app.get("/api/bot2/history")
+@app.get("/api/bot2/delivery_history")
+def api_bot2_get_delivery_history(limit: int = 50, page: int = 1, search: Optional[str] = None, target_id: Optional[str] = None):
+    return database.get_delivery_history(limit=limit, page=page, search=search, target_id=target_id, db_file=database.BOT2_DB_FILE)
+
+@app.get("/api/delivery_history")
+def api_get_delivery_history_alias(limit: int = 50, page: int = 1, search: Optional[str] = None, target_id: Optional[str] = None):
+    return database.get_delivery_history(limit=limit, page=page, search=search, target_id=target_id)
+
 @app.post("/api/bot2/toggle")
 def api_bot2_toggle():
     current_state = database.is_bot_enabled(db_file=database.BOT2_DB_FILE)
@@ -398,26 +426,45 @@ def api_bot2_get_target_groups():
     return {"status": "ok", "target_groups": zalo_cfg.get("target_groups", [])}
 
 @app.post("/api/bot2/zalo/toggle_group")
-def api_bot2_toggle_zalo_group(group_id: str = Form(...)):
+def api_bot2_toggle_zalo_group(group_id: str = Form(...), enabled: Optional[str] = Form(None)):
     cfg = get_config_bot2()
     if "zalo" not in cfg:
         cfg["zalo"] = {}
     target_groups = cfg["zalo"].get("target_groups", [])
+    
+    gid_clean = str(group_id).strip()
     found = False
     new_status = False
     gname = group_id
+    
+    explicit_val = None
+    if enabled is not None:
+        explicit_val = str(enabled).strip().lower() in ("true", "1", "yes")
+
+    seen_ids = set()
+    deduped_groups = []
     for g in target_groups:
-        if str(g.get("id")) == str(group_id):
-            g["enabled"] = not g.get("enabled", False)
-            new_status = g["enabled"]
-            gname = g.get("name", group_id)
+        cur_id = str(g.get("id")).strip()
+        if cur_id == gid_clean:
             found = True
-            break
+            gname = g.get("name", group_id)
+            if explicit_val is not None:
+                g["enabled"] = explicit_val
+            else:
+                g["enabled"] = not g.get("enabled", False)
+            new_status = g["enabled"]
+
+        if cur_id not in seen_ids:
+            seen_ids.add(cur_id)
+            deduped_groups.append(g)
+
     if not found:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhóm")
+
+    cfg["zalo"]["target_groups"] = deduped_groups
     save_config_bot2(cfg)
     database.log_event("ZALO", f"[Bot 2] Đã {'BẬT' if new_status else 'TẮT'} nhận tin nhóm [{gname}]", db_file=database.BOT2_DB_FILE)
-    return {"status": "ok", "enabled": new_status, "target_groups": target_groups}
+    return {"status": "ok", "enabled": new_status, "target_groups": deduped_groups}
 
 @app.post("/api/bot2/zalo/toggle_tag_all")
 def api_bot2_toggle_tag_all():
@@ -485,8 +532,205 @@ Chúc các bạn theo dõi thuận lợi!""",
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc chưa bật nhóm nào!")
 
+def get_config_iuh():
+    with open(CONFIG_IUH_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_config_iuh(cfg):
+    with open(CONFIG_IUH_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    try:
+        import github_sync
+        github_sync.push_async(commit_message="🔄 Auto-sync: Cập nhật cấu hình Bot 3 (IUH)")
+    except Exception:
+        pass
+
+# ==================== BOT 3 (IUH) API ENDPOINTS ====================
+@app.get("/api/bot3/activities")
+def api_bot3_get_activities(limit: int = 50, search: Optional[str] = None):
+    acts = database.get_activities(limit=limit, search=search, db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "count": len(acts), "data": acts}
+
+@app.get("/api/bot3/stats")
+def api_bot3_get_stats():
+    return database.get_iuh_stats(db_file=database.IUH_DB_FILE)
+
+@app.get("/api/bot3/logs")
+def api_bot3_get_logs(limit: int = 100):
+    logs = database.get_recent_logs(limit=limit, db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "count": len(logs), "logs": logs}
+
+@app.post("/api/bot3/toggle")
+def api_bot3_toggle():
+    current_state = database.is_bot_enabled(db_file=database.IUH_DB_FILE)
+    new_state = not current_state
+    database.set_bot_enabled(new_state, db_file=database.IUH_DB_FILE)
+    return {
+        "status": "ok", 
+        "is_active": new_state,
+        "message": f"Đã {'BẬT' if new_state else 'TẮT (Tạm dừng)'} Bot 3 (IUH) thành công!"
+    }
+
+@app.post("/api/bot3/cookie")
+def api_bot3_update_cookie(cookie: str = Form(...)):
+    cfg = get_config_iuh()
+    clean_cookie = IUHPortalScraper.extract_phpsessid(cookie)
+    if not clean_cookie:
+        raise HTTPException(status_code=400, detail="Không tìm thấy chuỗi cookie PHPSESSID hợp lệ!")
+    
+    cfg["portal"]["phpsessid"] = clean_cookie
+    save_config_iuh(cfg)
+    
+    scraper = IUHPortalScraper(clean_cookie)
+    is_valid, msg = scraper.check_cookie_validity()
+    status_str = "valid" if is_valid else "expired"
+    database.set_bot_status("portal_cookie_status", status_str, db_file=database.IUH_DB_FILE)
+    database.log_event("CONFIG", f"Đã cập nhật cookie IUH PHPSESSID: {clean_cookie[:6]}... (Trạng thái: {msg})", db_file=database.IUH_DB_FILE)
+    
+    return {
+        "status": "ok",
+        "phpsessid": clean_cookie,
+        "is_valid": is_valid,
+        "message": f"Đã lưu cookie! Kết quả xác minh: {msg}"
+    }
+
+@app.get("/api/bot3/crawl")
+def api_bot3_crawl_now():
+    cfg = get_config_iuh()
+    phpsessid = cfg.get("portal", {}).get("phpsessid", "")
+    scraper = IUHPortalScraper(phpsessid)
+    zalo = ZaloDispatcher(CONFIG_IUH_FILE)
+    
+    database.set_bot_status("last_scan_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), db_file=database.IUH_DB_FILE)
+    database.set_bot_status("bot_state", "scanning", db_file=database.IUH_DB_FILE)
+    database.log_event("SCAN", "[Cào thủ công] Bắt đầu quét cổng hoạt động Đoàn TN IUH...", db_file=database.IUH_DB_FILE)
+    
+    is_logged_in, msg, activities = scraper.fetch_activities()
+    if not is_logged_in:
+        database.set_bot_status("portal_cookie_status", "expired", db_file=database.IUH_DB_FILE)
+        database.set_bot_status("bot_state", "running", db_file=database.IUH_DB_FILE)
+        database.log_event("WARN", f"Cookie IUH không hợp lệ: {msg}", db_file=database.IUH_DB_FILE)
+        return {"status": "error", "message": f"Cookie IUH hết hạn: {msg}", "count": 0}
+
+    database.set_bot_status("portal_cookie_status", "valid", db_file=database.IUH_DB_FILE)
+    new_count = 0
+    from iuh_bot import send_zalo_iuh
+    for act in activities:
+        aid = act["activity_id"]
+        seen_act = database.get_seen_activity(aid, db_file=database.IUH_DB_FILE)
+        is_new = seen_act is None
+        is_reopened = False
+        if not is_new and cfg.get("scanner", {}).get("notify_reopened_slots", True):
+            prev_status = (seen_act.get("status") or "").lower()
+            curr_status = act.get("status", "").lower()
+            if "đủ số lượng" in prev_status and "đủ số lượng" not in curr_status:
+                is_reopened = True
+
+        if is_new or is_reopened:
+            new_count += 1
+            act_type = "REOPEN" if is_reopened else "NEW"
+            database.record_seen_activity(act, is_sent=True, db_file=database.IUH_DB_FILE)
+            database.add_crawled_activity(act, action_type=act_type, is_sent=True, db_file=database.IUH_DB_FILE)
+            send_zalo_iuh(zalo, act, is_reopened=is_reopened)
+        else:
+            database.update_activity_status(aid, act.get("status", ""), act.get("slots", ""), db_file=database.IUH_DB_FILE)
+
+    database.set_bot_status("bot_state", "running", db_file=database.IUH_DB_FILE)
+    info_msg = f"Quét xong! Tìm thấy {len(activities)} hoạt động trên bảng (Bắn {new_count} tin mới/mở slot)"
+    database.log_event("SCAN", info_msg, db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "message": info_msg, "total": len(activities), "new_sent": new_count}
+
+@app.get("/api/bot3/zalo/target_groups")
+def api_bot3_get_target_groups():
+    cfg = get_config_iuh()
+    return {"status": "ok", "target_groups": cfg.get("zalo", {}).get("target_groups", [])}
+
+@app.post("/api/bot3/zalo/toggle_group")
+def api_bot3_toggle_group(group_id: str = Form(...), enabled: bool = Form(...)):
+    cfg = get_config_iuh()
+    groups = cfg["zalo"].get("target_groups", [])
+    found = False
+    for g in groups:
+        if str(g.get("id")) == str(group_id):
+            g["enabled"] = enabled
+            found = True
+            break
+    if not found:
+        groups.append({"id": str(group_id), "name": f"Người nhận {group_id}", "enabled": enabled, "type": "GROUP"})
+    cfg["zalo"]["target_groups"] = groups
+    save_config_iuh(cfg)
+    database.log_event("ZALO", f"[Bot 3] Đã {'bật' if enabled else 'tắt'} nhận tin cho ID {group_id}", db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "target_groups": groups}
+
+@app.post("/api/bot3/zalo/toggle_tag_all")
+def api_bot3_toggle_tag_all(enabled: bool = Form(...)):
+    cfg = get_config_iuh()
+    cfg["zalo"]["auto_tag_all"] = enabled
+    save_config_iuh(cfg)
+    database.log_event("ZALO", f"[Bot 3] Đã {'BẬT' if enabled else 'TẮT'} tính năng tự động tag @All khi gửi Zalo", db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "auto_tag_all": enabled}
+
+@app.post("/api/bot3/zalo/add_group")
+def api_bot3_add_group(group_id: str = Form(...), group_name: str = Form(...), target_type: str = Form("GROUP")):
+    cfg = get_config_iuh()
+    target_groups = cfg["zalo"].get("target_groups", [])
+    for g in target_groups:
+        if str(g.get("id")) == str(group_id):
+            g["name"] = group_name
+            g["type"] = target_type
+            g["enabled"] = True
+            save_config_iuh(cfg)
+            return {"status": "ok", "message": "Đã cập nhật đối tượng nhận tin!", "target_groups": target_groups}
+    target_groups.append({
+        "id": str(group_id),
+        "name": group_name,
+        "type": target_type,
+        "enabled": True
+    })
+    cfg["zalo"]["target_groups"] = target_groups
+    save_config_iuh(cfg)
+    database.log_event("ZALO", f"[Bot 3] Thêm người nhận mới: {group_name} ({group_id})", db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "message": "Đã thêm đối tượng nhận tin thành công!", "target_groups": target_groups}
+
+@app.delete("/api/bot3/zalo/target_groups/{group_id}")
+def api_bot3_delete_target_group(group_id: str):
+    cfg = get_config_iuh()
+    target_groups = cfg["zalo"].get("target_groups", [])
+    new_groups = [g for g in target_groups if str(g.get("id")) != str(group_id)]
+    cfg["zalo"]["target_groups"] = new_groups
+    save_config_iuh(cfg)
+    database.log_event("ZALO", f"[Bot 3] Đã xóa người nhận ID {group_id}", db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "message": "Đã xóa người nhận!", "target_groups": new_groups}
+
+@app.post("/api/bot3/zalo/test_alert")
+def api_bot3_test_zalo_alert():
+    from iuh_bot import send_zalo_iuh
+    zalo = ZaloDispatcher(CONFIG_IUH_FILE)
+    test_act = {
+        "activity_id": "test_9999",
+        "title": "Hoạt động thử nghiệm kiểm tra kết nối Bot IUH & Bắn Zalo",
+        "semester": "1/2026 - 2027",
+        "points": 3.0,
+        "deadline": datetime.now().strftime("%d-%m-%Y"),
+        "status": "Đang mở",
+        "slots": "150/150",
+        "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
+    }
+    sent = send_zalo_iuh(zalo, test_act, is_reopened=False)
+    if sent:
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công tới nhóm demo và Trần Lê Phát!"}
+    else:
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc người nhận!")
+
+@app.get("/api/bot3/history")
+def api_bot3_get_history(limit: int = 100, page: int = 1, search: Optional[str] = None, target_id: Optional[str] = None):
+    history = database.get_delivery_history(limit=limit, page=page, search=search, target_id=target_id, db_file=database.IUH_DB_FILE)
+    return {"status": "ok", "data": history}
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard_view():
+
     cfg = get_config()
     stats = database.get_stats()
     posts = database.get_posts(limit=30)
@@ -547,6 +791,9 @@ def dashboard_view():
           </a>
           <a href="/bot2" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
             ✈️ Bot 2: VAA (Yuki 2)
+          </a>
+          <a href="/bot3" class="px-3 py-1.5 rounded-lg text-rose-700 hover:text-rose-900 transition">
+            🔴 Bot 3: IUH (Yuki 3)
           </a>
         </div>
       </div>
@@ -1394,6 +1641,9 @@ def dashboard_view_bot2():
           <a href="/bot2" class="px-3 py-1.5 rounded-lg bg-white text-sky-700 shadow-xs">
             ✈️ Bot 2: VAA (Yuki 2)
           </a>
+          <a href="/bot3" class="px-3 py-1.5 rounded-lg text-rose-700 hover:text-rose-900 transition">
+            🔴 Bot 3: IUH (Yuki 3)
+          </a>
         </div>
       </div>
 
@@ -2232,5 +2482,711 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
 """
     return html
 
+@app.get("/bot3", response_class=HTMLResponse)
+@app.get("/iuh", response_class=HTMLResponse)
+def dashboard_view_bot3():
+    cfg = get_config_iuh()
+    stats = database.get_iuh_stats(db_file=database.IUH_DB_FILE)
+    activities = database.get_activities(limit=50, db_file=database.IUH_DB_FILE)
+    zalo_cfg = cfg.get("zalo", {})
+    target_groups = zalo_cfg.get("target_groups", [])
+    portal_cfg = cfg.get("portal", {})
+    phpsessid = portal_cfg.get("phpsessid", "")
+    auto_tag_all = zalo_cfg.get("auto_tag_all", True)
+
+    activities_json = json.dumps(activities, ensure_ascii=False)
+    stats_json = json.dumps(stats, ensure_ascii=False)
+    target_groups_json = json.dumps(target_groups, ensure_ascii=False)
+
+    history_data = database.get_delivery_history(limit=50, db_file=database.IUH_DB_FILE)
+    history_json = json.dumps(history_data.get("items", []), ensure_ascii=False)
+
+    is_bot_active = stats.get("is_active", True)
+
+    active_class = "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20" if is_bot_active else "bg-slate-500 hover:bg-slate-600 text-white shadow-slate-500/20"
+    active_text = "🟢 BOT IUH ĐANG BẬT" if is_bot_active else "🔴 BOT IUH ĐÃ TẮT"
+
+    cookie_status = stats.get("cookie_status", "valid")
+    cookie_badge = '<span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 Cookie Hoạt Động</span>' if cookie_status == "valid" else '<span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">🔴 Cookie Hết Hạn / Chưa Đăng Nhập</span>'
+
+    html = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IUH Portal & Zalo Bot Monitor 24/7 (Yuki 3)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {{ font-family: 'Plus Jakarta Sans', sans-serif; }}
+    .font-mono {{ font-family: 'JetBrains Mono', monospace; }}
+    .glass {{ background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(12px); }}
+    #console-stream::-webkit-scrollbar {{ width: 6px; }}
+    #console-stream::-webkit-scrollbar-track {{ background: #0f172a; }}
+    #console-stream::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 3px; }}
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- TOP NAVBAR -->
+  <header class="glass sticky top-0 z-50 border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-5">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-red-700 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
+            <i class="fa-solid fa-bullhorn text-lg"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg leading-tight text-slate-900">IUH Portal Feed & Bot (Yuki 3)</h1>
+            <p class="text-xs text-slate-500 font-medium">Cào doantn.iuh.edu.vn & Săn Điểm Rèn Luyện 24/7</p>
+          </div>
+        </div>
+
+        <div class="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+          <a href="/" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🎓 Bot 1: HUIT (Yuki 1)
+          </a>
+          <a href="/bot2" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            ✈️ Bot 2: VAA (Yuki 2)
+          </a>
+          <a href="/bot3" class="px-3 py-1.5 rounded-lg bg-white text-rose-700 shadow-xs">
+            🔴 Bot 3: IUH (Yuki 3)
+          </a>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- ADMIN PROFILE -->
+        <div class="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-xl border border-slate-200 transition">
+          <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-rose-500/50 shadow-xs" alt="Admin Avatar">
+          <div class="text-left">
+            <div class="flex items-center gap-1.5 leading-none">
+              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-rose-600 flex items-center gap-1 font-mono leading-tight mt-1">
+              <i class="fa-brands fa-github text-slate-700"></i> yukilegit11-creator
+            </a>
+          </div>
+        </div>
+
+        <!-- GITHUB SYNC BUTTON -->
+        <button id="btn-sync-github-bot3" onclick="syncWithGitHub()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs transition flex items-center gap-2">
+          <i class="fa-brands fa-github text-slate-900"></i>
+          <span id="github-sync-label-bot3">GitHub Sync</span>
+          <span id="github-sync-dot-bot3" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </button>
+
+        <button id="bot-toggle-btn-bot3" onclick="toggleBotPower()" class="px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 {active_class}">
+          <span id="bot-toggle-icon-bot3" class="w-2.5 h-2.5 rounded-full bg-white"></span>
+          <span id="bot-toggle-text-bot3">{active_text}</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- KPI STATS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng HĐ Quét Được</p>
+          <h3 id="stat-total-activities" class="text-2xl font-extrabold text-slate-900 mt-1">{stats.get('total_activities', 0)}</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Tab Đăng ký tham gia</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-calendar-check"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tin Bắn Zalo</p>
+          <h3 id="stat-total-sent" class="text-2xl font-extrabold text-emerald-600 mt-1">{stats.get('total_zalo_sent', 0)}</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">demo & Trần Lê Phát</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-paper-plane"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Phiên Cookie Web</p>
+          <div id="stat-cookie-badge" class="mt-2">{cookie_badge}</div>
+          <p class="text-[11px] text-slate-400 mt-1 font-mono">PHPSESSID</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-cookie-bite"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lần Quét Cuối</p>
+          <h3 id="stat-last-scan" class="text-sm font-bold text-slate-800 mt-2 font-mono">{stats.get('last_scan_time') or 'Vừa xong'}</h3>
+          <p id="stat-cycle-count" class="text-[11px] text-slate-400 mt-0.5">Chu kỳ: #{stats.get('total_scans', 0)}</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTION CONTROLS & COOKIE INPUT -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <button onclick="crawlNow()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-2">
+          <i class="fa-solid fa-rotate text-sm"></i>
+          <span>Quét Ngay Lập Tức</span>
+        </button>
+        <button onclick="sendTestAlert()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-2">
+          <i class="fa-solid fa-vial text-sm"></i>
+          <span>Gửi Test Vào Zalo</span>
+        </button>
+        <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer ml-2">
+          <input type="checkbox" id="chk-auto-tag-all" {"checked" if auto_tag_all else ""} onchange="toggleTagAll(this.checked)" class="w-4 h-4 text-rose-600 rounded">
+          <span>Tự động tag @All khi gửi nhóm</span>
+        </label>
+      </div>
+
+      <!-- Quick Cookie Input -->
+      <div class="flex items-center gap-2 w-full lg:w-auto">
+        <input type="text" id="input-cookie-iuh" value="{phpsessid}" placeholder="Dán PHPSESSID hoặc JSON cookies IUH..." class="px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-rose-500 w-full sm:w-72 font-mono">
+        <button onclick="saveCookie()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold whitespace-nowrap shadow-xs transition flex items-center gap-1.5">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Lưu & Kiểm Tra</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN GRID CONTENT -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT: ACTIVITIES TABLE (8 COLS) -->
+      <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+              <i class="fa-solid fa-list-check text-sm"></i>
+            </div>
+            <div>
+              <h2 class="font-bold text-sm text-slate-900">Danh Sách Hoạt Động & Điểm Rèn Luyện IUH</h2>
+              <p class="text-[11px] text-slate-500">Dữ liệu cào trực tiếp từ cổng doantn.iuh.edu.vn (Tab 1)</p>
+            </div>
+          </div>
+          <div class="relative w-48 sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+            <input type="text" id="search-activity-input" oninput="filterActivities(this.value)" placeholder="Tìm kiếm sự kiện..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-rose-500">
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto flex-1">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50/80 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-100 font-bold">
+              <tr>
+                <th class="px-4 py-3">Tên Hoạt Động</th>
+                <th class="px-3 py-3 text-center">ĐRL</th>
+                <th class="px-3 py-3 text-center">Học Kỳ</th>
+                <th class="px-3 py-3 text-center">Hạn Chót</th>
+                <th class="px-3 py-3 text-center">Trạng Thái</th>
+                <th class="px-3 py-3 text-center">Chi Tiết</th>
+              </tr>
+            </thead>
+            <tbody id="activities-table-body" class="divide-y divide-slate-100 font-medium">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: ZALO RECIPIENTS & CONSOLE STREAM (4 COLS) -->
+      <div class="lg:col-span-4 space-y-6">
+
+        <!-- Zalo Target Recipients Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <h3 class="font-bold text-xs text-slate-900 uppercase tracking-wider">Người Nhận Zalo Bot IUH</h3>
+            </div>
+            <button onclick="openAddGroupModal()" class="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1">
+              <i class="fa-solid fa-plus"></i> Thêm
+            </button>
+          </div>
+
+          <div id="target-groups-container" class="space-y-2.5">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Console System Logs Card -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-md p-5 flex flex-col h-[380px]">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <h3 class="font-bold text-xs text-slate-200 font-mono tracking-wider uppercase">System Console Logs</h3>
+            </div>
+            <button onclick="fetchLogs()" class="text-[11px] text-slate-400 hover:text-white transition font-mono">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+          <div id="console-stream" class="flex-1 overflow-y-auto space-y-1.5 text-[11px] font-mono text-slate-300 pr-1">
+            <!-- Stream logs -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BẢNG LỊCH SỬ BẤT BIẾN: BÀI NÀO ĐÃ GỬI VÀO ZALO, VÀO NHÓM NÀO, LÚC MẤY GIỜ -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
+      <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-bold text-sm text-slate-900">Lịch Sử Gửi Bài Zalo Bất Biến (Audit Trail)</h2>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Không bao giờ bị xoá</span>
+            </div>
+            <p class="text-[11px] text-slate-500">Ghi nhận chi tiết từng bài viết được gửi vào nhóm/cá nhân nào, lúc mấy giờ và nội dung cụ thể</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="search-history-input" oninput="filterHistory(this.value)" placeholder="Lọc theo bài, nhóm hoặc nội dung..." class="w-56 sm:w-64 pl-3 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-emerald-500">
+          <button onclick="fetchHistory()" class="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-slate-600">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+      <div class="overflow-x-auto flex-1 max-h-96">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-100 font-bold sticky top-0">
+            <tr>
+              <th class="px-4 py-3">Thời Gian Gửi</th>
+              <th class="px-4 py-3">Bài Viết / Hoạt Động</th>
+              <th class="px-4 py-3">Gửi Tới Nhóm / Người Nhận</th>
+              <th class="px-3 py-3 text-center">Trạng Thái</th>
+              <th class="px-3 py-3 text-center">Nội Dung Gửi</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body" class="divide-y divide-slate-100 font-medium">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: CHI TIẾT SỰ KIỆN -->
+  <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+      <div class="flex items-start justify-between">
+        <h3 id="modal-title" class="font-bold text-slate-900 text-base leading-tight">Chi Tiết Hoạt Động</h3>
+        <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/70">
+        <div><span class="text-slate-400">Điểm rèn luyện:</span> <strong id="modal-points" class="text-rose-600 font-bold">+0 điểm</strong></div>
+        <div><span class="text-slate-400">Học kỳ:</span> <strong id="modal-semester" class="text-slate-700">1/2026</strong></div>
+        <div><span class="text-slate-400">Hạn đăng ký:</span> <strong id="modal-deadline" class="text-slate-700">--</strong></div>
+        <div><span class="text-slate-400">Trạng thái:</span> <strong id="modal-status" class="text-slate-700">--</strong></div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nội dung chi tiết sự kiện:</p>
+        <div id="modal-body-text" class="text-xs text-slate-700 bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 whitespace-pre-wrap max-h-56 overflow-y-auto font-sans leading-relaxed"></div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <a id="modal-link-register" href="https://doantn.iuh.edu.vn/doanvien.html" target="_blank" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold">Vào Cổng Đăng Ký</a>
+        <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: XEM NỘI DUNG TIN NHẮN ĐÃ GỬI VÀO ZALO -->
+  <div id="history-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+      <div class="flex items-start justify-between">
+        <h3 id="history-modal-title" class="font-bold text-slate-900 text-base leading-tight">Nội Dung Đã Gửi Vào Zalo</h3>
+        <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/70">
+        <div><span class="text-slate-400">Thời gian gửi:</span> <strong id="history-modal-time" class="text-slate-700">--</strong></div>
+        <div><span class="text-slate-400">Người/Nhóm nhận:</span> <strong id="history-modal-recipient" class="text-emerald-700 font-bold">--</strong></div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Bản tin chi tiết Zalo:</p>
+        <div id="history-modal-body" class="text-xs text-slate-700 bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 whitespace-pre-wrap max-h-56 overflow-y-auto font-sans leading-relaxed"></div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="closeHistoryModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let allActivities = {activities_json};
+    let allTargetGroups = {target_groups_json};
+    let allHistory = {history_json};
+
+
+    function renderActivities(list) {{
+      const tbody = document.getElementById('activities-table-body');
+      if (!list || list.length === 0) {{
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400 text-xs">Chưa có hoạt động nào trong cơ sở dữ liệu. Hãy bấm "Quét Ngay Lập Tức"!</td></tr>`;
+        return;
+      }}
+
+      tbody.innerHTML = list.map((a, idx) => {{
+        const isFull = (a.status || '').toLowerCase().includes('đủ số lượng');
+        const statusBadge = isFull 
+          ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Đã đủ chỗ</span>` 
+          : `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Đang mở</span>`;
+        const slotText = a.slots ? `<span class="text-[10px] text-slate-400 font-mono">(${{a.slots}})</span>` : '';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-900 leading-snug line-clamp-2">${{a.title}}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">ID: <span class="font-mono">${{a.activity_id}}</span></div>
+            </td>
+            <td class="px-3 py-3 text-center">
+              <span class="px-2 py-0.5 bg-rose-50 text-rose-600 font-extrabold rounded-md text-xs border border-rose-200/60">+${{a.points}}</span>
+            </td>
+            <td class="px-3 py-3 text-center text-slate-600 font-medium">${{a.semester || '-'}}</td>
+            <td class="px-3 py-3 text-center text-slate-600 font-mono text-[11px]">${{a.deadline || '-'}}</td>
+            <td class="px-3 py-3 text-center whitespace-nowrap">${{statusBadge}} ${{slotText}}</td>
+            <td class="px-3 py-3 text-center">
+              <button onclick='openDetailModalByIndex(${{idx}})' class="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg font-bold transition">
+                <i class="fa-solid fa-eye"></i> Xem
+              </button>
+            </td>
+          </tr>
+        `;
+      }}).join('');
+    }}
+
+    function renderTargetGroups(groups) {{
+      const container = document.getElementById('target-groups-container');
+      if (!groups || groups.length === 0) {{
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Chưa có người nhận nào</p>`;
+        return;
+      }}
+
+      container.innerHTML = groups.map(g => {{
+        const isUser = (g.type || '').toUpperCase() === 'USER';
+        const typeBadge = isUser ? '<span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">Cá nhân</span>' : '<span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">Nhóm</span>';
+        return `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-slate-800">${{g.name}}</span>
+                ${{typeBadge}}
+              </div>
+              <div class="text-[10px] text-slate-400 font-mono mt-0.5">ID: ${{g.id}}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleTargetGroup('${{g.id}}', ${{!g.enabled}})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${{g.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}}">
+                ${{g.enabled ? 'Đang nhận' : 'Tắt'}}
+              </button>
+              <button onclick="deleteTargetGroup('${{g.id}}')" class="text-slate-400 hover:text-rose-600 p-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
+            </div>
+          </div>
+        `;
+      }}).join('');
+    }}
+
+    async function toggleBotPower() {{
+      const res = await fetch('/api/bot3/toggle', {{ method: 'POST' }});
+      const data = await res.json();
+      const btn = document.getElementById('bot-toggle-btn-bot3');
+      const text = document.getElementById('bot-toggle-text-bot3');
+      if (data.is_active) {{
+        btn.className = "px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20";
+        text.innerText = "🟢 BOT IUH ĐANG BẬT";
+      }} else {{
+        btn.className = "px-4 py-2 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white shadow-slate-500/20";
+        text.innerText = "🔴 BOT IUH ĐÃ TẮT";
+      }}
+    }}
+
+    async function crawlNow() {{
+      const res = await fetch('/api/bot3/crawl');
+      const data = await res.json();
+      alert(data.message || 'Quét thành công');
+      fetchLatestData();
+    }}
+
+    async function sendTestAlert() {{
+      const res = await fetch('/api/bot3/zalo/test_alert', {{ method: 'POST' }});
+      const data = await res.json();
+      alert(data.message || 'Đã gửi test');
+    }}
+
+    async function saveCookie() {{
+      const cookieVal = document.getElementById('input-cookie-iuh').value.trim();
+      if (!cookieVal) return alert('Vui lòng dán cookie PHPSESSID!');
+      const fd = new FormData();
+      fd.append('cookie', cookieVal);
+      const res = await fetch('/api/bot3/cookie', {{ method: 'POST', body: fd }});
+      const data = await res.json();
+      alert(data.message);
+      fetchLatestData();
+    }}
+
+    async function toggleTargetGroup(gid, enabled) {{
+      const fd = new FormData();
+      fd.append('group_id', gid);
+      fd.append('enabled', enabled);
+      const res = await fetch('/api/bot3/zalo/toggle_group', {{ method: 'POST', body: fd }});
+      const data = await res.json();
+      allTargetGroups = data.target_groups;
+      renderTargetGroups(allTargetGroups);
+    }}
+
+    async function toggleTagAll(enabled) {{
+      const fd = new FormData();
+      fd.append('enabled', enabled);
+      await fetch('/api/bot3/zalo/toggle_tag_all', {{ method: 'POST', body: fd }});
+    }}
+
+    async function deleteTargetGroup(gid) {{
+      if (!confirm('Xác nhận xóa người nhận này?')) return;
+      const res = await fetch('/api/bot3/zalo/target_groups/' + gid, {{ method: 'DELETE' }});
+      const data = await res.json();
+      allTargetGroups = data.target_groups;
+      renderTargetGroups(allTargetGroups);
+    }}
+
+    function openAddGroupModal() {{
+      const gid = prompt('Nhập ID Zalo của nhóm hoặc cá nhân:');
+      if (!gid) return;
+      const gname = prompt('Nhập Tên gợi nhớ (Ví dụ: demo hoặc Trần Lê Phát):', 'demo');
+      const isUser = confirm('Đối tượng này là CÁ NHÂN? (Bấm OK nếu là Cá nhân, bấm Cancel nếu là Nhóm)');
+      const fd = new FormData();
+      fd.append('group_id', gid);
+      fd.append('group_name', gname || gid);
+      fd.append('target_type', isUser ? 'USER' : 'GROUP');
+      fetch('/api/bot3/zalo/add_group', {{ method: 'POST', body: fd }}).then(r => r.json()).then(data => {{
+        allTargetGroups = data.target_groups;
+        renderTargetGroups(allTargetGroups);
+      }});
+    }}
+
+    function openDetailModalByIndex(idx) {{
+      const a = allActivities[idx];
+      if (!a) return;
+      document.getElementById('modal-title').innerText = a.title;
+      document.getElementById('modal-points').innerText = '+' + a.points + ' điểm';
+      document.getElementById('modal-semester').innerText = a.semester || 'Chưa rõ';
+      document.getElementById('modal-deadline').innerText = a.deadline || 'Chưa rõ';
+      document.getElementById('modal-status').innerText = a.status + (a.slots ? ' (' + a.slots + ')' : '');
+      document.getElementById('modal-body-text').innerText = a.details || 'Không có mô tả chi tiết thêm từ modal.';
+      document.getElementById('detail-modal').classList.remove('hidden');
+    }}
+
+    function closeDetailModal() {{
+      document.getElementById('detail-modal').classList.add('hidden');
+    }}
+
+    function filterActivities(query) {{
+      const q = (query || '').toLowerCase().trim();
+      if (!q) {{
+        renderActivities(allActivities);
+        return;
+      }}
+      const filtered = allActivities.filter(a => 
+        (a.title || '').toLowerCase().includes(q) || 
+        (a.semester || '').toLowerCase().includes(q) || 
+        (a.details || '').toLowerCase().includes(q)
+      );
+      renderActivities(filtered);
+    }}
+
+    async function fetchLogs() {{
+      try {{
+        const res = await fetch('/api/bot3/logs?limit=40');
+        const data = await res.json();
+        const container = document.getElementById('console-stream');
+        if (data.logs) {{
+          container.innerHTML = data.logs.map(l => {{
+            let color = 'text-slate-400';
+            if (l.level === 'WARN') color = 'text-amber-400';
+            else if (l.level === 'ERROR') color = 'text-rose-400';
+            else if (l.level === 'ZALO' || l.level === 'ACTIVITY') color = 'text-emerald-400';
+            return `<div><span class="text-slate-500 font-mono">[${{l.created_at.split(' ')[1] || l.created_at}}]</span> <span class="font-bold ${{color}}">[${{l.level}}]</span> ${{l.message}}</div>`;
+          }}).join('');
+        }}
+      }} catch (e) {{}}
+    }}
+
+    async function fetchLatestData() {{
+      try {{
+        const [statsRes, actsRes] = await Promise.all([
+          fetch('/api/bot3/stats'),
+          fetch('/api/bot3/activities?limit=50')
+        ]);
+        const s = await statsRes.json();
+        const a = await actsRes.json();
+        document.getElementById('stat-total-activities').innerText = s.total_activities || 0;
+        document.getElementById('stat-total-sent').innerText = s.total_zalo_sent || 0;
+        document.getElementById('stat-last-scan').innerText = s.last_scan_time || 'Chưa chạy';
+        document.getElementById('stat-cycle-count').innerText = 'Chu kỳ: #' + (s.total_scans || 0);
+
+        const cookieBadge = document.getElementById('stat-cookie-badge');
+        if (s.cookie_status === 'valid') {{
+          cookieBadge.innerHTML = '<span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 Cookie Hoạt Động</span>';
+        }} else {{
+          cookieBadge.innerHTML = '<span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">🔴 Cookie Hết Hạn / Chưa Đăng Nhập</span>';
+        }}
+
+        if (a.data) {{
+          allActivities = a.data;
+          renderActivities(allActivities);
+        }}
+        await fetchHistory();
+      }} catch (e) {{}}
+    }}
+
+    function renderHistory(list) {{
+      const tbody = document.getElementById('history-table-body');
+      if (!tbody) return;
+      if (!list || list.length === 0) {{
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400 text-xs">Chưa có lịch sử gửi tin nào. Khi bot gửi bài vào Zalo, toàn bộ nhật ký sẽ được lưu trữ vĩnh viễn tại đây!</td></tr>`;
+        return;
+      }}
+
+      tbody.innerHTML = list.map((h, idx) => {{
+        const isUser = (h.target_type || '').toUpperCase() === 'USER';
+        const typeBadge = isUser ? '<span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold ml-1">Cá nhân</span>' : '<span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold ml-1">Nhóm</span>';
+        const isSuccess = (h.status || '').toUpperCase() === 'SUCCESS';
+        const statusBadge = isSuccess 
+          ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">🟢 Thành công</span>` 
+          : `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">🔴 Thất bại</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="font-mono text-[11px] font-bold text-slate-700">${{h.sent_at || '-'}}</div>
+              <div class="text-[10px] text-slate-400">${{h.crawled_at ? 'Quét: ' + h.crawled_at : ''}}</div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-900 leading-snug line-clamp-1">${{h.post_title || 'Hoạt động IUH'}}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                <span class="font-mono">ID: ${{h.post_id || '-'}}</span>
+                ${{h.matched_keyword ? '• <span class="text-rose-600 font-semibold">' + h.matched_keyword + '</span>' : ''}}
+              </div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="flex items-center">
+                <span class="font-bold text-slate-800 text-xs">${{h.zalo_target_name || '-'}}</span>
+                ${{typeBadge}}
+              </div>
+              <div class="text-[10px] text-slate-400 font-mono mt-0.5">ID: ${{h.zalo_target_id || '-'}}</div>
+            </td>
+            <td class="px-3 py-3 text-center whitespace-nowrap">
+              ${{statusBadge}}
+            </td>
+            <td class="px-3 py-3 text-center whitespace-nowrap">
+              <button onclick="openHistoryModalByIndex(${{idx}})" class="px-2.5 py-1 text-xs text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-lg font-bold transition flex items-center gap-1 mx-auto">
+                <i class="fa-solid fa-message"></i> Xem nội dung
+              </button>
+            </td>
+          </tr>
+        `;
+      }}).join('');
+    }}
+
+    function openHistoryModalByIndex(idx) {{
+      const h = allHistory[idx];
+      if (!h) return;
+      document.getElementById('history-modal-title').innerText = h.post_title || 'Nội Dung Đã Gửi Vào Zalo';
+      document.getElementById('history-modal-time').innerText = h.sent_at || '--';
+      const isUser = (h.target_type || '').toUpperCase() === 'USER';
+      const kindStr = isUser ? 'Cá nhân: ' : 'Nhóm: ';
+      document.getElementById('history-modal-recipient').innerText = kindStr + (h.zalo_target_name || '-') + ' (' + (h.zalo_target_id || '-') + ')';
+      document.getElementById('history-modal-body').innerText = h.content_snippet || 'Không có bản sao lưu nội dung.';
+      document.getElementById('history-modal').classList.remove('hidden');
+    }}
+
+    function closeHistoryModal() {{
+      document.getElementById('history-modal').classList.add('hidden');
+    }}
+
+    function filterHistory(query) {{
+      const q = (query || '').toLowerCase().trim();
+      if (!q) {{
+        renderHistory(allHistory);
+        return;
+      }}
+      const filtered = allHistory.filter(h => 
+        (h.post_title || '').toLowerCase().includes(q) || 
+        (h.zalo_target_name || '').toLowerCase().includes(q) || 
+        (h.zalo_target_id || '').toLowerCase().includes(q) || 
+        (h.content_snippet || '').toLowerCase().includes(q) ||
+        (h.sent_at || '').toLowerCase().includes(q)
+      );
+      renderHistory(filtered);
+    }}
+
+    async function fetchHistory() {{
+      try {{
+        const res = await fetch('/api/bot3/history?limit=50');
+        const d = await res.json();
+        if (d.data && d.data.items) {{
+          allHistory = d.data.items;
+          const searchInput = document.getElementById('search-history-input');
+          const searchVal = searchInput ? searchInput.value : '';
+          if (searchVal) {{
+            filterHistory(searchVal);
+          }} else {{
+            renderHistory(allHistory);
+          }}
+        }}
+      }} catch (e) {{
+        console.error('Lỗi tải lịch sử gửi tin:', e);
+      }}
+    }}
+
+    async function syncWithGitHub() {{
+      const label = document.getElementById('github-sync-label-bot3');
+      const dot = document.getElementById('github-sync-dot-bot3');
+      if (label) label.innerText = 'Đang đồng bộ...';
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
+      try {{
+        const fd = new FormData();
+        fd.append('msg', '🔄 Auto-sync: Cập nhật Bot 3 IUH từ Web Dashboard');
+        const res = await fetch('/api/github/sync', {{ method: 'POST', body: fd }});
+        const d = await res.json();
+        alert(d.message);
+      }} catch (e) {{
+        alert('Lỗi: ' + e);
+      }}
+      if (label) label.innerText = 'GitHub Sync';
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+    }}
+
+    renderActivities(allActivities);
+    renderTargetGroups(allTargetGroups);
+    renderHistory(allHistory);
+    fetchLogs();
+    setInterval(fetchLogs, 2500);
+    setInterval(fetchLatestData, 10000);
+    setInterval(fetchHistory, 10000);
+  </script>
+</body>
+</html>
+"""
+    return html
+
 if __name__ == "__main__":
     uvicorn.run("web_app:app", host="0.0.0.0", port=8000, reload=False)
+

@@ -13,6 +13,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "huit_bot.db")
 BOT2_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot2.db")
+IUH_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "iuh_bot.db")
+
 
 def get_connection(db_file=None):
     target = db_file or DB_FILE
@@ -69,6 +71,42 @@ def init_db(db_file=None):
         ON system_logs (id DESC)
     """)
     
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS delivery_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id TEXT,
+            post_title TEXT,
+            source_page TEXT,
+            author TEXT,
+            post_url TEXT,
+            content_snippet TEXT,
+            has_form INTEGER DEFAULT 0,
+            matched_keyword TEXT,
+            crawled_at TEXT,
+            zalo_target_id TEXT,
+            zalo_target_name TEXT,
+            target_type TEXT DEFAULT 'GROUP',
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'SUCCESS',
+            extra_note TEXT DEFAULT ''
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_delivery_history_sent_at 
+        ON delivery_history (sent_at DESC)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_delivery_history_post_id 
+        ON delivery_history (post_id)
+    """)
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS prevent_delete_delivery_history 
+        BEFORE DELETE ON delivery_history 
+        BEGIN 
+            SELECT RAISE(FAIL, 'Lịch sử phát tin Zalo là bất biến vĩnh viễn, không được phép xóa!'); 
+        END;
+    """)
+
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
 
@@ -244,6 +282,283 @@ def set_bot_status(key: str, value: str, db_file=None):
     conn.commit()
     conn.close()
 
-# Khởi tạo cả 2 database
+# ==================== IUH (BOT 3) DATABASE METHODS ====================
+def init_iuh_db(db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS seen_activities (
+            activity_id TEXT PRIMARY KEY,
+            title TEXT,
+            semester TEXT,
+            points REAL DEFAULT 0,
+            deadline TEXT,
+            status TEXT,
+            slots TEXT,
+            details TEXT,
+            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_sent INTEGER DEFAULT 1
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS crawled_activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id TEXT,
+            title TEXT,
+            semester TEXT,
+            points REAL DEFAULT 0,
+            deadline TEXT,
+            status TEXT,
+            slots TEXT,
+            details TEXT,
+            action_type TEXT DEFAULT 'NEW',
+            is_sent_zalo INTEGER DEFAULT 0,
+            crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bot_status (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS system_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            level TEXT,
+            message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # BẢNG LỊCH SỬ BẤT BIẾN - KHÔNG BAO GIỜ ĐƯỢC PHÉP XOÁ
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS delivery_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id TEXT,
+            post_title TEXT,
+            source_page TEXT,
+            author TEXT,
+            post_url TEXT,
+            content_snippet TEXT,
+            has_form INTEGER DEFAULT 0,
+            matched_keyword TEXT,
+            crawled_at TEXT,
+            zalo_target_id TEXT,
+            zalo_target_name TEXT,
+            target_type TEXT,
+            sent_at TEXT,
+            status TEXT
+        )
+    """)
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawled_activities_crawled_at ON crawled_activities (crawled_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_system_logs_id ON system_logs (id DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_delivery_history_id ON delivery_history (id DESC)")
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('portal_cookie_status', 'valid')")
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('last_scan_time', '')")
+    cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('total_scans', '0')")
+    conn.commit()
+    conn.close()
+
+
+def record_seen_activity(act: dict, is_sent: bool = True, db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO seen_activities (activity_id, title, semester, points, deadline, status, slots, details, is_sent, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(activity_id) DO UPDATE SET
+            status = excluded.status,
+            slots = excluded.slots,
+            details = excluded.details,
+            last_updated = CURRENT_TIMESTAMP
+    """, (
+        str(act.get("activity_id", "")),
+        str(act.get("title", "")),
+        str(act.get("semester", "")),
+        float(act.get("points", 0)),
+        str(act.get("deadline", "")),
+        str(act.get("status", "")),
+        str(act.get("slots", "")),
+        str(act.get("details", "")),
+        1 if is_sent else 0
+    ))
+    conn.commit()
+    conn.close()
+
+def get_seen_activity(activity_id: str, db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM seen_activities WHERE activity_id = ?", (str(activity_id),))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def is_activity_seen(activity_id: str, db_file=None) -> bool:
+    return get_seen_activity(activity_id, db_file) is not None
+
+def update_activity_status(activity_id: str, status: str, slots: str = "", db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE seen_activities 
+        SET status = ?, slots = ?, last_updated = CURRENT_TIMESTAMP 
+        WHERE activity_id = ?
+    """, (status, slots, str(activity_id)))
+    conn.commit()
+    conn.close()
+
+def add_crawled_activity(act: dict, action_type: str = "NEW", is_sent: bool = True, db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO crawled_activities (activity_id, title, semester, points, deadline, status, slots, details, action_type, is_sent_zalo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        str(act.get("activity_id", "")),
+        str(act.get("title", "")),
+        str(act.get("semester", "")),
+        float(act.get("points", 0)),
+        str(act.get("deadline", "")),
+        str(act.get("status", "")),
+        str(act.get("slots", "")),
+        str(act.get("details", "")),
+        action_type,
+        1 if is_sent else 0
+    ))
+    conn.commit()
+    conn.close()
+
+def get_activities(limit: int = 50, search: str = None, db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    if search:
+        cursor.execute("""
+            SELECT * FROM seen_activities 
+            WHERE title LIKE ? OR semester LIKE ? OR status LIKE ?
+            ORDER BY first_seen DESC LIMIT ?
+        """, (f"%{search}%", f"%{search}%", f"%{search}%", limit))
+    else:
+        cursor.execute("SELECT * FROM seen_activities ORDER BY first_seen DESC LIMIT ?", (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_iuh_stats(db_file=None) -> dict:
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) as count FROM seen_activities")
+    total_activities = cursor.fetchone()["count"]
+    cursor.execute("SELECT COUNT(*) as count FROM crawled_activities WHERE is_sent_zalo = 1")
+    total_sent = cursor.fetchone()["count"]
+    cursor.execute("SELECT COUNT(*) as count FROM system_logs")
+    total_logs = cursor.fetchone()["count"]
+
+    cursor.execute("SELECT key, value FROM bot_status")
+    status_rows = cursor.fetchall()
+    status_map = {row["key"]: row["value"] for row in status_rows}
+    conn.close()
+
+    is_act = status_map.get("is_active", "true").lower() == "true"
+    return {
+        "total_activities": total_activities,
+        "total_zalo_sent": total_sent,
+        "total_logs": total_logs,
+        "bot_state": status_map.get("bot_state", "running"),
+        "is_active": is_act,
+        "cookie_status": status_map.get("portal_cookie_status", "valid"),
+        "last_scan_time": status_map.get("last_scan_time", "Chưa chạy"),
+        "total_scans": int(status_map.get("total_scans", 0)) if str(status_map.get("total_scans", 0)).isdigit() else 0
+    }
+
+def record_delivery(
+    post_id: str,
+    post_title: str,
+    source_page: str,
+    author: str,
+    post_url: str,
+    content_snippet: str,
+    has_form: int,
+    matched_keyword: str,
+    zalo_target_id: str,
+    zalo_target_name: str,
+    target_type: str = "GROUP",
+    status: str = "SUCCESS",
+    crawled_at: str = "",
+    db_file=None
+):
+    """Ghi nhận lịch sử gửi bài vào Zalo - Bất biến, không bao giờ được xóa."""
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    try:
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+            INSERT INTO delivery_history (
+                post_id, post_title, source_page, author, post_url, 
+                content_snippet, has_form, matched_keyword, crawled_at, 
+                zalo_target_id, zalo_target_name, target_type, sent_at, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            post_id, post_title, source_page, author, post_url,
+            content_snippet[:4000] if content_snippet else "", has_form, matched_keyword or "Mặc định",
+            crawled_at or now_str, str(zalo_target_id), zalo_target_name,
+            target_type, now_str, status
+        ))
+        conn.commit()
+    except Exception as e:
+        print(f"Lỗi lưu lịch sử gửi bài Zalo: {e}")
+    finally:
+        conn.close()
+
+def get_delivery_history(limit: int = 100, page: int = 1, search: str = None, target_id: str = None, db_file=None):
+    """Lấy danh sách lịch sử gửi bài Zalo kèm phân trang và tìm kiếm."""
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    offset = max(0, (page - 1) * limit)
+    
+    query = "SELECT * FROM delivery_history WHERE 1=1"
+    count_query = "SELECT COUNT(*) FROM delivery_history WHERE 1=1"
+    params = []
+    count_params = []
+    
+    if search:
+        s = f"%{search}%"
+        query += " AND (post_title LIKE ? OR content_snippet LIKE ? OR source_page LIKE ? OR zalo_target_name LIKE ?)"
+        count_query += " AND (post_title LIKE ? OR content_snippet LIKE ? OR source_page LIKE ? OR zalo_target_name LIKE ?)"
+        params.extend([s, s, s, s])
+        count_params.extend([s, s, s, s])
+        
+    if target_id:
+        query += " AND zalo_target_id = ?"
+        count_query += " AND zalo_target_id = ?"
+        params.append(str(target_id))
+        count_params.append(str(target_id))
+        
+    cursor.execute(count_query, count_params)
+    total_count = cursor.fetchone()[0]
+    
+    query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    results = [dict(row) for row in rows]
+    conn.close()
+    return {"total": total_count, "page": page, "limit": limit, "items": results}
+
+# Khởi tạo cả 3 database (HUIT, VAA, IUH)
 init_db(DB_FILE)
 init_db(BOT2_DB_FILE)
+init_iuh_db(IUH_DB_FILE)
+

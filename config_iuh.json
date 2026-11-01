@@ -1,0 +1,60 @@
+{
+  "instance_name": "Bot IUH (Kênh 3 - Cổng Đoàn TN & ĐRL)",
+  "bot_name": "Yuki 3 (IUH ĐRL)",
+  "portal": {
+    "url": "https://doantn.iuh.edu.vn/doanvien.html",
+    "phpsessid": "jg13il4uu6nfr8k51cdpldufj2"
+  },
+  "zalo": {
+    "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
+    "target_thread_id": "6906603484437051809",
+    "target_type": "GROUP",
+    "target_group_name": "TB điểm rèn luyện IUH",
+    "auto_tag_all": true,
+    "target_groups": [
+      {
+        "id": "6906603484437051809",
+        "name": "TB điểm rèn luyện IUH",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "4567863637705237532",
+        "name": "IUH-TBAO DRL",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "475259879796859360",
+        "name": "demo",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "7662918962461429024",
+        "name": "Trần Lê Phát",
+        "type": "USER",
+        "enabled": true
+      }
+    ],
+    "cookies": {
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "_ga": "GA1.1.1518733191.1793162405",
+      "_zlang": "vn",
+      "zpw_sek": "FTPC.466784528.a0.XEsTdep25GOFjv1hFYP2S6G49niz7602Is1fGcj0B3jHJWap9X5rNr8K30Du6tzIOYZuFKpxJoT_9o---Kn2S0",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "app.event.zalo.me": "3236038380622178657",
+      "zoaw_sek": "0X11.1070774772.3.n_VJv4eu5tA-WSLDIZWNSaeu5t9AE1ToIrUSbo0u5t8",
+      "zpsid": "0kOr.466784528.3.6r-wV8ACtyQI7GtTZepVnlV_hVAqkkZ-jhdj_emsafLVWOYcW-4H8EYCtyO"
+    }
+  },
+  "scanner": {
+    "check_interval_seconds": 15,
+    "notify_reopened_slots": true
+  },
+  "supabase": {
+    "enabled": true,
+    "url": "https://wublzmpogybrhtbulbtm.supabase.co",
+    "anon_key": "sb_publishable_Wnhcf9l6VAuAiyM7KoFp7w_y3Ohwu3S"
+  }
+}

@@ -69,6 +69,42 @@ def init_db(db_file=None):
         ON system_logs (id DESC)
     """)
     
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS delivery_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id TEXT,
+            post_title TEXT,
+            source_page TEXT,
+            author TEXT,
+            post_url TEXT,
+            content_snippet TEXT,
+            has_form INTEGER DEFAULT 0,
+            matched_keyword TEXT,
+            crawled_at TEXT,
+            zalo_target_id TEXT,
+            zalo_target_name TEXT,
+            target_type TEXT DEFAULT 'GROUP',
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'SUCCESS',
+            extra_note TEXT DEFAULT ''
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_delivery_history_sent_at 
+        ON delivery_history (sent_at DESC)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_delivery_history_post_id 
+        ON delivery_history (post_id)
+    """)
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS prevent_delete_delivery_history 
+        BEFORE DELETE ON delivery_history 
+        BEGIN 
+            SELECT RAISE(FAIL, 'Lịch sử phát tin Zalo là bất biến vĩnh viễn, không được phép xóa!'); 
+        END;
+    """)
+
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
 
@@ -248,6 +284,81 @@ def set_bot_enabled(active: bool, db_file=None):
     val = "true" if active else "false"
     set_bot_status("is_active", val, db_file=db_file)
     log_event("SYSTEM", f"Người dùng đã {'BẬT' if active else 'TẮT'} bot.", db_file=db_file)
+
+def record_delivery(
+    post_id: str,
+    post_title: str,
+    source_page: str,
+    author: str,
+    post_url: str,
+    content_snippet: str,
+    has_form: int,
+    matched_keyword: str,
+    zalo_target_id: str,
+    zalo_target_name: str,
+    target_type: str = "GROUP",
+    status: str = "SUCCESS",
+    crawled_at: str = "",
+    db_file=None
+):
+    """Ghi nhận lịch sử gửi bài vào Zalo - Bất biến, không bao giờ được xóa."""
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    try:
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+            INSERT INTO delivery_history (
+                post_id, post_title, source_page, author, post_url, 
+                content_snippet, has_form, matched_keyword, crawled_at, 
+                zalo_target_id, zalo_target_name, target_type, sent_at, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            post_id, post_title, source_page, author, post_url,
+            content_snippet[:300] if content_snippet else "", has_form, matched_keyword or "Mặc định",
+            crawled_at or now_str, str(zalo_target_id), zalo_target_name,
+            target_type, now_str, status
+        ))
+        conn.commit()
+    except Exception as e:
+        print(f"Lỗi lưu lịch sử gửi bài Zalo: {e}")
+    finally:
+        conn.close()
+
+def get_delivery_history(limit: int = 100, page: int = 1, search: str = None, target_id: str = None, db_file=None):
+    """Lấy danh sách lịch sử gửi bài Zalo kèm phân trang và tìm kiếm."""
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    offset = max(0, (page - 1) * limit)
+    
+    query = "SELECT * FROM delivery_history WHERE 1=1"
+    count_query = "SELECT COUNT(*) FROM delivery_history WHERE 1=1"
+    params = []
+    count_params = []
+    
+    if search:
+        s = f"%{search}%"
+        query += " AND (post_title LIKE ? OR content_snippet LIKE ? OR source_page LIKE ? OR zalo_target_name LIKE ?)"
+        count_query += " AND (post_title LIKE ? OR content_snippet LIKE ? OR source_page LIKE ? OR zalo_target_name LIKE ?)"
+        params.extend([s, s, s, s])
+        count_params.extend([s, s, s, s])
+        
+    if target_id:
+        query += " AND zalo_target_id = ?"
+        count_query += " AND zalo_target_id = ?"
+        params.append(str(target_id))
+        count_params.append(str(target_id))
+        
+    cursor.execute(count_query, count_params)
+    total_count = cursor.fetchone()[0]
+    
+    query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    results = [dict(row) for row in rows]
+    conn.close()
+    return {"total": total_count, "page": page, "limit": limit, "items": results}
 
 # Khởi tạo DB tự động khi import
 init_db()
