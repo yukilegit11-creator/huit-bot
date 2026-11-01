@@ -93,17 +93,17 @@
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "387016397668099110",
         "name": "TBao Skien , ĐRL Vaa -",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "3211449471524750057",
         "name": "Tbao đrl VAA",
-        "enabled": true
+        "enabled": false
       }
     ],
     "cookies": {
