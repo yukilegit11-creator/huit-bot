@@ -93,33 +93,33 @@
       {
         "id": "475259879796859360",
         "name": "demo",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "3556085774387844897",
         "name": "TBao điểm rèn luyện",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "7086011981379160878",
         "name": "Săn drl Hu ít",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "979670734727637728",
         "name": "Thông báo drl",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "6036269726715046333",
         "name": "Thông báo ‼️",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": false
+        "enabled": true
       }
     ],
     "cookies": {
