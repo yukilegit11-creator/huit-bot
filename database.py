@@ -12,14 +12,17 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "huit_bot.db")
+BOT2_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot2.db")
 
-def get_connection():
-    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+def get_connection(db_file=None):
+    target = db_file or DB_FILE
+    conn = sqlite3.connect(target, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
-    conn = get_connection()
+def init_db(db_file=None):
+    target = db_file or DB_FILE
+    conn = get_connection(target)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS seen_posts (
@@ -66,16 +69,15 @@ def init_db():
         ON system_logs (id DESC)
     """)
     
-    # Mặc định bật bot nếu chưa có thiết lập
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
 
     conn.commit()
     conn.close()
 
-def log_event(level: str, message: str):
+def log_event(level: str, message: str, db_file=None):
     try:
-        conn = get_connection()
+        conn = get_connection(db_file)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO system_logs (level, message) VALUES (?, ?)", (level.upper(), message))
         
@@ -90,8 +92,8 @@ def log_event(level: str, message: str):
     except Exception as e:
         print(f"Lỗi ghi log: {e}")
 
-def get_recent_logs(limit: int = 100):
-    conn = get_connection()
+def get_recent_logs(limit: int = 100, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT ?", (limit,))
     rows = cursor.fetchall()
@@ -99,8 +101,8 @@ def get_recent_logs(limit: int = 100):
     conn.close()
     return results
 
-def is_bot_enabled() -> bool:
-    conn = get_connection()
+def is_bot_enabled(db_file=None) -> bool:
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("SELECT value FROM bot_status WHERE key = 'is_active'")
     row = cursor.fetchone()
@@ -109,8 +111,8 @@ def is_bot_enabled() -> bool:
         return False
     return True
 
-def set_bot_enabled(enabled: bool):
-    conn = get_connection()
+def set_bot_enabled(enabled: bool, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     val = "true" if enabled else "false"
     cursor.execute("""
@@ -126,18 +128,18 @@ def set_bot_enabled(enabled: bool):
     """, (state,))
     conn.commit()
     conn.close()
-    log_event("SYSTEM", f"Người dùng đã {'BẬT (Khởi động)' if enabled else 'TẮT (Tạm dừng)'} tiến trình Bot quét tự động.")
+    log_event("SYSTEM", f"Người dùng đã {'BẬT (Khởi động)' if enabled else 'TẮT (Tạm dừng)'} tiến trình Bot quét tự động.", db_file=db_file)
 
-def is_post_seen(post_hash: str) -> bool:
-    conn = get_connection()
+def is_post_seen(post_hash: str, db_file=None) -> bool:
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM seen_posts WHERE post_hash = ?", (post_hash,))
     seen = cursor.fetchone() is not None
     conn.close()
     return seen
 
-def record_seen_post(post_hash: str, page_name: str):
-    conn = get_connection()
+def record_seen_post(post_hash: str, page_name: str, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute(
         "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
@@ -146,8 +148,8 @@ def record_seen_post(post_hash: str, page_name: str):
     conn.commit()
     conn.close()
 
-def save_crawled_post(post_id: str, page_name: str, author: str, content: str, post_url: str, posted_time: str, is_sent_zalo: int = 0) -> int:
-    conn = get_connection()
+def save_crawled_post(post_id: str, page_name: str, author: str, content: str, post_url: str, posted_time: str, is_sent_zalo: int = 0, db_file=None) -> int:
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("""
         INSERT OR IGNORE INTO crawled_posts 
@@ -159,22 +161,22 @@ def save_crawled_post(post_id: str, page_name: str, author: str, content: str, p
     conn.close()
     return inserted_id
 
-def mark_post_sent_zalo(post_id: str):
-    conn = get_connection()
+def mark_post_sent_zalo(post_id: str, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("UPDATE crawled_posts SET is_sent_zalo = 1 WHERE post_id = ?", (post_id,))
     conn.commit()
     conn.close()
 
-def mark_post_sent_supabase(post_id: str):
-    conn = get_connection()
+def mark_post_sent_supabase(post_id: str, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("UPDATE crawled_posts SET is_sent_supabase = 1 WHERE post_id = ?", (post_id,))
     conn.commit()
     conn.close()
 
-def get_posts(limit: int = 50, page_name: str = None, search: str = None):
-    conn = get_connection()
+def get_posts(limit: int = 50, page_name: str = None, search: str = None, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     query = "SELECT * FROM crawled_posts WHERE 1=1"
     params = []
@@ -192,8 +194,8 @@ def get_posts(limit: int = 50, page_name: str = None, search: str = None):
     conn.close()
     return results
 
-def get_stats():
-    conn = get_connection()
+def get_stats(db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) AS total_posts FROM crawled_posts")
     total_posts = cursor.fetchone()["total_posts"]
@@ -202,7 +204,6 @@ def get_stats():
     cursor.execute("SELECT COUNT(DISTINCT page_name) AS total_pages FROM crawled_posts")
     total_pages = cursor.fetchone()["total_pages"]
 
-    # Lấy bot status
     cursor.execute("SELECT key, value FROM bot_status")
     status_rows = cursor.fetchall()
     status_map = {row["key"]: row["value"] for row in status_rows}
@@ -219,8 +220,8 @@ def get_stats():
         "last_error": status_map.get("last_error", "")
     }
 
-def set_bot_status(key: str, value: str):
-    conn = get_connection()
+def set_bot_status(key: str, value: str, db_file=None):
+    conn = get_connection(db_file)
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
@@ -230,4 +231,6 @@ def set_bot_status(key: str, value: str):
     conn.commit()
     conn.close()
 
-init_db()
+# Khởi tạo cả 2 database
+init_db(DB_FILE)
+init_db(BOT2_DB_FILE)
