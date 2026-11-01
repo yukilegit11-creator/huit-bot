@@ -84,9 +84,10 @@
   },
   "zalo": {
     "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
-    "target_thread_id": "3556085774387844897",
+    "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
-    "target_group_name": "TBao điểm rèn luyện",
+    "target_group_name": "demo",
+
     "cookies": {
       "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
       "_ga": "GA1.1.1518733191.1793162405",
