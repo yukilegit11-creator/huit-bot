@@ -106,6 +106,13 @@ def init_db(db_file=None):
             SELECT RAISE(FAIL, 'Lịch sử phát tin Zalo là bất biến vĩnh viễn, không được phép xóa!'); 
         END;
     """)
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS prevent_update_delivery_history 
+        BEFORE UPDATE ON delivery_history 
+        BEGIN 
+            SELECT RAISE(FAIL, 'Lịch sử phát tin Zalo là bất biến vĩnh viễn, không được phép sửa đổi!'); 
+        END;
+    """)
 
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")

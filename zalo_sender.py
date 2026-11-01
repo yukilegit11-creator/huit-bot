@@ -233,6 +233,7 @@ class ZaloDispatcher:
                     clean_text = formatted_text[5:] if formatted_text.startswith("@All ") else formatted_text
                     msg_obj = Message(text=clean_text)
 
+            target_kind = "cá nhân" if is_user else "nhóm"
             try:
                 res = self.client.send(
                     msg_obj,
@@ -241,11 +242,16 @@ class ZaloDispatcher:
                 )
                 bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
                 form_info = f" (Kèm {len(form_links)} link form GG Doc)" if form_links else ""
-                target_kind = "cá nhân" if is_user else "nhóm"
                 print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công tới {target_kind} [{gname}] (ID: {gid}){form_info}")
                 try:
                     import database
-                    db_target = "bot2.db" if "bot2" in str(self.config_file) else None
+                    cfg_lower = str(self.config_file).lower()
+                    if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                        db_target = database.BOT2_DB_FILE
+                    elif "iuh" in cfg_lower:
+                        db_target = database.IUH_DB_FILE
+                    else:
+                        db_target = database.DB_FILE
                     title = extract_post_title(post_data.get("content", ""))
                     database.record_delivery(
                         post_id=post_data.get("post_id") or hashlib.md5(post_data.get("content", "")[:150].encode("utf-8")).hexdigest(),
@@ -271,7 +277,13 @@ class ZaloDispatcher:
                 print(f"⚠️ Lỗi gửi tin vào {target_kind} {gname}: {e}")
                 try:
                     import database
-                    db_target = "bot2.db" if "bot2" in str(self.config_file) else None
+                    cfg_lower = str(self.config_file).lower()
+                    if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                        db_target = database.BOT2_DB_FILE
+                    elif "iuh" in cfg_lower:
+                        db_target = database.IUH_DB_FILE
+                    else:
+                        db_target = database.DB_FILE
                     title = extract_post_title(post_data.get("content", ""))
                     database.record_delivery(
                         post_id=post_data.get("post_id") or hashlib.md5(post_data.get("content", "")[:150].encode("utf-8")).hexdigest(),

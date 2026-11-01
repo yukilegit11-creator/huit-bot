@@ -310,8 +310,14 @@ def get_config_bot2():
 def save_config_bot2(cfg):
     with open(CONFIG_BOT2_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
-    # Đồng bộ sang các file VAA
-    for p in [os.path.join(SCRIPT_DIR, "vaabot.json"), os.path.join(SCRIPT_DIR, "vaa", "config.json"), os.path.join(SCRIPT_DIR, "vaa", "vaabot.json")]:
+    # Đồng bộ sang các file VAA và thư mục vaabot riêng biệt
+    for p in [
+        os.path.join(SCRIPT_DIR, "vaabot.json"), 
+        os.path.join(SCRIPT_DIR, "vaa", "config.json"), 
+        os.path.join(SCRIPT_DIR, "vaa", "vaabot.json"),
+        os.path.join(os.path.dirname(SCRIPT_DIR), "vaabot", "config.json"),
+        os.path.join(os.path.dirname(SCRIPT_DIR), "vaabot", "vaabot.json")
+    ]:
         try:
             with open(p, "w", encoding="utf-8") as f:
                 json.dump(cfg, f, ensure_ascii=False, indent=2)
@@ -896,6 +902,9 @@ def dashboard_view():
       <button onclick="switchTab('targets')" id="tab-btn-targets" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-link"></i> Quản Lý Nguồn Quét ({len(targets)})
       </button>
+      <button onclick="switchTab('history')" id="tab-btn-history" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-clock-rotate-left"></i> 📜 Lịch Sử Bắn Tin ({stats.get('total_zalo_sent', 0)})
+      </button>
     </div>
 
     <!-- TAB 1: FEED VIEW -->
@@ -1093,6 +1102,56 @@ def dashboard_view():
       </div>
     </div>
 
+    <!-- TAB 5: DELIVERY HISTORY (IMMUTABLE) -->
+    <div id="tab-history" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-emerald-600"></i> Lịch Sử Bắn Tin Zalo Bất Biến
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Không Thể Bị Xóa</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Lưu trữ vĩnh viễn bài viết nào đã cào, bài nào gửi Zalo, vào nhóm/người nhận nào, lúc mấy giờ. Dữ liệu được bảo vệ bằng SQLite Trigger.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="history-search-input" onkeyup="if(event.key==='Enter') fetchDeliveryHistory(1)" placeholder="Tìm bài, nhóm nhận..." class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button onclick="fetchDeliveryHistory(1)" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Thời gian bắn tin</th>
+                <th class="px-4 py-3">Nguồn Fanpage</th>
+                <th class="px-4 py-3">Tiêu đề / Nội dung bài viết</th>
+                <th class="px-4 py-3">Đích nhận Zalo</th>
+                <th class="px-4 py-3">Trạng thái</th>
+                <th class="px-4 py-3 text-center">Liên kết</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Đang tải lịch sử...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="history-pagination" class="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500">
+          <span id="history-page-info">Trang 1</span>
+          <div class="flex items-center gap-2">
+            <button id="history-prev-btn" onclick="changeHistoryPage(-1)" class="px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Trước</button>
+            <button id="history-next-btn" onclick="changeHistoryPage(1)" class="px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Sau</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- JAVASCRIPT LOGIC -->
@@ -1105,7 +1164,7 @@ def dashboard_view():
     let autoTagAll = { 'true' if auto_tag_all else 'false' };
 
     function switchTab(tab) {{
-      ['feed', 'console', 'zalo', 'targets'].forEach(t => {{
+      ['feed', 'console', 'zalo', 'targets', 'history'].forEach(t => {{
         const el = document.getElementById('tab-' + t);
         const btn = document.getElementById('tab-btn-' + t);
         if (el) el.classList.add('hidden');
@@ -1125,7 +1184,9 @@ def dashboard_view():
       if (tab === 'console') {{
         fetchLogs();
       }} else if (tab === 'zalo') {{
-        renderTargetGroups(allTargetGroups);
+        fetchTargetGroups();
+      }} else if (tab === 'history') {{
+        fetchDeliveryHistory(1);
       }}
     }}
 
@@ -1371,8 +1432,17 @@ def dashboard_view():
     }}
 
     async function toggleZaloGroup(groupId) {{
+      const cur = allTargetGroups.find(g => String(g.id) === String(groupId));
+      const targetState = cur ? !cur.enabled : true;
+
+      // Optimistic update giao diện ngay lập tức
+      if (cur) cur.enabled = targetState;
+      renderTargetGroups(allTargetGroups);
+      updateZaloStatsBadge();
+
       const fd = new FormData();
       fd.append('group_id', groupId);
+      fd.append('enabled', targetState ? 'true' : 'false');
       try {{
         const res = await fetch('/api/zalo/toggle_group', {{ method: 'POST', body: fd }});
         const data = await res.json();
@@ -1380,9 +1450,27 @@ def dashboard_view():
           allTargetGroups = data.target_groups;
           renderTargetGroups(allTargetGroups);
           updateZaloStatsBadge();
+        }} else {{
+          alert('Lỗi: ' + (data.detail || 'Không thể đổi trạng thái'));
+          fetchTargetGroups();
         }}
       }} catch (err) {{
-        alert('Lỗi đổi trạng thái nhóm: ' + err);
+        alert('Lỗi kết nối khi đổi trạng thái nhóm: ' + err);
+        fetchTargetGroups();
+      }}
+    }}
+
+    async function fetchTargetGroups() {{
+      try {{
+        const res = await fetch('/api/zalo/target_groups');
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          allTargetGroups = data.target_groups;
+          renderTargetGroups(allTargetGroups);
+          updateZaloStatsBadge();
+        }}
+      }} catch (err) {{
+        console.error('Lỗi nạp nhóm Zalo:', err);
       }}
     }}
 
@@ -1499,22 +1587,133 @@ def dashboard_view():
       document.getElementById('tab-btn-zalo').innerHTML = `<i class="fa-solid fa-comments"></i> Cấu Hình Nhóm Zalo (${{enabledCount}}/${{allTargetGroups.length}})`;
     }}
 
+    // ================= DELIVERY HISTORY (IMMUTABLE) =================
+    let currentHistoryPage = 1;
+    let totalHistoryPages = 1;
+
+    async function fetchDeliveryHistory(page = 1) {{
+      currentHistoryPage = page;
+      const qInput = document.getElementById('history-search-input');
+      const q = qInput ? qInput.value.trim() : '';
+      const tbody = document.getElementById('history-table-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu...</td></tr>';
+      try {{
+        const url = `/api/history?page=${{page}}&limit=20${{q ? '&search=' + encodeURIComponent(q) : ''}}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        renderDeliveryHistory(data);
+      }} catch (err) {{
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-rose-500">Lỗi tải lịch sử: ${{err}}</td></tr>`;
+      }}
+    }}
+
+    function renderDeliveryHistory(data) {{
+      const tbody = document.getElementById('history-table-body');
+      const items = data.items || [];
+      const total = data.total || 0;
+      const limit = data.limit || 20;
+      totalHistoryPages = Math.ceil(total / limit) || 1;
+
+      const pageInfo = document.getElementById('history-page-info');
+      if (pageInfo) pageInfo.innerText = `Trang ${{currentHistoryPage}} / ${{totalHistoryPages}} (Tổng cộng ${{total}} lượt phát tin)`;
+
+      const prevBtn = document.getElementById('history-prev-btn');
+      const nextBtn = document.getElementById('history-next-btn');
+      if (prevBtn) prevBtn.disabled = (currentHistoryPage <= 1);
+      if (nextBtn) nextBtn.disabled = (currentHistoryPage >= totalHistoryPages);
+
+      if (!items || items.length === 0) {{
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Chưa có lịch sử phát tin nào phù hợp.</td></tr>';
+        return;
+      }}
+
+      tbody.innerHTML = items.map(item => {{
+        const isSuccess = (item.status || '').toUpperCase() === 'SUCCESS';
+        const statusBadge = isSuccess
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check"></i> Đã gửi</span>'
+          : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800" title="${{item.status}}"><i class="fa-solid fa-triangle-exclamation"></i> Thất bại</span>`;
+
+        const isUser = item.target_type === 'USER';
+        const targetBadge = isUser
+          ? '<span class="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-100 text-blue-700 rounded ml-1">Cá nhân</span>'
+          : '<span class="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-100 text-slate-600 rounded ml-1">Nhóm</span>';
+
+        const formBadge = item.has_form 
+          ? '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-800 rounded mt-1"><i class="fa-brands fa-google-drive"></i> Có Form Đăng Ký</span>'
+          : '';
+
+        const kwBadge = item.matched_keyword
+          ? `<span class="text-[10px] text-slate-400">Từ khóa: <code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded font-mono">${{item.matched_keyword}}</code></span>`
+          : '';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-4 py-3 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+              <i class="fa-regular fa-clock mr-1 text-slate-400"></i> ${{item.sent_at || ''}}
+            </td>
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-800">${{item.source_page || 'Ẩn danh'}}</div>
+              <div class="text-[10px] text-slate-400">${{item.author || ''}}</div>
+            </td>
+            <td class="px-4 py-3 max-w-xs">
+              <div class="font-semibold text-slate-900 line-clamp-1">${{item.post_title || 'Bài viết mới'}}</div>
+              <div class="text-[11px] text-slate-500 line-clamp-2 mt-0.5">${{item.content_snippet || ''}}</div>
+              <div class="flex items-center gap-2 mt-1">
+                ${{formBadge}}
+                ${{kwBadge}}
+              </div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="font-bold text-slate-800 flex items-center">
+                ${{item.zalo_target_name || item.zalo_target_id}}
+                ${{targetBadge}}
+              </div>
+              <div class="text-[10px] text-slate-400 font-mono">ID: ${{item.zalo_target_id}}</div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              ${{statusBadge}}
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              ${{item.post_url ? `
+                <a href="${{item.post_url}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition">
+                  <i class="fa-brands fa-facebook"></i> Xem
+                </a>
+              ` : '<span class="text-slate-300">-</span>'}}
+            </td>
+          </tr>
+        `;
+      }}).join('');
+    }}
+
+    function changeHistoryPage(delta) {{
+      const newPage = currentHistoryPage + delta;
+      if (newPage >= 1 && newPage <= totalHistoryPages) {{
+        fetchDeliveryHistory(newPage);
+      }}
+    }}
+
     // ================= DATA REFRESH LOOP =================
     async function fetchLatestData() {{
       try {{
-        const [postsRes, statsRes, targetsRes, logsRes] = await Promise.all([
+        const [postsRes, statsRes, targetsRes, logsRes, groupsRes] = await Promise.all([
           fetch('/api/posts?limit=50'),
           fetch('/api/stats'),
           fetch('/api/targets'),
-          fetch('/api/logs?limit=80')
+          fetch('/api/logs?limit=80'),
+          fetch('/api/zalo/target_groups')
         ]);
         const postsData = await postsRes.json();
         const statsData = await statsRes.json();
         const targetsData = await targetsRes.json();
         const logsData = await logsRes.json();
+        const groupsData = await groupsRes.json();
 
         allPosts = postsData.data || [];
         allTargets = targetsData.targets || [];
+        if (groupsData && groupsData.target_groups) {{
+          allTargetGroups = groupsData.target_groups;
+          updateZaloStatsBadge();
+        }}
 
         document.getElementById('stat-total-posts').innerText = statsData.total_posts;
         document.getElementById('stat-total-zalo').innerText = statsData.total_zalo_sent;
@@ -1747,6 +1946,9 @@ def dashboard_view_bot2():
       </button>
       <button onclick="switchTab('cookies')" id="tab-btn-cookies" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-cookie-bite"></i> Cài Đặt Cookie Facebook
+      </button>
+      <button onclick="switchTab('history')" id="tab-btn-history" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-clock-rotate-left"></i> 📜 Lịch Sử Bắn Tin ({stats.get('total_zalo_sent', 0)})
       </button>
     </div>
 
@@ -1981,6 +2183,56 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       </div>
     </div>
 
+    <!-- TAB 6: DELIVERY HISTORY (IMMUTABLE) -->
+    <div id="tab-history" class="hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-emerald-600"></i> Lịch Sử Bắn Tin Zalo Bất Biến
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Không Thể Bị Xóa</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Lưu trữ vĩnh viễn bài viết nào đã cào, bài nào gửi Zalo, vào nhóm/người nhận nào, lúc mấy giờ. Dữ liệu được bảo vệ bằng SQLite Trigger.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="history-search-input" onkeyup="if(event.key==='Enter') fetchDeliveryHistory(1)" placeholder="Tìm bài, nhóm nhận..." class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </div>
+            <button onclick="fetchDeliveryHistory(1)" class="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+              <i class="fa-solid fa-rotate"></i> Làm mới
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Thời gian bắn tin</th>
+                <th class="px-4 py-3">Nguồn Fanpage</th>
+                <th class="px-4 py-3">Tiêu đề / Nội dung bài viết</th>
+                <th class="px-4 py-3">Đích nhận Zalo</th>
+                <th class="px-4 py-3">Trạng thái</th>
+                <th class="px-4 py-3 text-center">Liên kết</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Đang tải lịch sử...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="history-pagination" class="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500">
+          <span id="history-page-info">Trang 1</span>
+          <div class="flex items-center gap-2">
+            <button id="history-prev-btn" onclick="changeHistoryPage(-1)" class="px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Trước</button>
+            <button id="history-next-btn" onclick="changeHistoryPage(1)" class="px-3 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50">Sau</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- JAVASCRIPT LOGIC -->
@@ -1994,7 +2246,7 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
     let autoTagAll = { 'true' if auto_tag_all else 'false' };
 
     function switchTab(tab) {{
-      ['feed', 'console', 'zalo', 'targets', 'cookies'].forEach(t => {{
+      ['feed', 'console', 'zalo', 'targets', 'cookies', 'history'].forEach(t => {{
         const el = document.getElementById('tab-' + t);
         const btn = document.getElementById('tab-btn-' + t);
         if (el) el.classList.add('hidden');
@@ -2014,7 +2266,9 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       if (tab === 'console') {{
         fetchLogs();
       }} else if (tab === 'zalo') {{
-        renderTargetGroups(allTargetGroups);
+        fetchTargetGroups();
+      }} else if (tab === 'history') {{
+        fetchDeliveryHistory(1);
       }}
     }}
 
@@ -2260,8 +2514,17 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
     }}
 
     async function toggleZaloGroup(groupId) {{
+      const cur = allTargetGroups.find(g => String(g.id) === String(groupId));
+      const targetState = cur ? !cur.enabled : true;
+
+      // Optimistic update giao diện ngay lập tức
+      if (cur) cur.enabled = targetState;
+      renderTargetGroups(allTargetGroups);
+      updateZaloStatsBadge();
+
       const fd = new FormData();
       fd.append('group_id', groupId);
+      fd.append('enabled', targetState ? 'true' : 'false');
       try {{
         const res = await fetch(API_BASE + '/zalo/toggle_group', {{ method: 'POST', body: fd }});
         const data = await res.json();
@@ -2269,9 +2532,27 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
           allTargetGroups = data.target_groups;
           renderTargetGroups(allTargetGroups);
           updateZaloStatsBadge();
+        }} else {{
+          alert('Lỗi: ' + (data.detail || 'Không thể đổi trạng thái'));
+          fetchTargetGroups();
         }}
       }} catch (err) {{
-        alert('Lỗi đổi trạng thái nhóm: ' + err);
+        alert('Lỗi kết nối khi đổi trạng thái nhóm: ' + err);
+        fetchTargetGroups();
+      }}
+    }}
+
+    async function fetchTargetGroups() {{
+      try {{
+        const res = await fetch(API_BASE + '/zalo/target_groups');
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          allTargetGroups = data.target_groups;
+          renderTargetGroups(allTargetGroups);
+          updateZaloStatsBadge();
+        }}
+      }} catch (err) {{
+        console.error('Lỗi nạp nhóm Zalo:', err);
       }}
     }}
 
@@ -2406,22 +2687,133 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }}
     }}
 
+    // ================= DELIVERY HISTORY (IMMUTABLE) =================
+    let currentHistoryPage = 1;
+    let totalHistoryPages = 1;
+
+    async function fetchDeliveryHistory(page = 1) {{
+      currentHistoryPage = page;
+      const qInput = document.getElementById('history-search-input');
+      const q = qInput ? qInput.value.trim() : '';
+      const tbody = document.getElementById('history-table-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu...</td></tr>';
+      try {{
+        const url = `${{API_BASE}}/history?page=${{page}}&limit=20${{q ? '&search=' + encodeURIComponent(q) : ''}}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        renderDeliveryHistory(data);
+      }} catch (err) {{
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-rose-500">Lỗi tải lịch sử: ${{err}}</td></tr>`;
+      }}
+    }}
+
+    function renderDeliveryHistory(data) {{
+      const tbody = document.getElementById('history-table-body');
+      const items = data.items || [];
+      const total = data.total || 0;
+      const limit = data.limit || 20;
+      totalHistoryPages = Math.ceil(total / limit) || 1;
+
+      const pageInfo = document.getElementById('history-page-info');
+      if (pageInfo) pageInfo.innerText = `Trang ${{currentHistoryPage}} / ${{totalHistoryPages}} (Tổng cộng ${{total}} lượt phát tin)`;
+
+      const prevBtn = document.getElementById('history-prev-btn');
+      const nextBtn = document.getElementById('history-next-btn');
+      if (prevBtn) prevBtn.disabled = (currentHistoryPage <= 1);
+      if (nextBtn) nextBtn.disabled = (currentHistoryPage >= totalHistoryPages);
+
+      if (!items || items.length === 0) {{
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Chưa có lịch sử phát tin nào phù hợp.</td></tr>';
+        return;
+      }}
+
+      tbody.innerHTML = items.map(item => {{
+        const isSuccess = (item.status || '').toUpperCase() === 'SUCCESS';
+        const statusBadge = isSuccess
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check"></i> Đã gửi</span>'
+          : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800" title="${{item.status}}"><i class="fa-solid fa-triangle-exclamation"></i> Thất bại</span>`;
+
+        const isUser = item.target_type === 'USER';
+        const targetBadge = isUser
+          ? '<span class="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-100 text-blue-700 rounded ml-1">Cá nhân</span>'
+          : '<span class="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-100 text-slate-600 rounded ml-1">Nhóm</span>';
+
+        const formBadge = item.has_form 
+          ? '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-800 rounded mt-1"><i class="fa-brands fa-google-drive"></i> Có Form Đăng Ký</span>'
+          : '';
+
+        const kwBadge = item.matched_keyword
+          ? `<span class="text-[10px] text-slate-400">Từ khóa: <code class="text-sky-600 bg-sky-50 px-1 py-0.5 rounded font-mono">${{item.matched_keyword}}</code></span>`
+          : '';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-4 py-3 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+              <i class="fa-regular fa-clock mr-1 text-slate-400"></i> ${{item.sent_at || ''}}
+            </td>
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-800">${{item.source_page || 'Ẩn danh'}}</div>
+              <div class="text-[10px] text-slate-400">${{item.author || ''}}</div>
+            </td>
+            <td class="px-4 py-3 max-w-xs">
+              <div class="font-semibold text-slate-900 line-clamp-1">${{item.post_title || 'Bài viết mới'}}</div>
+              <div class="text-[11px] text-slate-500 line-clamp-2 mt-0.5">${{item.content_snippet || ''}}</div>
+              <div class="flex items-center gap-2 mt-1">
+                ${{formBadge}}
+                ${{kwBadge}}
+              </div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="font-bold text-slate-800 flex items-center">
+                ${{item.zalo_target_name || item.zalo_target_id}}
+                ${{targetBadge}}
+              </div>
+              <div class="text-[10px] text-slate-400 font-mono">ID: ${{item.zalo_target_id}}</div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              ${{statusBadge}}
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              ${{item.post_url ? `
+                <a href="${{item.post_url}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-lg transition">
+                  <i class="fa-brands fa-facebook"></i> Xem
+                </a>
+              ` : '<span class="text-slate-300">-</span>'}}
+            </td>
+          </tr>
+        `;
+      }}).join('');
+    }}
+
+    function changeHistoryPage(delta) {{
+      const newPage = currentHistoryPage + delta;
+      if (newPage >= 1 && newPage <= totalHistoryPages) {{
+        fetchDeliveryHistory(newPage);
+      }}
+    }}
+
     // ================= DATA REFRESH LOOP =================
     async function fetchLatestData() {{
       try {{
-        const [postsRes, statsRes, targetsRes, logsRes] = await Promise.all([
+        const [postsRes, statsRes, targetsRes, logsRes, groupsRes] = await Promise.all([
           fetch(API_BASE + '/posts?limit=50'),
           fetch(API_BASE + '/stats'),
           fetch(API_BASE + '/targets'),
-          fetch(API_BASE + '/logs?limit=80')
+          fetch(API_BASE + '/logs?limit=80'),
+          fetch(API_BASE + '/zalo/target_groups')
         ]);
         const postsData = await postsRes.json();
         const statsData = await statsRes.json();
         const targetsData = await targetsRes.json();
         const logsData = await logsRes.json();
+        const groupsData = await groupsRes.json();
 
         allPosts = postsData.data || [];
         allTargets = targetsData.targets || [];
+        if (groupsData && groupsData.target_groups) {{
+          allTargetGroups = groupsData.target_groups;
+          updateZaloStatsBadge();
+        }}
 
         document.getElementById('stat-total-posts').innerText = statsData.total_posts;
         document.getElementById('stat-total-zalo').innerText = statsData.total_zalo_sent;

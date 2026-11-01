@@ -1073,8 +1073,17 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
     }}
 
     async function toggleZaloGroup(groupId) {{
+      const cur = allTargetGroups.find(g => String(g.id) === String(groupId));
+      const targetState = cur ? !cur.enabled : true;
+
+      // Optimistic update giao diện ngay lập tức
+      if (cur) cur.enabled = targetState;
+      renderTargetGroups(allTargetGroups);
+      updateZaloStatsBadge();
+
       const fd = new FormData();
       fd.append('group_id', groupId);
+      fd.append('enabled', targetState ? 'true' : 'false');
       try {{
         const res = await fetch(API_BASE + '/zalo/toggle_group', {{ method: 'POST', body: fd }});
         const data = await res.json();
@@ -1082,9 +1091,27 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
           allTargetGroups = data.target_groups;
           renderTargetGroups(allTargetGroups);
           updateZaloStatsBadge();
+        }} else {{
+          alert('Lỗi: ' + (data.detail || 'Không thể đổi trạng thái'));
+          fetchTargetGroups();
         }}
       }} catch (err) {{
-        alert('Lỗi đổi trạng thái nhóm: ' + err);
+        alert('Lỗi kết nối khi đổi trạng thái nhóm: ' + err);
+        fetchTargetGroups();
+      }}
+    }}
+
+    async function fetchTargetGroups() {{
+      try {{
+        const res = await fetch(API_BASE + '/zalo/target_groups');
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          allTargetGroups = data.target_groups;
+          renderTargetGroups(allTargetGroups);
+          updateZaloStatsBadge();
+        }}
+      }} catch (err) {{
+        console.error('Lỗi nạp nhóm Zalo:', err);
       }}
     }}
 
@@ -1219,22 +1246,133 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }}
     }}
 
+    // ================= DELIVERY HISTORY (IMMUTABLE) =================
+    let currentHistoryPage = 1;
+    let totalHistoryPages = 1;
+
+    async function fetchDeliveryHistory(page = 1) {{
+      currentHistoryPage = page;
+      const qInput = document.getElementById('history-search-input');
+      const q = qInput ? qInput.value.trim() : '';
+      const tbody = document.getElementById('history-table-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu...</td></tr>';
+      try {{
+        const url = `${{API_BASE}}/history?page=${{page}}&limit=20${{q ? '&search=' + encodeURIComponent(q) : ''}}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        renderDeliveryHistory(data);
+      }} catch (err) {{
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-rose-500">Lỗi tải lịch sử: ${{err}}</td></tr>`;
+      }}
+    }}
+
+    function renderDeliveryHistory(data) {{
+      const tbody = document.getElementById('history-table-body');
+      const items = data.items || [];
+      const total = data.total || 0;
+      const limit = data.limit || 20;
+      totalHistoryPages = Math.ceil(total / limit) || 1;
+
+      const pageInfo = document.getElementById('history-page-info');
+      if (pageInfo) pageInfo.innerText = `Trang ${{currentHistoryPage}} / ${{totalHistoryPages}} (Tổng cộng ${{total}} lượt phát tin)`;
+
+      const prevBtn = document.getElementById('history-prev-btn');
+      const nextBtn = document.getElementById('history-next-btn');
+      if (prevBtn) prevBtn.disabled = (currentHistoryPage <= 1);
+      if (nextBtn) nextBtn.disabled = (currentHistoryPage >= totalHistoryPages);
+
+      if (!items || items.length === 0) {{
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Chưa có lịch sử phát tin nào phù hợp.</td></tr>';
+        return;
+      }}
+
+      tbody.innerHTML = items.map(item => {{
+        const isSuccess = (item.status || '').toUpperCase() === 'SUCCESS';
+        const statusBadge = isSuccess
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check"></i> Đã gửi</span>'
+          : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800" title="${{item.status}}"><i class="fa-solid fa-triangle-exclamation"></i> Thất bại</span>`;
+
+        const isUser = item.target_type === 'USER';
+        const targetBadge = isUser
+          ? '<span class="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-100 text-blue-700 rounded ml-1">Cá nhân</span>'
+          : '<span class="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-100 text-slate-600 rounded ml-1">Nhóm</span>';
+
+        const formBadge = item.has_form 
+          ? '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-800 rounded mt-1"><i class="fa-brands fa-google-drive"></i> Có Form Đăng Ký</span>'
+          : '';
+
+        const kwBadge = item.matched_keyword
+          ? `<span class="text-[10px] text-slate-400">Từ khóa: <code class="text-sky-600 bg-sky-50 px-1 py-0.5 rounded font-mono">${{item.matched_keyword}}</code></span>`
+          : '';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-4 py-3 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+              <i class="fa-regular fa-clock mr-1 text-slate-400"></i> ${{item.sent_at || ''}}
+            </td>
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-800">${{item.source_page || 'Ẩn danh'}}</div>
+              <div class="text-[10px] text-slate-400">${{item.author || ''}}</div>
+            </td>
+            <td class="px-4 py-3 max-w-xs">
+              <div class="font-semibold text-slate-900 line-clamp-1">${{item.post_title || 'Bài viết mới'}}</div>
+              <div class="text-[11px] text-slate-500 line-clamp-2 mt-0.5">${{item.content_snippet || ''}}</div>
+              <div class="flex items-center gap-2 mt-1">
+                ${{formBadge}}
+                ${{kwBadge}}
+              </div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="font-bold text-slate-800 flex items-center">
+                ${{item.zalo_target_name || item.zalo_target_id}}
+                ${{targetBadge}}
+              </div>
+              <div class="text-[10px] text-slate-400 font-mono">ID: ${{item.zalo_target_id}}</div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              ${{statusBadge}}
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              ${{item.post_url ? `
+                <a href="${{item.post_url}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-lg transition">
+                  <i class="fa-brands fa-facebook"></i> Xem
+                </a>
+              ` : '<span class="text-slate-300">-</span>'}}
+            </td>
+          </tr>
+        `;
+      }}).join('');
+    }}
+
+    function changeHistoryPage(delta) {{
+      const newPage = currentHistoryPage + delta;
+      if (newPage >= 1 && newPage <= totalHistoryPages) {{
+        fetchDeliveryHistory(newPage);
+      }}
+    }}
+
     // ================= DATA REFRESH LOOP =================
     async function fetchLatestData() {{
       try {{
-        const [postsRes, statsRes, targetsRes, logsRes] = await Promise.all([
+        const [postsRes, statsRes, targetsRes, logsRes, groupsRes] = await Promise.all([
           fetch(API_BASE + '/posts?limit=50'),
           fetch(API_BASE + '/stats'),
           fetch(API_BASE + '/targets'),
-          fetch(API_BASE + '/logs?limit=80')
+          fetch(API_BASE + '/logs?limit=80'),
+          fetch(API_BASE + '/zalo/target_groups')
         ]);
         const postsData = await postsRes.json();
         const statsData = await statsRes.json();
         const targetsData = await targetsRes.json();
         const logsData = await logsRes.json();
+        const groupsData = await groupsRes.json();
 
         allPosts = postsData.data || [];
         allTargets = targetsData.targets || [];
+        if (groupsData && groupsData.target_groups) {{
+          allTargetGroups = groupsData.target_groups;
+          updateZaloStatsBadge();
+        }}
 
         document.getElementById('stat-total-posts').innerText = statsData.total_posts;
         document.getElementById('stat-total-zalo').innerText = statsData.total_zalo_sent;
