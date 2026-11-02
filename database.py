@@ -33,6 +33,7 @@ if hasattr(sys.stdout, "reconfigure"):
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "huit_bot.db")
 BOT2_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot2.db")
 IUH_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "iuh_bot.db")
+UFM_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ufm_bot.db")
 
 
 def get_connection(db_file=None):
@@ -750,8 +751,209 @@ def get_delivery_history(limit: int = 100, page: int = 1, search: str = None, ta
     conn.close()
     return {"total": total_count, "page": page, "limit": limit, "items": results}
 
-# Khởi tạo cả 3 database (HUIT, VAA, IUH)
+# ==================== UFM (BOT 4) STUDENT METHODS ====================
+def init_ufm_db(db_file=None):
+    target = db_file or UFM_DB_FILE
+    init_iuh_db(target)
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS student_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mssv TEXT UNIQUE NOT NULL,
+            full_name TEXT,
+            password TEXT DEFAULT '',
+            cookie_data TEXT NOT NULL DEFAULT '',
+            class_name TEXT DEFAULT '',
+            faculty TEXT DEFAULT '',
+            is_active INTEGER DEFAULT 1,
+            cookie_status TEXT DEFAULT 'unknown',
+            zalo_sender_id TEXT DEFAULT '',
+            zalo_sender_name TEXT DEFAULT '',
+            last_checked TEXT,
+            last_registered_activity TEXT,
+            registered_at TEXT,
+            created_at TEXT
+        )
+    """)
+    for col_name, col_type in [
+        ("password", "TEXT DEFAULT ''"),
+        ("class_name", "TEXT DEFAULT ''"),
+        ("faculty", "TEXT DEFAULT ''"),
+        ("zalo_sender_id", "TEXT DEFAULT ''"),
+        ("zalo_sender_name", "TEXT DEFAULT ''")
+    ]:
+        try:
+            cursor.execute(f"ALTER TABLE student_accounts ADD COLUMN {col_name} {col_type}")
+        except Exception:
+            pass
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_student_mssv ON student_accounts (mssv)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_student_active ON student_accounts (is_active)")
+    conn.commit()
+    conn.close()
+
+def add_or_update_student(
+    mssv: str,
+    full_name: str = "",
+    password: str = "",
+    cookie_data: str = "",
+    class_name: str = "",
+    faculty: str = "",
+    is_active: int = 1,
+    cookie_status: str = "unknown",
+    zalo_sender_id: str = "",
+    zalo_sender_name: str = "",
+    db_file=None
+) -> bool:
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    now_vn = get_vn_now_str()
+    clean_mssv = str(mssv).strip()
+    try:
+        cursor.execute("""
+            INSERT INTO student_accounts (
+                mssv, full_name, password, cookie_data, class_name, faculty,
+                is_active, cookie_status, zalo_sender_id, zalo_sender_name, last_checked, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(mssv) DO UPDATE SET
+                full_name = CASE WHEN excluded.full_name != '' THEN excluded.full_name ELSE student_accounts.full_name END,
+                password = CASE WHEN excluded.password != '' THEN excluded.password ELSE student_accounts.password END,
+                cookie_data = CASE WHEN excluded.cookie_data != '' THEN excluded.cookie_data ELSE student_accounts.cookie_data END,
+                class_name = CASE WHEN excluded.class_name != '' THEN excluded.class_name ELSE student_accounts.class_name END,
+                faculty = CASE WHEN excluded.faculty != '' THEN excluded.faculty ELSE student_accounts.faculty END,
+                is_active = excluded.is_active,
+                cookie_status = excluded.cookie_status,
+                zalo_sender_id = CASE WHEN excluded.zalo_sender_id != '' THEN excluded.zalo_sender_id ELSE student_accounts.zalo_sender_id END,
+                zalo_sender_name = CASE WHEN excluded.zalo_sender_name != '' THEN excluded.zalo_sender_name ELSE student_accounts.zalo_sender_name END,
+                last_checked = excluded.last_checked
+        """, (
+            clean_mssv, str(full_name).strip(), str(password).strip(), str(cookie_data).strip(),
+            str(class_name).strip(), str(faculty).strip(), is_active, cookie_status,
+            str(zalo_sender_id).strip(), str(zalo_sender_name).strip(), now_vn, now_vn
+        ))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Lỗi thêm sinh viên {clean_mssv}: {e}")
+        conn.close()
+        return False
+
+def get_all_students(active_only: bool = False, db_file=None) -> list:
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    if active_only:
+        cursor.execute("SELECT * FROM student_accounts WHERE is_active = 1 ORDER BY id DESC")
+    else:
+        cursor.execute("SELECT * FROM student_accounts ORDER BY id DESC")
+    rows = cursor.fetchall()
+    res = [dict(r) for r in rows]
+    conn.close()
+    return res
+
+def get_student(mssv: str, db_file=None):
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM student_accounts WHERE mssv = ?", (str(mssv).strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def delete_student(mssv: str, db_file=None) -> bool:
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM student_accounts WHERE mssv = ?", (str(mssv).strip(),))
+    conn.commit()
+    deleted = cursor.rowcount > 0
+    conn.close()
+    return deleted
+
+def toggle_student_status(mssv: str, db_file=None) -> tuple:
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    cursor.execute("SELECT is_active FROM student_accounts WHERE mssv = ?", (str(mssv).strip(),))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False, 0
+    new_state = 0 if row["is_active"] == 1 else 1
+    cursor.execute("UPDATE student_accounts SET is_active = ? WHERE mssv = ?", (new_state, str(mssv).strip()))
+    conn.commit()
+    conn.close()
+    return True, new_state
+
+def update_student_cookie_status(mssv: str, status: str, full_name: str = None, db_file=None):
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    now_vn = get_vn_now_str()
+    if full_name:
+        cursor.execute("""
+            UPDATE student_accounts 
+            SET cookie_status = ?, full_name = ?, last_checked = ? 
+            WHERE mssv = ?
+        """, (status, str(full_name).strip(), now_vn, str(mssv).strip()))
+    else:
+        cursor.execute("""
+            UPDATE student_accounts 
+            SET cookie_status = ?, last_checked = ? 
+            WHERE mssv = ?
+        """, (status, now_vn, str(mssv).strip()))
+    conn.commit()
+    conn.close()
+
+def update_student_registered(mssv: str, activity_id: str, status_msg: str, db_file=None):
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    now_vn = get_vn_now_str()
+    note = f"[{activity_id}] {status_msg}"
+    cursor.execute("""
+        UPDATE student_accounts 
+        SET last_registered_activity = ?, registered_at = ? 
+        WHERE mssv = ?
+    """, (note, now_vn, str(mssv).strip()))
+    conn.commit()
+    conn.close()
+
+def get_student_stats(db_file=None) -> dict:
+    target = db_file or UFM_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    total = cursor.execute("SELECT COUNT(*) FROM student_accounts").fetchone()[0]
+    active = cursor.execute("SELECT COUNT(*) FROM student_accounts WHERE is_active = 1").fetchone()[0]
+    valid = cursor.execute("SELECT COUNT(*) FROM student_accounts WHERE cookie_status = 'valid'").fetchone()[0]
+    expired = cursor.execute("SELECT COUNT(*) FROM student_accounts WHERE cookie_status = 'expired'").fetchone()[0]
+    has_pass = cursor.execute("SELECT COUNT(*) FROM student_accounts WHERE password IS NOT NULL AND password != ''").fetchone()[0]
+    conn.close()
+    return {
+        "total": total,
+        "active": active,
+        "valid": valid,
+        "expired": expired,
+        "has_pass": has_pass
+    }
+
+def get_all_bot_status(db_file=None) -> dict:
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    cursor.execute("SELECT key, value FROM bot_status")
+    rows = cursor.fetchall()
+    conn.close()
+    return {row["key"]: row["value"] for row in rows}
+
+# Khởi tạo cả 4 database (HUIT, VAA, IUH, UFM)
 init_db(DB_FILE)
 init_db(BOT2_DB_FILE)
 init_iuh_db(IUH_DB_FILE)
+init_ufm_db(UFM_DB_FILE)
+
+
 

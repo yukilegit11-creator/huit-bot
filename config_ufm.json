@@ -1,0 +1,75 @@
+{
+  "instance_name": "Bot UFM (Kênh 4 - Cổng Hoạt Động & ĐRL UFM)",
+  "bot_name": "Yuki 4 (UFM ĐRL)",
+  "admin": {
+    "name": "Trần Lê Phát",
+    "github": "yukilegit11-creator",
+    "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
+    "role": "Admin & Lead Developer",
+    "zalo_uid": "7662918962461429024"
+  },
+  "ufm_portal": {
+    "base_url": "https://hoatdong.ufm.edu.vn",
+    "username": "2621008460",
+    "password": "focusoncareer2111!!!",
+    "cookies": {
+      ".AspNetCore.Antiforgery.fsuMR8kP07M": "CfDJ8ODAQypoUS9PqSfI_yMJFUmBdIc_pkB3xphJ09Fm2sVCwfMNTHweMPvEIpz8wnZPvpjVijwayEm6JLiLH9kVMDe5Lp-8ta50JCaZdNaxYK34LdU0WfmSkX9MwU_wHCkBQce1TSeo9FZoZLa8Glctwmk",
+      ".AspNetCore.Cookies": "CfDJ8ODAQypoUS9PqSfI_yMJFUlIShuaixEiGKDgeR0Nmw4Qys6YekdwpMd4EQGHMZFlkJrh_Mg52073LBS0PVW6tporGtCv70ChRJou5raIZGTtJ7R4jExdF1JmeAqMNRAtsIcG4xshpB5W36KQF7JgEvXoTgyaL_iJCO8DSl0lyJgp5ZVOvFG3FC7oYaTSxoHOHVH-6iEunn3Q66i0MuT7zOfZOHUsJMvnSid66urk3rzjUs4FC_ZO01JrHLZxE8Cze7xs1I6FhoRVUZ5U3AudR0Vq49Ll-UuDIkjkHcoq2GqtiA7QYZe_UDN7Fj1SGuqMO9zWuuhBqAI7f6yL69HJFIbM2o5N5CHT9gufnTO1YG2j7U7SAwBu8QFLhQV8PHPNsBPXD41TmEx_eO2j1mvu75jA2jS3kVA0x-2cRynm4e26GwyOmFYSn5tbWYiaVqlH0ShvawE0ETkOvFUfQV4xBGvEma6sUchMnCnuY3_6nQc_"
+    }
+  },
+  "zalo": {
+    "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
+    "target_thread_id": "475259879796859360",
+    "target_type": "GROUP",
+    "target_group_name": "demo",
+    "auto_tag_all": true,
+    "target_groups": [
+      {
+        "id": "7662918962461429024",
+        "name": "Trần Lê Phát",
+        "type": "USER",
+        "enabled": true
+      },
+      {
+        "id": "475259879796859360",
+        "name": "demo",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "3790417084788199906",
+        "name": "Tbao , đky sự kiện UFM",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "2349841347887711204",
+        "name": "Ufm và canh bạc drl",
+        "type": "GROUP",
+        "enabled": true
+      }
+    ],
+    "cookies": {
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "_ga": "GA1.2.1518733191.1793162405",
+      "_zlang": "vn",
+      "_ga_3EM8ZPYYN3": "GS2.2.s1793645139$o4$g1$t1793645454$j60$l0$h0",
+      "_gid": "GA1.2.1204234086.1793641271",
+      "zpw_sek": "o5-c.466784528.a0.SwtmTR6uA7mopQqH0rn_2bb-6c40PbqbHJaBKdeqJI4KCJrBIGOySnGP3qTZOK8eNrB5Ht61Sbr2NOJHoZP_2W",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "_ga_YS1V643LGV": "GS2.1.s1793602424$o18$g0$t1793602424$j60$l0$h0",
+      "_ga_YT9TMXZYV9": "GS2.1.s1793602423$o7$g0$t1793602423$j60$l0$h0",
+      "app.event.zalo.me": "3236038380622178657",
+      "zoaw_sek": "0X11.1070774772.3.n_VJv4eu5tA-WSLDIZWNSaeu5t9AE1ToIrUSbo0u5t8",
+      "zoaw_type": "0",
+      "zpsid": "6Trj.466784528.4.7qTQLdaU95HfZ_PFTHuaL0njLc1FA1DiJIiMR7UaQGUa4tCqUEN_l1CU95G"
+    }
+  },
+  "scanner": {
+    "check_interval_seconds": 20,
+    "scan_dangky": true,
+    "scan_semester_activities": true,
+    "scan_custom_activities": true,
+    "auto_snipe_for_students": false
+  }
+}

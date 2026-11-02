@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import sqlite3
 from typing import Optional
@@ -30,6 +31,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Tích hợp Sub-app Bot 4: UFM (Cổng Hoạt Động & ĐRL)
+try:
+    ufm_dir = os.path.join(SCRIPT_DIR, "vaa", "ufm")
+    if os.path.exists(ufm_dir) and ufm_dir not in sys.path:
+        sys.path.insert(0, ufm_dir)
+    from vaa.ufm import web_app as ufm_module
+    app.mount("/ufm", ufm_module.app)
+except Exception as _e:
+    print(f"⚠️ [Web App] Chưa mount được UFM subapp: {_e}")
+
+@app.get("/bot4")
+def bot4_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/ufm")
+
+@app.get("/submit-cookie")
+def submit_cookie_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/ufm/submit-cookie")
+
 
 @app.middleware("http")
 async def handle_head_and_monitor_requests(request: Request, call_next):
@@ -306,6 +328,58 @@ def api_delete_zalo_group(group_id: str):
     save_config(cfg)
     database.log_event("ZALO", f"Đã xóa nhóm Zalo ID {group_id} khỏi danh sách")
     return {"status": "ok", "message": "Đã xóa nhóm!", "target_groups": new_groups}
+
+@app.post("/api/zalo/cookies")
+@app.post("/api/bot2/zalo/cookies")
+@app.post("/api/bot3/zalo/cookies")
+def api_update_zalo_cookies(raw_cookies: str = Form(...)):
+    from zalo_sender import parse_zalo_cookie_input
+    parsed = parse_zalo_cookie_input(raw_cookies)
+    if not parsed or "zpw_sek" not in parsed:
+        raise HTTPException(status_code=400, detail="Cookie Zalo không hợp lệ. Phải chứa tối thiểu trường zpw_sek (hoặc xuất từ Cookie Editor)!")
+    
+    cfg = get_config()
+    if "zalo" not in cfg:
+        cfg["zalo"] = {}
+    cfg["zalo"]["cookies"] = parsed
+    save_config(cfg)
+    
+    # Cập nhật chéo cho tất cả các file cấu hình liên quan
+    for p in [
+        CONFIG_BOT2_FILE, 
+        CONFIG_IUH_FILE, 
+        os.path.join(SCRIPT_DIR, "vaabot.json"), 
+        os.path.join(SCRIPT_DIR, "config_ufm.json"),
+        os.path.join(SCRIPT_DIR, "vaa", "config.json"),
+        os.path.join(SCRIPT_DIR, "vaa", "vaabot.json"),
+        os.path.join(SCRIPT_DIR, "vaa", "ufm", "config.json")
+    ]:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                if "zalo" in d:
+                    d["zalo"]["cookies"] = parsed
+                    with open(p, "w", encoding="utf-8") as f:
+                        json.dump(d, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+                
+    try:
+        from zlapi import ZaloAPI
+        imei = cfg["zalo"].get("imei")
+        try:
+            client = ZaloAPI(phone="", password="", imei=imei, cookies=parsed)
+        except TypeError:
+            client = ZaloAPI(phone="", password="", imei=imei, session_cookies=parsed)
+        uid = client.uid() if callable(client.uid) else client.uid
+        msg = f"Đã lưu và xác thực đăng nhập Zalo Bot thành công! UID: {uid}"
+        database.log_event("ZALO", msg)
+        return {"status": "ok", "message": msg, "uid": str(uid)}
+    except Exception as e:
+        msg = f"Đã lưu Cookie Zalo nhưng kiểm tra kết nối cảnh báo: {e}"
+        database.log_event("ZALO", msg)
+        return {"status": "ok", "message": msg, "warning": str(e)}
 
 @app.post("/api/zalo/test_alert")
 def api_test_zalo_alert():
@@ -833,6 +907,9 @@ def dashboard_view():
           </a>
           <a href="/bot3" class="px-3 py-1.5 rounded-lg text-rose-700 hover:text-rose-900 transition">
             🔴 Bot 3: IUH (Yuki 3)
+          </a>
+          <a href="/ufm" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 transition">
+            🏛️ Bot 4: UFM (Yuki 4)
           </a>
         </div>
       </div>
@@ -1875,6 +1952,9 @@ def dashboard_view_bot2():
           </a>
           <a href="/bot3" class="px-3 py-1.5 rounded-lg text-rose-700 hover:text-rose-900 transition">
             🔴 Bot 3: IUH (Yuki 3)
+          </a>
+          <a href="/ufm" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 transition">
+            🏛️ Bot 4: UFM (Yuki 4)
           </a>
         </div>
       </div>
@@ -2977,6 +3057,9 @@ def dashboard_view_bot3():
           </a>
           <a href="/bot3" class="px-3 py-1.5 rounded-lg bg-white text-rose-700 shadow-xs">
             🔴 Bot 3: IUH (Yuki 3)
+          </a>
+          <a href="/ufm" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 transition">
+            🏛️ Bot 4: UFM (Yuki 4)
           </a>
         </div>
       </div>
