@@ -3,11 +3,11 @@ import json
 import sqlite3
 from typing import Optional
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import hashlib
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 
 import database
 from zalo_sender import ZaloDispatcher
@@ -29,6 +29,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def handle_head_and_monitor_requests(request: Request, call_next):
+    if request.method == "HEAD":
+        return Response(status_code=200, headers={"Content-Type": "text/html; charset=utf-8"})
+    return await call_next(request)
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health_check():
+    return {"status": "ok", "service": "vaabot"}
+
+@app.api_route("/ping", methods=["GET", "HEAD"])
+def ping_check():
+    return Response(content="pong", media_type="text/plain", status_code=200)
 
 def get_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -254,13 +268,11 @@ def api_test_zalo_alert():
     dispatcher = ZaloDispatcher(CONFIG_FILE)
     test_post = {
         "author": "Ban Quản Trị VAA (Trần Lê Phát)",
-        "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M - %d/%m/%Y"),
+        "posted_time": datetime.now().strftime("%H:%M - %d/%m/%Y"),
         "content": """🔔 THÔNG BÁO KIỂM TRA HỆ THỐNG BOT VAA 24/7
 Hệ thống cào tin Facebook Comet SSR và bắn Zalo tự động của Học Viện Hàng Không Việt Nam (Yuki 2) đang hoạt động ổn định và sẵn sàng nhận thông báo!
 https://forms.gle/testVAAForm2026""",
-        "post_url": "https://facebook.com/vaa.ys2016",
-        "is_manual_test": True,
-        "creation_time": datetime.now().timestamp()
+        "post_url": "https://facebook.com/vaa.ys2016"
     }
     ok = dispatcher.send_alert(test_post, "Học Viện Hàng Không Việt Nam (VAA)")
     if ok:
@@ -279,7 +291,7 @@ def api_crawl_now():
     supabase = SupabaseDispatcher(CONFIG_FILE)
     
     new_posts = []
-    database.set_bot_status("last_scan_time", datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d %H:%M:%S"))
+    database.set_bot_status("last_scan_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     database.set_bot_status("bot_state", "scanning")
     database.log_event("SCAN", f"[Cào thủ công VAA] Bắt đầu quét nhanh qua {len(targets)} nguồn VAA...")
 
@@ -336,7 +348,7 @@ def api_github_sync(msg: Optional[str] = Form(None)):
 def api_github_status():
     return {"status": "ok", "sync": github_sync.get_sync_status()}
 
-@app.get("/", response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def dashboard_view():
     cfg = get_config()
     stats = database.get_stats()

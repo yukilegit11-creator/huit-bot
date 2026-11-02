@@ -762,7 +762,7 @@ def api_bot3_get_history(limit: int = 100, page: int = 1, search: Optional[str] 
     return {"status": "ok", "data": history}
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def dashboard_view():
 
     cfg = get_config()
@@ -1803,7 +1803,7 @@ def dashboard_view():
     return html_content
 
 
-@app.get("/bot2", response_class=HTMLResponse)
+@app.api_route("/bot2", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def dashboard_view_bot2():
     cfg = get_config_bot2()
     stats = database.get_stats(db_file=database.BOT2_DB_FILE)
@@ -2902,8 +2902,8 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
 """
     return html
 
-@app.get("/bot3", response_class=HTMLResponse)
-@app.get("/iuh", response_class=HTMLResponse)
+@app.api_route("/bot3", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/iuh", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def dashboard_view_bot3():
     cfg = get_config_iuh()
     stats = database.get_iuh_stats(db_file=database.IUH_DB_FILE)
