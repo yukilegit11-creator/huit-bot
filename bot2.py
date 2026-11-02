@@ -54,18 +54,26 @@ def run_bot():
     zalo = ZaloDispatcher(CONFIG_FILE)
     supabase = SupabaseDispatcher(CONFIG_FILE)
 
+    # Khởi tạo DB và ghi nhận trạng thái khởi động ngay lập tức
+    database.init_db(DB_TARGET)
+    database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
+    database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot VAA (Kênh 2) quét tự động 24/7.", db_file=DB_TARGET)
+
     print("🔌 Khởi động kết nối Zalo cho Bot 2...")
-    zalo_connected = zalo.connect()
-    if zalo_connected:
-        print("✅ Kết nối Zalo Bot 2 thành công!")
-    else:
-        print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, Bot 2 vẫn tiếp tục cào và lưu DB.")
+    try:
+        zalo_connected = zalo.connect()
+        if zalo_connected:
+            print("✅ Kết nối Zalo Bot 2 thành công!")
+            database.log_event("ZALO", "✅ Kết nối Zalo Bot 2 thành công.", db_file=DB_TARGET)
+        else:
+            print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, Bot 2 vẫn tiếp tục cào và lưu DB.")
+            database.log_event("ZALO", "⚠️ Kết nối Zalo tạm thời chưa khả dụng. Tiếp tục quét lưu Web/DB.", db_file=DB_TARGET)
+    except Exception as ze:
+        print(f"⚠️ Lỗi kết nối Zalo Bot 2: {ze}")
+        database.log_event("ZALO", f"⚠️ Lỗi kết nối Zalo Bot 2: {ze}", db_file=DB_TARGET)
 
     cycle = 0
     total_new_posts = 0
-
-    database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
-    database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot Kênh 2 quét tự động.", db_file=DB_TARGET)
 
     # Tải danh sách bài viết từ Supabase Cloud để chống gửi lặp khi khởi động lại
     if supabase.enabled:

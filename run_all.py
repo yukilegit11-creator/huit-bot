@@ -7,15 +7,22 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_proc(cmd, name):
-    print(f"🚀 [Khởi động {name}]...")
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        [sys.executable, cmd],
-        cwd=SCRIPT_DIR,
-        env=env
-    )
-    proc.wait()
+    env["PYTHONIOENCODING"] = "utf-8"
+    while True:
+        print(f"🚀 [Khởi động {name}]...")
+        try:
+            proc = subprocess.Popen(
+                [sys.executable, "-u", cmd],
+                cwd=SCRIPT_DIR,
+                env=env
+            )
+            ret = proc.wait()
+            print(f"⚠️ [{name}] đã dừng (mã thoát: {ret}). Tự động khởi động lại sau 5 giây...")
+        except Exception as e:
+            print(f"❌ Lỗi tiến trình [{name}]: {e}")
+        time.sleep(5)
 
 def main():
     print("=" * 60)

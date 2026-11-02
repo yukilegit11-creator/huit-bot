@@ -33,6 +33,7 @@ class FacebookCometScraper:
         self.session.cookies.update(cookies)
 
     def fetch_url(self, url: str) -> str:
+        # Chuẩn hóa về Desktop URL
         target_url = url.replace("mbasic.facebook.com", "www.facebook.com")
         target_url = target_url.replace("m.facebook.com", "www.facebook.com")
         try:
@@ -40,8 +41,10 @@ class FacebookCometScraper:
             if resp.status_code == 200:
                 return resp.text
             else:
+                print(f"⚠️ Facebook trả về mã {resp.status_code} cho {target_url}")
                 return ""
         except Exception as e:
+            print(f"⚠️ Lỗi kết nối khi quét {target_url}: {e}")
             return ""
 
     @staticmethod
@@ -63,6 +66,7 @@ class FacebookCometScraper:
             return False
 
         txt_stripped = text.strip()
+        # Loại bỏ các bài chia sẻ link trơ trụi
         if txt_stripped.startswith("http://") or txt_stripped.startswith("https://"):
             if len(txt_stripped.split("\n")) <= 1:
                 return False
@@ -84,6 +88,10 @@ class FacebookCometScraper:
             if g in txt_lower:
                 return False
 
+        # Lọc bỏ bài ghim cũ HUIT ICONIC 2026 từ tháng 9
+        if "iconic" in txt_lower and "2026" in txt_lower and ("07/09" in text or "phát động" in txt_lower):
+            return False
+
         return True
 
     def _extract_messages_from_json(self, obj, posts, metadata_map, default_page_url=""):
@@ -96,7 +104,10 @@ class FacebookCometScraper:
                     url = meta.get("url") or obj.get("permalink_url") or obj.get("url") or ""
                     
                     if not url and pid:
-                        url = f"https://www.facebook.com/{pid}"
+                        if "groups" in default_page_url:
+                            url = f"https://www.facebook.com/groups/sinhvienhuit/posts/{pid}/"
+                        else:
+                            url = f"https://www.facebook.com/{pid}"
 
                     creation_time = meta.get("creation_time") or obj.get("creation_time") or obj.get("publish_time")
                     post_time_str = ""
@@ -118,7 +129,7 @@ class FacebookCometScraper:
                         "post_url": url,
                         "creation_time": creation_time,
                         "posted_time": post_time_str,
-                        "author": author or "Trang Fanpage"
+                        "author": author or "Thành viên nhóm"
                     })
 
             for v in obj.values():
@@ -127,7 +138,7 @@ class FacebookCometScraper:
             for item in obj:
                 self._extract_messages_from_json(item, posts, metadata_map, default_page_url)
 
-    def parse_posts(self, html_text: str, max_age_hours: float = 0.5, page_url: str = "") -> list:
+    def parse_posts(self, html_text: str, max_age_hours: float = 0.1667, page_url: str = "") -> list:
         if not html_text:
             return []
 
@@ -177,6 +188,7 @@ class FacebookCometScraper:
                 except Exception:
                     pass
 
+        # Regex fallback: Tuyệt đối KHÔNG giả lập time.time() để tránh bắn bài cũ
         if not found_posts:
             matches = re.findall(r'"message":\{"text":"(.*?)"\}', html_text)
             for m in matches:
@@ -189,30 +201,35 @@ class FacebookCometScraper:
                         "post_id": hashlib.md5(dec[:150].encode("utf-8")).hexdigest(),
                         "content": dec,
                         "post_url": page_url,
-                        "creation_time": None,
+                        "creation_time": None, # Không giả mạo timestamp
                         "posted_time": "",
-                        "author": "Trang Fanpage"
+                        "author": "Người dùng Facebook"
                     })
 
+        # Khử trùng lặp nội dung giống nhau trong cùng 1 trang
         unique_dict = {}
         for p in found_posts:
             key = p["content"].strip()
             if key not in unique_dict:
                 unique_dict[key] = p
 
+        # Bộ lọc thời gian nghiêm ngặt: MẶC ĐỊNH <= 10 PHÚT (10/60 = 0.1667 giờ)
         now_ts = time.time()
         fresh_posts = []
         for p in list(unique_dict.values()):
             c_time = p.get("creation_time")
             if c_time and isinstance(c_time, (int, float)):
-                if c_ts := c_time:
-                    if c_ts > 1e11:
-                        c_ts = c_ts / 1000.0
-                    age_hours = (now_ts - c_ts) / 3600.0
-                    # Giới hạn bài mới theo max_age_hours (mặc định 3 giờ hoặc cấu hình)
-                    if age_hours > max(max_age_hours, 3.0) or age_hours < -0.2:
-                        continue
-            fresh_posts.append(p)
+                if c_time > 1e11:
+                    c_time = c_time / 1000.0
+                age_minutes = (now_ts - c_time) / 60.0
+                # Nếu đã trôi qua hơn 10 phút thì TUYỆT ĐỐI BỎ QUA không gửi
+                if age_minutes > 10.0 or age_minutes < -5.0:
+                    continue
+                fresh_posts.append(p)
+            else:
+                # Bỏ qua bài không có mốc thời gian thực sự để tuyệt đối không bắn bài cũ
+                continue
 
+        # Sắp xếp mới nhất lên đầu
         fresh_posts.sort(key=lambda x: x.get("creation_time") or 0, reverse=True)
         return fresh_posts

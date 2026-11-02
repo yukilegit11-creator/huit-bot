@@ -136,12 +136,9 @@ def init_db(db_file=None):
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
 
-    # Tự động đồng bộ chuẩn hóa các mốc log cũ nếu từng bị ghi nhận bằng UTC (lệch -7 giờ)
+    # Tự động dọn dẹp các mốc log cũ từng bị lỗi cộng dồn múi giờ (lệch sang 03:xx / 04:xx sáng)
     try:
-        cursor.execute("SELECT 1 FROM bot_status WHERE key = 'timezone_migrated_v2'")
-        if not cursor.fetchone():
-            cursor.execute("UPDATE system_logs SET created_at = datetime(created_at, '+7 hours') WHERE created_at LIKE '2026-%'")
-            cursor.execute("INSERT OR REPLACE INTO bot_status (key, value) VALUES ('timezone_migrated_v2', 'true')")
+        cursor.execute("DELETE FROM system_logs WHERE created_at LIKE '2026-11-02 03:%' OR created_at LIKE '2026-11-02 04:%'")
     except Exception:
         pass
 

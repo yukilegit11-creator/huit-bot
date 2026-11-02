@@ -77,6 +77,11 @@ def api_github_status():
 
 # ==================== API ENDPOINTS ====================
 
+@app.get("/api/logs")
+def api_get_logs(limit: int = 100):
+    logs = database.get_recent_logs(limit=limit)
+    return {"status": "ok", "count": len(logs), "logs": logs}
+
 @app.get("/api/posts")
 def api_get_posts(limit: int = 50, page_name: Optional[str] = None, search: Optional[str] = None):
     posts = database.get_posts(limit=limit, page_name=page_name, search=search)
