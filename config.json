@@ -113,13 +113,13 @@
       {
         "id": "6036269726715046333",
         "name": "Thông báo ‼️",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": false
+        "enabled": true
       }
     ],
     "cookies": {
