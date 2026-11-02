@@ -136,6 +136,15 @@ def init_db(db_file=None):
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('is_active', 'true')")
     cursor.execute("INSERT OR IGNORE INTO bot_status (key, value) VALUES ('bot_state', 'running')")
 
+    # Tự động đồng bộ chuẩn hóa các mốc log cũ nếu từng bị ghi nhận bằng UTC (lệch -7 giờ)
+    try:
+        cursor.execute("SELECT 1 FROM bot_status WHERE key = 'timezone_migrated_v2'")
+        if not cursor.fetchone():
+            cursor.execute("UPDATE system_logs SET created_at = datetime(created_at, '+7 hours') WHERE created_at LIKE '2026-%'")
+            cursor.execute("INSERT OR REPLACE INTO bot_status (key, value) VALUES ('timezone_migrated_v2', 'true')")
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -143,7 +152,11 @@ def log_event(level: str, message: str, db_file=None):
     try:
         conn = get_connection(db_file)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO system_logs (level, message) VALUES (?, ?)", (level.upper(), message))
+        now_vn = get_vn_now_str()
+        cursor.execute(
+            "INSERT INTO system_logs (level, message, created_at) VALUES (?, ?, ?)",
+            (level.upper(), message, now_vn)
+        )
         
         # Giữ lại 300 logs gần nhất để tối ưu dung lượng
         cursor.execute("""
@@ -179,17 +192,18 @@ def set_bot_enabled(enabled: bool, db_file=None):
     conn = get_connection(db_file)
     cursor = conn.cursor()
     val = "true" if enabled else "false"
+    now_vn = get_vn_now_str()
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
-        VALUES ('is_active', ?, (datetime('now','+7 hours')))
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = (datetime('now','+7 hours'))
-    """, (val,))
+        VALUES ('is_active', ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    """, (val, now_vn))
     state = "running" if enabled else "paused"
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
-        VALUES ('bot_state', ?, (datetime('now','+7 hours')))
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = (datetime('now','+7 hours'))
-    """, (state,))
+        VALUES ('bot_state', ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    """, (state, now_vn))
     conn.commit()
     conn.close()
     log_event("SYSTEM", f"Người dùng đã {'BẬT (Khởi động)' if enabled else 'TẮT (Tạm dừng)'} tiến trình Bot quét tự động.", db_file=db_file)
@@ -254,9 +268,10 @@ def record_seen_post(post_hash: str, page_name: str, content: str = None, db_fil
     """Ghi nhận bài viết vào bộ nhớ đã quét với nhiều tầng hash khác nhau để chống trùng triệt để."""
     conn = get_connection(db_file)
     cursor = conn.cursor()
+    now_vn = get_vn_now_str()
     cursor.execute(
-        "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
-        (str(post_hash), page_name)
+        "INSERT OR IGNORE INTO seen_posts (post_hash, page_name, created_at) VALUES (?, ?, ?)",
+        (str(post_hash), page_name, now_vn)
     )
     if content:
         import hashlib
@@ -266,8 +281,8 @@ def record_seen_post(post_hash: str, page_name: str, content: str = None, db_fil
         for h in [c_hash, norm_hash]:
             if h and h != str(post_hash):
                 cursor.execute(
-                    "INSERT OR IGNORE INTO seen_posts (post_hash, page_name) VALUES (?, ?)",
-                    (h, page_name)
+                    "INSERT OR IGNORE INTO seen_posts (post_hash, page_name, created_at) VALUES (?, ?, ?)",
+                    (h, page_name, now_vn)
                 )
     conn.commit()
     conn.close()
@@ -322,11 +337,12 @@ def is_post_already_sent_zalo(post_id: str, content: str = None, target_id: str 
 def save_crawled_post(post_id: str, page_name: str, author: str, content: str, post_url: str, posted_time: str, is_sent_zalo: int = 0, db_file=None) -> int:
     conn = get_connection(db_file)
     cursor = conn.cursor()
+    now_vn = get_vn_now_str()
     cursor.execute("""
         INSERT OR IGNORE INTO crawled_posts 
-        (post_id, page_name, author, content, post_url, posted_time, is_sent_zalo)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (post_id, page_name, author, content, post_url, posted_time, is_sent_zalo))
+        (post_id, page_name, author, content, post_url, posted_time, is_sent_zalo, crawled_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (post_id, page_name, author, content, post_url, posted_time, is_sent_zalo, now_vn))
     inserted_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -394,11 +410,12 @@ def get_stats(db_file=None):
 def set_bot_status(key: str, value: str, db_file=None):
     conn = get_connection(db_file)
     cursor = conn.cursor()
+    now_vn = get_vn_now_str()
     cursor.execute("""
         INSERT INTO bot_status (key, value, updated_at) 
-        VALUES (?, ?, (datetime('now','+7 hours')))
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = (datetime('now','+7 hours'))
-    """, (key, str(value)))
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    """, (key, str(value), now_vn))
     conn.commit()
     conn.close()
 
@@ -490,14 +507,15 @@ def record_seen_activity(act: dict, is_sent: bool = True, db_file=None):
     target = db_file or IUH_DB_FILE
     conn = get_connection(target)
     cursor = conn.cursor()
+    now_vn = get_vn_now_str()
     cursor.execute("""
-        INSERT INTO seen_activities (activity_id, title, semester, points, deadline, status, slots, details, is_sent, last_updated)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (datetime('now','+7 hours')))
+        INSERT INTO seen_activities (activity_id, title, semester, points, deadline, status, slots, details, is_sent, first_seen, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(activity_id) DO UPDATE SET
             status = excluded.status,
             slots = excluded.slots,
             details = excluded.details,
-            last_updated = (datetime('now','+7 hours'))
+            last_updated = excluded.last_updated
     """, (
         str(act.get("activity_id", "")),
         str(act.get("title", "")),
@@ -507,7 +525,9 @@ def record_seen_activity(act: dict, is_sent: bool = True, db_file=None):
         str(act.get("status", "")),
         str(act.get("slots", "")),
         str(act.get("details", "")),
-        1 if is_sent else 0
+        1 if is_sent else 0,
+        now_vn,
+        now_vn
     ))
     conn.commit()
     conn.close()
@@ -581,11 +601,12 @@ def update_activity_status(activity_id: str, status: str, slots: str = "", db_fi
     target = db_file or IUH_DB_FILE
     conn = get_connection(target)
     cursor = conn.cursor()
+    now_vn = get_vn_now_str()
     cursor.execute("""
         UPDATE seen_activities 
-        SET status = ?, slots = ?, last_updated = (datetime('now','+7 hours')) 
+        SET status = ?, slots = ?, last_updated = ? 
         WHERE activity_id = ?
-    """, (status, slots, str(activity_id)))
+    """, (status, slots, now_vn, str(activity_id)))
     conn.commit()
     conn.close()
 
@@ -593,9 +614,10 @@ def add_crawled_activity(act: dict, action_type: str = "NEW", is_sent: bool = Tr
     target = db_file or IUH_DB_FILE
     conn = get_connection(target)
     cursor = conn.cursor()
+    now_vn = get_vn_now_str()
     cursor.execute("""
-        INSERT INTO crawled_activities (activity_id, title, semester, points, deadline, status, slots, details, action_type, is_sent_zalo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO crawled_activities (activity_id, title, semester, points, deadline, status, slots, details, action_type, is_sent_zalo, crawled_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         str(act.get("activity_id", "")),
         str(act.get("title", "")),
@@ -606,7 +628,8 @@ def add_crawled_activity(act: dict, action_type: str = "NEW", is_sent: bool = Tr
         str(act.get("slots", "")),
         str(act.get("details", "")),
         action_type,
-        1 if is_sent else 0
+        1 if is_sent else 0,
+        now_vn
     ))
     conn.commit()
     conn.close()

@@ -93,7 +93,7 @@
       {
         "id": "475259879796859360",
         "name": "demo",
-        "enabled": false
+        "enabled": true
       },
       {
         "id": "3556085774387844897",
@@ -103,23 +103,23 @@
       {
         "id": "7086011981379160878",
         "name": "Săn drl Hu ít",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "979670734727637728",
         "name": "Thông báo drl",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "6036269726715046333",
         "name": "Thông báo ‼️",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": true
+        "enabled": false
       }
     ],
     "cookies": {
