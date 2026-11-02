@@ -1,0 +1,165 @@
+{
+  "instance_name": "Bot VAA / VAU (Học Viện Hàng Không)",
+  "bot_name": "Yuki 2 (VAA)",
+  "admin": {
+    "name": "Trần Lê Phát",
+    "github": "yukilegit11-creator",
+    "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
+    "role": "Admin & Lead Developer",
+    "zalo_uid": "7662918962461429024",
+    "auto_sync_github": true
+  },
+  "targets": [
+    {
+      "id": "target_1",
+      "name": "CLB Khoa Học Trẻ Học Viện Hàng Không Việt Nam",
+      "url": "https://www.facebook.com/vaa.ys2016",
+      "enabled": true
+    },
+    {
+      "id": "target_2",
+      "name": "Trung tâm Nghiên cứu và phát triển số - VAU",
+      "url": "https://www.facebook.com/drd.vau",
+      "enabled": true
+    },
+    {
+      "id": "target_3",
+      "name": "Đoàn Hội Khoa Ngoại Ngữ - Học viện Hàng không Việt Nam",
+      "url": "https://www.facebook.com/doanhoi.khoangoaingu.vaa",
+      "enabled": true
+    },
+    {
+      "id": "target_4",
+      "name": "Đoàn Hội khoa Kỹ thuật Hàng không - Học viện Hàng không Việt Nam",
+      "url": "https://www.facebook.com/doanhoikhoakythuathangkhong",
+      "enabled": true
+    },
+    {
+      "id": "target_5",
+      "name": "Đoàn Hội khoa Khai thác Hàng không - Học viện Hàng không Việt Nam",
+      "url": "https://www.facebook.com/doanhoikhoakhaithachangkhong",
+      "enabled": true
+    },
+    {
+      "id": "target_6",
+      "name": "Đoàn - Hội khoa Quản trị kinh doanh - Học viện Hàng không Việt Nam",
+      "url": "https://www.facebook.com/vaa.doanhoikhoaquantrikinhdoanh",
+      "enabled": true
+    },
+    {
+      "id": "target_7",
+      "name": "VAA Global-Citizen Students Club-GLOCIS",
+      "url": "https://www.facebook.com/profile.php?id=61576624683756",
+      "enabled": true
+    },
+    {
+      "id": "target_8",
+      "name": "Đoàn Hội khoa Kinh tế Hàng không - Học viện Hàng không Việt Nam",
+      "url": "https://www.facebook.com/doanhoi.kinhtehangkhong.vaa",
+      "enabled": true
+    },
+    {
+      "id": "target_9",
+      "name": "BOT CHECK TB",
+      "url": "https://www.facebook.com/profile.php?id=61595823548942",
+      "enabled": true
+    },
+    {
+      "id": "target_10",
+      "name": "CLB Tổ Chức Sự Kiện Học Viện Hàng Không Việt Nam - VEPC",
+      "url": "https://www.facebook.com/vepc.vaa",
+      "enabled": true
+    },
+    {
+      "id": "target_11",
+      "name": "Đoàn Thanh Niên - Hội Sinh Viên VAU",
+      "url": "https://www.facebook.com/DoanTNHoiSV.VAU",
+      "enabled": true
+    }
+  ],
+  "fb_cookies": {
+    "datr": "ztfDaj_5NKGnBN3r1C3aKdB-",
+    "fr": "1zUlXfOTQIjkpccuj.AWcVG2vXGgJBH_u9AizYH5CDIdyfFFKeMBoCRf2Kohz1kii7bMM.Bq56My..AAA.0.0.Bq56My.AWd91CYQYht6ujMfx7u2Eq90Q3Y",
+    "xs": "13%3A5QhZm5V7iIIwyQ%3A2%3A1793565487%3A-1%3A-1%3A%3AAc1aq5Rg6b59kar4cAVxdf6OwKCC9ESJy5Lo5XMOBw",
+    "c_user": "61592903259792",
+    "sb": "ztfDagnfYuiIXElW1JBf_Lsy",
+    "ps_l": "1",
+    "ps_n": "1",
+    "wd": "1422x659"
+  },
+  "zalo": {
+    "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
+    "target_thread_id": "475259879796859360",
+    "target_type": "GROUP",
+    "target_group_name": "demo",
+    "auto_tag_all": true,
+    "target_groups": [
+      {
+        "id": "475259879796859360",
+        "name": "demo",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "387016397668099110",
+        "name": "TBao Skien , ĐRL Vaa -",
+        "type": "GROUP",
+        "enabled": false
+      },
+      {
+        "id": "3211449471524750057",
+        "name": "Tbao đrl VAA",
+        "type": "GROUP",
+        "enabled": false
+      }
+    ],
+    "target_users": [
+      {
+        "id": "7662918962461429024",
+        "name": "Trần Lê Phát",
+        "type": "USER",
+        "enabled": false
+      }
+    ],
+    "cookies": {
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "_ga": "GA1.1.1518733191.1793162405",
+      "_zlang": "vn",
+      "zpw_sek": "FTPC.466784528.a0.XEsTdep25GOFjv1hFYP2S6G49niz7602Is1fGcj0B3jHJWap9X5rNr8K30Du6tzIOYZuFKpxJoT_9o---Kn2S0",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
+      "app.event.zalo.me": "3236038380622178657",
+      "zoaw_sek": "0X11.1070774772.3.n_VJv4eu5tA-WSLDIZWNSaeu5t9AE1ToIrUSbo0u5t8",
+      "zpsid": "0kOr.466784528.3.6r-wV8ACtyQI7GtTZepVnlV_hVAqkkZ-jhdj_emsafLVWOYcW-4H8EYCtyO"
+    }
+  },
+  "supabase": {
+    "enabled": false,
+    "url": "",
+    "anon_key": ""
+  },
+  "filter_keywords": [
+    "link đăng ký",
+    "link dang ky",
+    "form",
+    "forms.gle",
+    "đăng ký",
+    "dang ky",
+    "điểm rèn luyện",
+    "diem ren luyen",
+    "đrl",
+    "ĐRL",
+    "drl",
+    "DRL",
+    "nrl",
+    "NRL",
+    "ngày rèn luyện",
+    "ngay ren luyen",
+    "Ngày rèn luyện"
+  ],
+  "scanner": {
+    "max_post_age_hours": 0.1667,
+    "check_interval_seconds": 30,
+    "delay_between_pages_seconds": 9,
+    "max_post_age_minutes": 10
+  }
+}
