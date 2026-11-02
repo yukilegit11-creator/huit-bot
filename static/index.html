@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HUIT Auto Form & Zalo Bot - Control Center</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#ecfeff', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490' },
+            dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.06); }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen flex font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="w-64 bg-dark-900 border-r border-slate-800 flex flex-col flex-shrink-0 select-none">
+    <div class="p-5 flex items-center gap-3 border-b border-slate-800">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base tracking-wide bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">HUIT BOT AI</h1>
+        <p class="text-xs text-slate-400">Control Center 2.0</p>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 p-3 space-y-1">
+      <button onclick="switchTab('tab-overview')" id="nav-tab-overview" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 transition">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>Tổng Quan Số Liệu</span>
+      </button>
+
+      <button onclick="switchTab('tab-zalo')" id="nav-tab-zalo" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="message-square" class="w-4 h-4"></i>
+        <span>Quản Lý Nhóm Zalo</span>
+      </button>
+
+      <button onclick="switchTab('tab-fanpages')" id="nav-tab-fanpages" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="compass" class="w-4 h-4"></i>
+        <span>Mục Tiêu Fanpage</span>
+      </button>
+
+      <button onclick="switchTab('tab-profile')" id="nav-tab-profile" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="user-check" class="w-4 h-4"></i>
+        <span>Hồ Sơ & Gemini AI</span>
+      </button>
+
+      <button onclick="switchTab('tab-registrations')" id="nav-tab-registrations" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="file-check-2" class="w-4 h-4"></i>
+        <span>Lịch Sử Nộp Form</span>
+      </button>
+
+      <button onclick="switchTab('tab-history')" id="nav-tab-history" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="bell-ring" class="w-4 h-4"></i>
+        <span>Lịch Sử Thông Báo</span>
+      </button>
+
+      <button onclick="switchTab('tab-terminal')" id="nav-tab-terminal" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="terminal" class="w-4 h-4"></i>
+        <span>Live Console Logs</span>
+      </button>
+
+      <button onclick="switchTab('tab-supabase')" id="nav-tab-supabase" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+        <i data-lucide="database" class="w-4 h-4"></i>
+        <span>Supabase Cloud</span>
+      </button>
+
+      <!-- Phân vùng Kênh 2 VAA -->
+      <div class="pt-3 pb-1 px-3">
+        <div class="border-t border-slate-800 pt-2"></div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">Kênh 2 (VAA - Yuki 2)</span>
+      </div>
+
+      <button onclick="switchTab('tab-vaa')" id="nav-tab-vaa" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition group">
+        <i data-lucide="plane" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform"></i>
+        <span>✈️ Bot VAA (Hàng Không)</span>
+      </button>
+    </nav>
+
+    <!-- Bottom Status Info -->
+    <div class="p-4 border-t border-slate-800 bg-slate-900/40">
+      <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+        <span>Trạng thái Bot:</span>
+        <span id="sidebar-bot-badge" class="px-2 py-0.5 rounded-full font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">ĐÃ DỪNG</span>
+      </div>
+      <div class="flex items-center justify-between text-xs text-slate-400">
+        <span>Supabase Cloud:</span>
+        <span id="sidebar-supabase-badge" class="px-2 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ONLINE</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+    <!-- Topbar -->
+    <header class="h-16 border-b border-slate-800 bg-dark-900/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-4">
+        <h2 id="topbar-title" class="font-semibold text-lg text-white">Tổng Quan Số Liệu</h2>
+        <span id="topbar-uptime" class="text-xs px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">Thời gian chạy: Đang dừng</span>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-3">
+        <button onclick="botAction('start')" id="btn-start" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>
+          <span>Bắt Đầu Bot</span>
+        </button>
+
+        <button onclick="botAction('stop')" id="btn-stop" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20 transition">
+          <i data-lucide="square" class="w-3.5 h-3.5"></i>
+          <span>Dừng Bot</span>
+        </button>
+
+        <button onclick="botAction('restart')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          <span>Khởi Động Lại</span>
+        </button>
+
+        <button onclick="refreshAllData()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Làm mới dữ liệu">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="p-6 space-y-6 flex-1">
+
+      <!-- ==================== TAB 1: OVERVIEW ==================== -->
+      <div id="tab-overview" class="tab-content space-y-6">
+        <!-- 4 Stat KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">TỔNG BÀI ĐÃ QUÉT</span>
+              <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <i data-lucide="scan" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-total-posts" class="text-3xl font-extrabold text-white">0</div>
+            <p class="text-xs text-slate-500 mt-1">Được lưu và khử trùng trong SQLite</p>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">BÀI ĐÃ BẮN VÀO ZALO</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-sent-group" class="text-3xl font-extrabold text-emerald-400">0</div>
+            <p class="text-xs text-slate-500 mt-1">Khớp từ khóa ĐRL / Chuyên đề / QR</p>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">TỰ ĐỘNG ĐĂNG KÝ FORM</span>
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-form-success" class="text-3xl font-extrabold text-cyan-400">0</div>
+            <p class="text-xs text-slate-500 mt-1">Đã nộp thành công qua Playwright</p>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">GỬI RIÊNG ADMIN</span>
+              <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-sent-admin" class="text-3xl font-extrabold text-purple-400">0</div>
+            <p class="text-xs text-slate-500 mt-1">Trần Lê Phát (UID Zalo cá nhân)</p>
+          </div>
+        </div>
+
+        <!-- Charts and Breakdown -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 glass-card p-6 rounded-2xl">
+            <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+              <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-400"></i>
+              <span>Phân Bổ Bài Viết Theo Fanpage/Khoa</span>
+            </h3>
+            <div class="h-64">
+              <canvas id="chart-pages"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card p-6 rounded-2xl flex flex-col">
+            <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
+              <span>Tỷ Lệ Đăng Ký Form</span>
+            </h3>
+            <div class="h-48 flex items-center justify-center">
+              <canvas id="chart-form-rate"></canvas>
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 space-y-2">
+              <div class="flex justify-between">
+                <span>Thành công:</span>
+                <span id="rate-success" class="font-bold text-emerald-400">0</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Cần chú ý / Thất bại:</span>
+                <span id="rate-failed" class="font-bold text-rose-400">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Posts Table -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <i data-lucide="newspaper" class="w-4 h-4 text-cyan-400"></i>
+              <span>Bài Viết Vừa Quét & Phát Hiện Gần Đây</span>
+            </h3>
+            <span class="text-xs text-slate-400">Cập nhật thời gian thực</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="px-5 py-3.5">Khoa / Fanpage</th>
+                  <th class="px-5 py-3.5">Từ Khóa Khớp</th>
+                  <th class="px-5 py-3.5">Link Form</th>
+                  <th class="px-5 py-3.5">Trạng Thái Zalo</th>
+                  <th class="px-5 py-3.5">Thời Gian</th>
+                </tr>
+              </thead>
+              <tbody id="table-recent-posts" class="divide-y divide-slate-800/60">
+                <tr>
+                  <td colspan="5" class="px-5 py-6 text-center text-slate-500">Đang tải dữ liệu bài viết...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 2: ZALO GROUPS & USERS ==================== -->
+      <div id="tab-zalo" class="tab-content space-y-6 hidden">
+        <!-- Nhóm Zalo -->
+        <div class="glass-card p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-semibold text-white">Quản Lý Nhóm Zalo Nhận Tin</h3>
+              <p class="text-xs text-slate-400">Tích chọn (bật/tắt) nhóm nào được nhận tin lọc hoặc tạm dừng nhận tin.</p>
+            </div>
+            <button onclick="openAddRecipientModal('GROUP')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Thêm Nhóm Zalo</span>
+            </button>
+          </div>
+
+          <div id="zalo-groups-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Cá Nhân Zalo -->
+        <div class="glass-card p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-semibold text-white">Quản Lý Cá Nhân Zalo Nhận Tin (Admin / Sinh viên)</h3>
+              <p class="text-xs text-slate-400">Gửi trực tiếp riêng tư vào Zalo cá nhân của Admin hoặc bạn bè qua User ID.</p>
+            </div>
+            <button onclick="openAddRecipientModal('USER')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+              <span>Thêm Cá Nhân Zalo</span>
+            </button>
+          </div>
+
+          <div id="zalo-users-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: FANPAGES ==================== -->
+      <div id="tab-fanpages" class="tab-content space-y-6 hidden">
+        <div class="glass-card p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-semibold text-white">Danh Sách Khoa & Fanpage Theo Dõi</h3>
+              <p class="text-xs text-slate-400">Hệ thống quét lần lượt từng trang theo chu kỳ 180s.</p>
+            </div>
+          </div>
+          <div id="fanpages-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 4: PROFILE & GEMINI AI ==================== -->
+      <div id="tab-profile" class="tab-content space-y-6 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Student Profile Card -->
+          <div class="glass-card p-6 rounded-2xl">
+            <h3 class="text-base font-semibold text-white mb-2 flex items-center gap-2">
+              <i data-lucide="user" class="w-4 h-4 text-cyan-400"></i>
+              <span>Thông Tin Sinh Viên Điền Form</span>
+            </h3>
+            <p class="text-xs text-slate-400 mb-5">Dữ liệu này sẽ tự động điền vào các trường chuẩn trong Google Form.</p>
+
+            <form id="form-student-profile" onsubmit="saveStudentProfile(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Họ và Tên</label>
+                <input type="text" id="prof-fullname" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">MSSV (Mã sinh viên)</label>
+                  <input type="text" id="prof-student-id" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Lớp Sinh Hoạt</label>
+                  <input type="text" id="prof-class-name" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Email / Gmail</label>
+                  <input type="email" id="prof-email" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Số Điện Thoại</label>
+                  <input type="text" id="prof-phone" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Khoa</label>
+                  <input type="text" id="prof-faculty" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Giới Tính</label>
+                  <select id="prof-gender" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1 flex items-center justify-between">
+                  <span>Phiên Gmail Đăng Nhập Tương Ứng (Google Session)</span>
+                  <span id="session-badge" class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">ĐÃ KẾT NỐI</span>
+                </label>
+                <input type="text" id="prof-google-session" value="clone_01.json" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-cyan-400 font-mono focus:border-cyan-500 focus:outline-none">
+                <p class="text-[11px] text-slate-400 mt-1">Mỗi biểu mẫu của sinh viên sẽ tự động mở bằng phiên Gmail này (đã lưu cookies) để nộp đơn.</p>
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-semibold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/20 transition">
+                  Lưu Thông Tin Sinh Viên
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Gemini AI & Form Settings Card -->
+          <div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+                <span>Cấu Hình Gemini AI Form Solver</span>
+              </h3>
+              <p class="text-xs text-slate-400 mb-5">AI sẽ đọc nội dung bài viết và tự động suy luận đáp án cho các câu hỏi bất ngờ (chọn ca/buổi, khảo sát, câu hỏi mở).</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Google Gemini API Key</label>
+                  <div class="relative">
+                    <input type="password" id="cfg-gemini-key" class="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-purple-500 focus:outline-none font-mono">
+                    <button type="button" onclick="togglePasswordVisibility('cfg-gemini-key')" class="absolute right-3 top-2.5 text-slate-400 hover:text-white">
+                      <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1">Hệ thống đang sử dụng key Gemini để suy luận câu hỏi tự động.</p>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-sm font-medium text-white block">Tự Động Nộp Form (Auto Registration)</span>
+                      <span class="text-xs text-slate-400">Kích hoạt Playwright tự điền và submit form</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="cfg-auto-form-enabled" class="sr-only peer" onchange="toggleFormSetting('enabled', this.checked)">
+                      <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                    </label>
+                  </div>
+
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-sm font-medium text-white block">Chế Độ Hiển Thị Trình Duyệt</span>
+                      <span class="text-xs text-slate-400">Tắt (chạy ẩn nền) hoặc Bật (mở cửa sổ Chrome để quan sát)</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="cfg-headless" class="sr-only peer" onchange="toggleFormSetting('headless', !this.checked)">
+                      <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-6">
+              <button onclick="saveAiKey()" class="w-full py-2.5 rounded-lg text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-600/20 transition">
+                Cập Nhật API Key & Cấu Hình AI
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 5: REGISTRATIONS ==================== -->
+      <div id="tab-registrations" class="tab-content space-y-6 hidden">
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                <i data-lucide="check-square" class="w-4 h-4 text-cyan-400"></i>
+                <span>Lịch Sử Các Lần Tự Động Nộp Form Thành Công / Thất Bại</span>
+              </h3>
+              <p class="text-xs text-slate-400">Lưu trữ bằng chứng xác nhận nộp form</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="px-5 py-3.5">Thời Gian Nộp</th>
+                  <th class="px-5 py-3.5">Khoa / Bài Viết</th>
+                  <th class="px-5 py-3.5">Sinh Viên</th>
+                  <th class="px-5 py-3.5">Link Google Form</th>
+                  <th class="px-5 py-3.5">Thông Tin Đã Điền</th>
+                  <th class="px-5 py-3.5">Ảnh Minh Chứng Nộp Form</th>
+                  <th class="px-5 py-3.5">Trạng Thái</th>
+                </tr>
+              </thead>
+              <tbody id="table-registrations-body" class="divide-y divide-slate-800/60">
+                <tr>
+                  <td colspan="7" class="px-5 py-6 text-center text-slate-500">Chưa có lượt nộp form nào.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB HISTORY: NOTIFICATION & ACTIVITY HISTORY ==================== -->
+      <div id="tab-history" class="tab-content space-y-6 hidden">
+        <!-- 4 Summary Metric Cards for History Tab -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-card p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>LẦN BẬT GẦN NHẤT</span>
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i data-lucide="power" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="hist-stat-last-start" class="text-sm font-bold text-white truncate">Chưa ghi nhận</div>
+            <p id="hist-stat-uptime" class="text-[11px] text-slate-400 mt-1">Đang dừng</p>
+          </div>
+
+          <div class="glass-card p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>TỔNG THÔNG BÁO BẮN ZALO</span>
+              <div class="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="hist-stat-total-sent" class="text-2xl font-extrabold text-cyan-400">0</div>
+            <p class="text-[11px] text-slate-400 mt-1">Nhóm Zalo + Cá nhân + Admin</p>
+          </div>
+
+          <div class="glass-card p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>TỰ ĐỘNG ĐĂNG KÝ FORM</span>
+              <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="hist-stat-total-forms" class="text-2xl font-extrabold text-amber-400">0</div>
+            <p class="text-[11px] text-slate-400 mt-1">Lượt nộp Google Form tự động</p>
+          </div>
+
+          <div class="glass-card p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>LẦN DỪNG GẦN NHẤT</span>
+              <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="hist-stat-last-stop" class="text-sm font-bold text-slate-300 truncate">Chưa có</div>
+            <p class="text-[11px] text-slate-400 mt-1">Lịch sử tắt / khởi động lại</p>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                <i data-lucide="bell-ring" class="w-4 h-4 text-cyan-400"></i>
+                <span>Lịch Sử Thông Báo & Hoạt Động Của Bot</span>
+              </h3>
+              <p class="text-xs text-slate-400">Theo dõi bot bật/tắt lúc nào, số tin đã gửi, đối tượng nhận và form đã đăng ký</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="fetchNotificationHistory()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Làm Mới</span>
+              </button>
+              <span class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Lưu trữ vĩnh viễn (Persistent)</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Category Filter Pills -->
+          <div class="px-5 py-3 border-b border-slate-800/60 bg-slate-900/40 flex flex-wrap items-center gap-2 text-xs">
+            <span class="text-slate-400 mr-1 font-medium">Lọc theo:</span>
+            <button onclick="filterHistoryCategory('ALL')" id="filter-hist-all" class="hist-filter-btn px-3 py-1 rounded-full font-medium bg-cyan-600 text-white transition">Tất Cả</button>
+            <button onclick="filterHistoryCategory('SYSTEM')" id="filter-hist-system" class="hist-filter-btn px-3 py-1 rounded-full font-medium bg-slate-800 text-slate-300 hover:text-white transition">Bật / Tắt Bot</button>
+            <button onclick="filterHistoryCategory('GROUP')" id="filter-hist-group" class="hist-filter-btn px-3 py-1 rounded-full font-medium bg-slate-800 text-slate-300 hover:text-white transition">Nhóm Zalo</button>
+            <button onclick="filterHistoryCategory('USER')" id="filter-hist-user" class="hist-filter-btn px-3 py-1 rounded-full font-medium bg-slate-800 text-slate-300 hover:text-white transition">Cá Nhân Zalo</button>
+            <button onclick="filterHistoryCategory('FORM')" id="filter-hist-form" class="hist-filter-btn px-3 py-1 rounded-full font-medium bg-slate-800 text-slate-300 hover:text-white transition">Điền Form</button>
+            <button onclick="filterHistoryCategory('ADMIN')" id="filter-hist-admin" class="hist-filter-btn px-3 py-1 rounded-full font-medium bg-slate-800 text-slate-300 hover:text-white transition">Gửi Admin</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="px-5 py-3.5">Thời Gian (VN)</th>
+                  <th class="px-5 py-3.5">Phân Loại</th>
+                  <th class="px-5 py-3.5">Đối Tượng Nhận</th>
+                  <th class="px-5 py-3.5">Tiêu Đề</th>
+                  <th class="px-5 py-3.5">Nội Dung</th>
+                  <th class="px-5 py-3.5">Trạng Thái</th>
+                  <th class="px-5 py-3.5 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="table-history-body" class="divide-y divide-slate-800/60">
+                <tr>
+                  <td colspan="7" class="px-5 py-8 text-center text-slate-500">Đang tải lịch sử thông báo...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ==================== TAB 6: TERMINAL LOGS ==================== -->
+      <div id="tab-terminal" class="tab-content space-y-4 hidden">
+        <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="text-xs font-mono text-slate-300">WebSocket Live Console Streaming</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="clearTerminal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300">Xóa màn hình</button>
+            <button onclick="toggleAutoScroll()" id="btn-autoscroll" class="px-3 py-1 rounded bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 text-xs">Tự cuộn: BẬT</button>
+          </div>
+        </div>
+
+        <div id="terminal-screen" class="bg-black/90 p-4 rounded-2xl font-mono text-xs text-emerald-400 h-[500px] overflow-y-auto border border-slate-800 space-y-1 shadow-inner">
+          <p class="text-slate-500">// Đang kết nối luồng logs thời gian thực từ Bot...</p>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 7: SUPABASE ==================== -->
+      <div id="tab-supabase" class="tab-content space-y-6 hidden">
+        <div class="glass-card p-6 rounded-2xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i data-lucide="database" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-white">Kết Nối Supabase Cloud (PostgreSQL)</h3>
+              <p class="text-xs text-slate-400">Dự án đồng bộ: https://ewvnozuyvkaygrhwfmxg.supabase.co</p>
+            </div>
+          </div>
+
+          <div class="space-y-4 text-xs text-slate-300">
+            <p>Hệ thống tự động đồng bộ bài viết đã quét và lượt nộp form lên Supabase Cloud của bạn mà không làm ảnh hưởng tới các bảng web bán hàng cũ.</p>
+            
+            <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+              <h4 class="font-semibold text-white mb-2">📋 Lệnh SQL tạo bảng (Copy & Paste vào Supabase SQL Editor):</h4>
+              <p class="text-slate-400 mb-3">Mở Supabase Dashboard &rarr; SQL Editor &rarr; Dán đoạn mã bên dưới và bấm Run:</p>
+              <pre class="bg-black/80 p-3 rounded-lg overflow-x-auto text-[11px] text-cyan-300 font-mono" id="supabase-sql-code">-- Xem file supabase_schema.sql trong thư mục dự án</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB VAA: HỌC VIỆN HÀNG KHÔNG VIỆT NAM ==================== -->
+      <div id="tab-vaa" class="tab-content space-y-6 hidden">
+        <!-- VAA Header Banner -->
+        <div class="glass-card p-6 rounded-2xl border-l-4 border-amber-500 relative overflow-hidden">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+                <i data-lucide="plane" class="w-7 h-7"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-lg font-bold text-white tracking-wide">Học Viện Hàng Không Việt Nam (VAA / VAU)</h3>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">KÊNH ĐỘC LẬP</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">Bắn tin tự động vào nhóm Zalo <b>demo</b> (Tag @All) | Cơ sở dữ liệu và hoạt động tách biệt 100% với HUIT</p>
+              </div>
+            </div>
+
+            <!-- VAA Quick Controls -->
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button onclick="vaaBotAction('start')" id="btn-vaa-start" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>Bật Bot VAA</span>
+              </button>
+
+              <button onclick="vaaBotAction('stop')" id="btn-vaa-stop" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20 transition">
+                <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                <span>Dừng Bot VAA</span>
+              </button>
+
+              <button onclick="triggerVaaScanNow()" id="btn-vaa-scan" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-600/20 transition">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Quét Thử Ngay</span>
+              </button>
+
+              <button onclick="fetchVaaStats(); fetchVaaHistory();" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Làm mới dữ liệu VAA">
+                <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards for VAA -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">TỔNG BÀI VAA ĐÃ QUÉT</span>
+              <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
+                <i data-lucide="scan" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-vaa-total-posts" class="text-3xl font-extrabold text-white">0</div>
+            <p class="text-xs text-slate-500 mt-1">Lưu trữ trong SQLite riêng seen_posts_vaa.db</p>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">ĐÃ GỬI NHÓM DEMO</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-vaa-sent-group" class="text-3xl font-extrabold text-emerald-400">0</div>
+            <p class="text-xs text-slate-500 mt-1">Khớp từ khóa ĐRL/Form + Tag @All</p>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">NGUỒN FANPAGE THEO DÕI</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i data-lucide="layers" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-vaa-targets-count" class="text-3xl font-extrabold text-amber-400">11</div>
+            <p class="text-xs text-slate-500 mt-1">Các Khoa & CLB Học Viện Hàng Không</p>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-slate-400">TRẠNG THÁI BOT VAA</span>
+              <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <i data-lucide="cpu" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div id="stat-vaa-status-text" class="text-xl font-extrabold text-emerald-400">ĐANG CHẠY</div>
+            <p id="stat-vaa-uptime" class="text-xs text-slate-500 mt-1">Uptime: Đang chạy 24/7</p>
+          </div>
+        </div>
+
+        <!-- Section 1: Quản Lý Nhóm Zalo Nhận Tin VAA -->
+        <div class="glass-card p-6 rounded-2xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-800">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-semibold text-white">Cấu Hình Nhóm Zalo Nhận Tin VAA</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300">Nhóm demo</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Theo cấu hình của bạn: Chỉ kích hoạt duy nhất nhóm <b>demo</b> (ID: <code>475259879796859360</code>). Các nhóm khác mặc định tắt để không làm phiền.</p>
+            </div>
+
+            <!-- Tag All Toggle -->
+            <div class="flex items-center gap-3 bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800">
+              <div>
+                <span class="text-xs font-semibold text-white block">Tự Động Tag @All</span>
+                <span class="text-[10px] text-slate-400">Nhắc cả nhóm khi có bài mới</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="vaa-tag-all-checkbox" checked class="sr-only peer" onchange="toggleVaaTagAll()">
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+          </div>
+
+          <div id="vaa-zalo-groups-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Section 2: Danh Sách 11 Nguồn Fanpage VAA -->
+        <div class="glass-card p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                <i data-lucide="graduation-cap" class="w-5 h-5 text-amber-400"></i>
+                <span>11 Nguồn Fanpage & CLB Học Viện Hàng Không Đang Theo Dõi</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Hệ thống quét lần lượt theo chu kỳ Comet Desktop SSR, loại bỏ bài cũ và rác</p>
+            </div>
+          </div>
+
+          <div id="vaa-targets-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Section 3: Bảng Bài Viết & Lịch Sử Thông Báo Riêng Của VAA -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                <i data-lucide="table" class="w-4 h-4 text-amber-400"></i>
+                <span>Bảng Bài Viết & Lịch Sử Thông Báo Riêng Của VAA</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Bảng dữ liệu độc lập lưu trong seen_posts_vaa.db (không trộn lẫn với HUIT)</p>
+            </div>
+            <button onclick="fetchVaaHistory()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Làm Mới Bảng</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="px-5 py-3.5">Thời Gian</th>
+                  <th class="px-5 py-3.5">Nguồn Trang VAA</th>
+                  <th class="px-5 py-3.5">Nhóm Nhận</th>
+                  <th class="px-5 py-3.5">Tiêu Đề / Nội Dung</th>
+                  <th class="px-5 py-3.5">Trạng Thái</th>
+                  <th class="px-5 py-3.5 text-right">Chi Tiết</th>
+                </tr>
+              </thead>
+              <tbody id="table-vaa-history-body" class="divide-y divide-slate-800/60">
+                <tr>
+                  <td colspan="6" class="px-5 py-8 text-center text-slate-500">Đang tải dữ liệu VAA...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal Thêm Nhóm / Cá Nhân Zalo -->
+  <div id="modal-add-recipient" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-2xl max-w-md w-full border border-slate-800 overflow-hidden shadow-2xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h4 id="modal-recipient-title" class="text-base font-semibold text-white flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-cyan-400"></i>
+          <span>Thêm Người Nhận Zalo Mới</span>
+        </h4>
+        <button onclick="closeAddRecipientModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="form-add-recipient" onsubmit="submitAddRecipient(event)" class="space-y-4">
+        <input type="hidden" id="recipient-type" value="GROUP">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Loại Nhận Tin</label>
+          <select id="recipient-type-select" onchange="document.getElementById('recipient-type').value=this.value" class="w-full px-3.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+            <option value="GROUP">Nhóm Zalo (Group)</option>
+            <option value="USER">Cá Nhân (User UID / Admin)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Tên Hiển Thị</label>
+          <input type="text" id="recipient-name" placeholder="Ví dụ: Nhóm K26, Bạn Hùng..." required class="w-full px-3.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white focus:border-cyan-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Zalo ID (Group ID hoặc User UID)</label>
+          <input type="text" id="recipient-id" placeholder="Dãy số ID Zalo (Ví dụ: 6036269726715046333)" required class="w-full px-3.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white font-mono focus:border-cyan-500 focus:outline-none">
+          <p class="text-[11px] text-slate-400 mt-1">Dãy số thread_id từ Zalo Web hoặc bot zlapi.</p>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeAddRecipientModal()" class="flex-1 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Hủy</button>
+          <button type="submit" class="flex-1 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-md shadow-cyan-600/20">Thêm Ngay</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal View Screenshot -->
+  <div id="modal-screenshot" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-2xl max-w-3xl w-full border border-slate-800 overflow-hidden shadow-2xl">
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h4 class="text-sm font-semibold text-white">Bằng Chứng Nộp Form Xác Nhận</h4>
+        <button onclick="closeModalScreenshot()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-4 max-h-[75vh] overflow-auto flex justify-center bg-black/40">
+        <img id="modal-img" src="" alt="Screenshot" class="rounded-lg shadow-lg max-w-full">
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Xem Chi Tiết Thông Báo HUIT -->
+  <div id="modal-history-detail" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-2xl max-w-2xl w-full border border-slate-800 overflow-hidden shadow-2xl p-6">
+      <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+        <div>
+          <h4 id="modal-hist-title" class="text-base font-semibold text-white flex items-center gap-2">
+            <i data-lucide="bell" class="w-4 h-4 text-cyan-400"></i>
+            <span>Chi Tiết Nội Dung Thông Báo (HUIT)</span>
+          </h4>
+          <p id="modal-hist-meta" class="text-xs text-slate-400 mt-0.5">Người nhận: - | Lúc: -</p>
+        </div>
+        <button onclick="closeHistoryDetailModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="bg-black/60 rounded-xl p-4 border border-slate-800 max-h-[60vh] overflow-y-auto">
+        <pre id="modal-hist-content" class="text-xs text-slate-200 whitespace-pre-wrap font-sans leading-relaxed"></pre>
+      </div>
+      <div class="flex justify-end pt-4">
+        <button onclick="closeHistoryDetailModal()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Xem Chi Tiết Thông Báo VAA -->
+  <div id="modal-vaa-history-detail" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-2xl max-w-2xl w-full border border-amber-500/30 overflow-hidden shadow-2xl p-6">
+      <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+        <div>
+          <h4 id="modal-vaa-hist-title" class="text-base font-semibold text-white flex items-center gap-2">
+            <i data-lucide="plane" class="w-4 h-4 text-amber-400"></i>
+            <span>Chi Tiết Thông Báo VAA (Học Viện Hàng Không)</span>
+          </h4>
+          <p id="modal-vaa-hist-meta" class="text-xs text-slate-400 mt-0.5">Người nhận: demo | Lúc: -</p>
+        </div>
+        <button onclick="closeVaaHistoryDetailModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="bg-black/60 rounded-xl p-4 border border-slate-800 max-h-[60vh] overflow-y-auto">
+        <pre id="modal-vaa-hist-content" class="text-xs text-slate-200 whitespace-pre-wrap font-sans leading-relaxed"></pre>
+      </div>
+      <div class="flex justify-end pt-4">
+        <button onclick="closeVaaHistoryDetailModal()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl shadow-2xl text-xs z-50 hidden flex items-center gap-3">
+    <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+    <span id="toast-msg">Thông báo</span>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
