@@ -2,11 +2,11 @@
   "instance_name": "Bot VAA / VAU (Học Viện Hàng Không)",
   "bot_name": "Yuki 2 (VAA)",
   "admin": {
-    "name": "Yuki",
+    "name": "Trần Lê Phát",
     "github": "yukilegit11-creator",
     "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
     "role": "Admin & Lead Developer",
-    "zalo_uid": "7581087306337796515",
+    "zalo_uid": "7662918962461429024",
     "auto_sync_github": true
   },
   "targets": [
@@ -85,25 +85,25 @@
   },
   "zalo": {
     "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
-    "target_thread_id": "475259879796859360",
+    "target_thread_id": "3211449471524750057",
     "target_type": "GROUP",
-    "target_group_name": "demo",
+    "target_group_name": "Tbao đrl VAA",
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "7456361874031804652",
+        "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "5580940214156567525",
+        "id": "3211449471524750057",
         "name": "Tbao đrl VAA",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "7258908237819659562",
+        "id": "387016397668099110",
         "name": "TBao Skien , ĐRL Vaa -",
         "type": "GROUP",
         "enabled": true

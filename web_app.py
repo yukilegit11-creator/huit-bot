@@ -33,6 +33,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from fastapi.staticfiles import StaticFiles
+STATIC_DIR = os.path.join(SCRIPT_DIR, "static")
+os.makedirs(os.path.join(STATIC_DIR, "snapshots"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 # Tích hợp Sub-app Bot 4: UFM (Cổng Hoạt Động & ĐRL)
 try:
@@ -296,6 +301,32 @@ async def auth_guard_middleware(request: Request, call_next):
             return RedirectResponse(url=redirect_url)
 
     return await call_next(request)
+
+
+# ==================== REAL-TIME PORTAL SNAPSHOT APIS (BOT 3, 4, 5) ====================
+@app.get("/api/snapshot/{bot_name}")
+def api_get_portal_snapshot(bot_name: str, force: bool = False):
+    """Chụp ảnh góc nhìn màn hình của bot (POV) theo thời gian thực trên Cổng ĐRL."""
+    import snapshot_service
+    res = snapshot_service.capture_portal_view(bot_name, base_dir=SCRIPT_DIR, force=force)
+    if not res or res.get("status") != "success":
+        err = res.get("message", "Chụp ảnh màn hình thất bại") if res else "Không phản hồi"
+        raise HTTPException(status_code=500, detail=err)
+    return res
+
+@app.get("/api/snapshot/{bot_name}/image")
+def api_get_portal_snapshot_image(bot_name: str, force: bool = False):
+    """Trả về file ảnh PNG góc nhìn thực tế trực tiếp."""
+    from fastapi.responses import FileResponse
+    import snapshot_service
+    res = snapshot_service.capture_portal_view(bot_name, base_dir=SCRIPT_DIR, force=force)
+    bot_key = snapshot_service.resolve_bot_key(bot_name)
+    if not bot_key:
+        raise HTTPException(status_code=400, detail="Mã bot không hợp lệ")
+    img_path = os.path.join(SCRIPT_DIR, "static", "snapshots", f"{bot_key}_latest.png")
+    if not os.path.exists(img_path):
+        raise HTTPException(status_code=404, detail="Chưa có ảnh chụp cho bot này")
+    return FileResponse(img_path, media_type="image/png")
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -752,7 +783,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
     }
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
-        {"id": "7456361874031804652", "name": "demo"},
+        {"id": "475259879796859360", "name": "demo"},
         {"id": "7662918962461429024", "name": "Yuki"}
     ]
     sent_any = False
@@ -771,7 +802,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -954,7 +985,7 @@ async def api_send_test_all_groups(req: Request):
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -1382,7 +1413,7 @@ Chúc các bạn theo dõi thuận lợi!""",
     }
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
-        {"id": "7456361874031804652", "name": "demo"},
+        {"id": "475259879796859360", "name": "demo"},
         {"id": "7662918962461429024", "name": "Yuki"}
     ]
     sent_any = False
@@ -1401,7 +1432,7 @@ Chúc các bạn theo dõi thuận lợi!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -1612,7 +1643,7 @@ def api_bot3_test_zalo_alert():
         "details": f"Thời gian: {now_vn.strftime('%H:%M:%S %d/%m/%Y')}\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tín hiệu thử nghiệm hoạt động hoàn hảo 100%."
     }
     test_targets = [
-        {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},
+        {"id": "475259879796859360", "name": "demo", "type": "GROUP"},
         {"id": "7662918962461429024", "name": "Yuki", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
@@ -1988,7 +2019,7 @@ def dashboard_view():
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 7456361874031804652)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
             <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm ĐRL K15)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
           </div>
 
@@ -3585,7 +3616,7 @@ def dashboard_view_bot2():
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 7456361874031804652)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
             <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm Sự Kiện VAA)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
           </div>
 
@@ -5070,7 +5101,11 @@ def dashboard_view_bot3():
         </button>
         <button onclick="sendTestAlert()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-2">
           <i class="fa-solid fa-vial text-sm"></i>
-          <span>Gửi Test Vào Zalo</span>
+          <span>Gửi Test Vào Zalo (demo)</span>
+        </button>
+        <button onclick="openPortalSnapshotModal('bot3')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-2">
+          <i class="fa-solid fa-camera text-sm"></i>
+          <span>📸 Góc Nhìn Thực Tế Web ĐRL</span>
         </button>
         <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer ml-2">
           <input type="checkbox" id="chk-auto-tag-all" {"checked" if auto_tag_all else ""} onchange="toggleTagAll(this.checked)" class="w-4 h-4 text-rose-600 rounded">
@@ -5957,6 +5992,140 @@ def dashboard_view_bot3():
       }}
     }}
   </script>
+
+
+<!-- REAL-TIME PORTAL SNAPSHOT MODAL -->
+<div id="snapshot-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <div>
+          <h3 id="snap-title" class="text-base font-bold text-slate-800">📸 Góc Nhìn Trình Duyệt Theo Thời Gian Thực (POV)</h3>
+          <p id="snap-subtitle" class="text-xs text-slate-500 font-medium">Quan sát trực tiếp màn hình bot đang hoạt động bên trong web điểm rèn luyện</p>
+        </div>
+      </div>
+      <button onclick="closePortalSnapshotModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 flex items-center justify-center">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <div class="px-6 py-2.5 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-2">
+        <button id="snap-tab-bot3" onclick="switchSnapshotBot('bot3')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white shadow-xs text-indigo-700">
+          <i class="fa-solid fa-graduation-cap"></i> Bot 3 (IUH)
+        </button>
+        <button id="snap-tab-bot4" onclick="switchSnapshotBot('bot4')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-white/60">
+          <i class="fa-solid fa-building-columns"></i> Bot 4 (UFM)
+        </button>
+        <button id="snap-tab-bot5" onclick="switchSnapshotBot('bot5')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-white/60">
+          <i class="fa-solid fa-school"></i> Bot 5 (OU)
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="refreshSnapshot(true)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+          <i id="snap-spin" class="fa-solid fa-rotate"></i>
+          <span>Chụp Lại Góc Nhìn Mới</span>
+        </button>
+        <a id="snap-download-btn" href="#" download="portal_snapshot.png" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-download"></i>
+          <span>Tải Ảnh</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="px-6 py-2 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+      <div class="flex items-center gap-4">
+        <span>⏰ Thời điểm: <strong id="snap-time" class="text-slate-800 font-mono">--:--:--</strong></span>
+        <span>🌐 Trang: <strong id="snap-page-title" class="text-slate-800">--</strong></span>
+      </div>
+      <div>
+        <span>👤 Tài khoản bot: <strong id="snap-account" class="text-indigo-700 font-semibold">--</strong></span>
+      </div>
+    </div>
+
+    <div class="p-6 overflow-y-auto max-h-[60vh] bg-slate-900/5 flex items-center justify-center relative min-h-[300px]">
+      <div id="snap-loading" class="hidden absolute inset-0 bg-white/85 backdrop-blur-xs flex flex-col items-center justify-center z-10">
+        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-2"></i>
+        <p class="text-xs font-bold text-slate-700">Đang chụp ảnh thực tế qua Playwright Headless...</p>
+        <p class="text-[11px] text-slate-400 mt-1">Đang kết nối cổng web trường & render...</p>
+      </div>
+      <img id="snap-img" src="" alt="Góc nhìn Cổng ĐRL" class="rounded-xl border border-slate-200 shadow-md max-w-full h-auto cursor-zoom-in" onclick="if(this.src) window.open(this.src, '_blank')" title="Bấm để mở ảnh đầy đủ trong tab mới" />
+    </div>
+  </div>
+</div>
+
+<script>
+let currentSnapBot = 'bot3';
+
+function openPortalSnapshotModal(botId = 'bot3') {{
+  currentSnapBot = botId;
+  const modal = document.getElementById('snapshot-modal');
+  if (modal) modal.classList.remove('hidden');
+  switchSnapshotBot(botId);
+}}
+
+function closePortalSnapshotModal() {{
+  const modal = document.getElementById('snapshot-modal');
+  if (modal) modal.classList.add('hidden');
+}}
+
+function switchSnapshotBot(botId) {{
+  currentSnapBot = botId;
+  ['bot3', 'bot4', 'bot5'].forEach(b => {{
+    const btn = document.getElementById('snap-tab-' + b);
+    if (btn) {{
+      if (b === botId) {{
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white shadow-xs text-indigo-700';
+      }} else {{
+        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-white/60';
+      }}
+    }}
+  }});
+  loadSnapshot(botId, false);
+}}
+
+function refreshSnapshot(force = true) {{
+  loadSnapshot(currentSnapBot, force);
+}}
+
+async function loadSnapshot(botId, force = false) {{
+  const loader = document.getElementById('snap-loading');
+  const spin = document.getElementById('snap-spin');
+  const img = document.getElementById('snap-img');
+  const timeEl = document.getElementById('snap-time');
+  const titleEl = document.getElementById('snap-page-title');
+  const accEl = document.getElementById('snap-account');
+  const dlBtn = document.getElementById('snap-download-btn');
+
+  if (loader) loader.classList.remove('hidden');
+  if (spin) spin.classList.add('fa-spin');
+
+  try {{
+    const url = `/api/snapshot/${{botId}}` + (force ? '?force=true' : '');
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status === 'success') {{
+      const imgSrc = data.screenshot_base64 ? ('data:image/png;base64,' + data.screenshot_base64) : data.image_url;
+      if (img) img.src = imgSrc;
+      if (dlBtn) dlBtn.href = data.image_url || imgSrc;
+      if (timeEl) timeEl.innerText = data.captured_at || new Date().toLocaleTimeString();
+      if (titleEl) titleEl.innerText = data.page_title || '--';
+      if (accEl) accEl.innerText = data.account_info || '--';
+    }} else {{
+      alert(data.message || 'Không thể chụp ảnh màn hình.');
+    }}
+  }} catch (e) {{
+    alert('Lỗi chụp góc nhìn thực tế: ' + e);
+  }} finally {{
+    if (loader) loader.classList.add('hidden');
+    if (spin) spin.classList.remove('fa-spin');
+  }}
+}}
+</script>
 
 </body>
 </html>

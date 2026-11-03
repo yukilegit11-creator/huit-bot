@@ -67,11 +67,6 @@
       "url": "https://www.facebook.com/hotrosinhvienssc.huit"
     },
     {
-      "id": "target_14",
-      "name": "Yu Ki (FB Profile)",
-      "url": "https://www.facebook.com/profile.php?id=61595329828799"
-    },
-    {
       "name": "Đoàn - Hội Khoa Luật HUIT",
       "url": "https://www.facebook.com/doanhoikhoaluathuit",
       "enabled": true
@@ -107,52 +102,28 @@
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "7456361874031804652",
+        "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "267037922319116834",
+        "id": "7086011981379160878",
         "name": "Săn drl Hu ít",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "7816659739943537644",
+        "id": "979670734727637728",
         "name": "Thông báo drl",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "3613862296069900465",
+        "id": "6036269726715046333",
         "name": "Thông báo ‼️",
         "type": "GROUP",
         "enabled": true
-      },
-      {
-        "id": "6270243835909820050",
-        "name": "Huit _CTV BOT tbao Zalo",
-        "type": "GROUP",
-        "enabled": false
-      },
-      {
-        "id": "8647983209102501525",
-        "name": "TSTD Huit 2027",
-        "type": "GROUP",
-        "enabled": false
-      },
-      {
-        "id": "3098651132176283286",
-        "name": "Thông báo P. CTSV HUIT 2",
-        "type": "GROUP",
-        "enabled": false
-      },
-      {
-        "id": "3777114335248827133",
-        "name": "Marketing K26 - HUIT",
-        "type": "GROUP",
-        "enabled": false
       },
       {
         "id": "7662918962461429024",

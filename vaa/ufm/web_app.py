@@ -419,7 +419,7 @@ async def api_ufm_send_test_target(req: Request):
         data = await req.json()
     except Exception:
         data = {}
-    target_id = str(data.get("target_id", "")).strip() or "7456361874031804652"
+    target_id = str(data.get("target_id", "")).strip() or "475259879796859360"
     target_type = data.get("target_type", "GROUP")
     target_name = data.get("target_name", target_id)
     custom_msg = data.get("custom_message", None)

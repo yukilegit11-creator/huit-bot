@@ -16,13 +16,19 @@
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "7456361874031804652",
+        "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "6811245900732548368",
+        "id": "6906603484437051809",
+        "name": "TB điểm rèn luyện IUH",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "4567863637705237532",
         "name": "IUH-TBAO DRL",
         "type": "GROUP",
         "enabled": true
@@ -31,12 +37,6 @@
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": true
-      },
-      {
-        "id": "4484187266322765997",
-        "name": "TB điểm rèn luyện IUH",
-        "type": "GROUP",
         "enabled": true
       }
     ],

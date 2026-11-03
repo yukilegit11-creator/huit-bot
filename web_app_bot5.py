@@ -175,7 +175,7 @@ def api_bot5_portal_relogin():
 
 @router.post("/api/bot5/test_cookie_alert")
 def api_bot5_test_cookie_alert():
-    """Bắn tin nhắn thử nghiệm Cảnh báo lỗi Cookie về Nhóm demo (7456361874031804652)."""
+    """Bắn tin nhắn thử nghiệm Cảnh báo lỗi Cookie về Nhóm demo (475259879796859360)."""
     cfg = get_config_ou()
     zalo_disp = ZaloDispatcher(config_file=CONFIG_OU_FILE, db_file=DB_FILE)
     if not zalo_disp.connect():
@@ -187,13 +187,13 @@ def api_bot5_test_cookie_alert():
         "━━━━━━━━━━━━━━━━━━━━\n"
         "🚨 Nguồn kiểm tra: Web Dashboard Bot 5 (OU)\n"
         "✅ Trạng thái: Kênh gửi cảnh báo sự cố Cookie hoạt động hoàn hảo 100%!\n"
-        "👥 Nơi nhận: Nhóm demo (7456361874031804652) & Admin Yuki\n"
+        "👥 Nơi nhận: Nhóm demo (475259879796859360) & Admin Yuki\n"
         f"⏰ Thời gian: {now_vn}\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "🤖 Hệ thống điều hành Yuki Multi-Bot 24/7"
     )
 
-    demo_id = "7456361874031804652"
+    demo_id = "475259879796859360"
     admin_id = "7662918962461429024"
     results = []
 
@@ -350,7 +350,7 @@ def dashboard_view_bot5():
           <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>
         </div>
         <div class="text-lg font-black text-slate-900">Bắn Về Nhóm Demo</div>
-        <div class="text-xs text-slate-500 mt-1">ID: 7456361874031804652</div>
+        <div class="text-xs text-slate-500 mt-1">ID: 475259879796859360</div>
         <div class="mt-3">
           <button onclick="testCookieAlert()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition flex items-center gap-1.5">
             <i class="fa-solid fa-paper-plane text-[10px]"></i> Bắn Test Cảnh Báo
@@ -519,7 +519,7 @@ def dashboard_view_bot5():
     }}
 
     async function testCookieAlert() {{
-      if (!confirm('Gửi tin nhắn cảnh báo lỗi cookie thử nghiệm vào Nhóm demo (7456361874031804652)?')) return;
+      if (!confirm('Gửi tin nhắn cảnh báo lỗi cookie thử nghiệm vào Nhóm demo (475259879796859360)?')) return;
       try {{
         const res = await fetch('/api/bot5/test_cookie_alert', {{ method: 'POST' }});
         const data = await res.json();

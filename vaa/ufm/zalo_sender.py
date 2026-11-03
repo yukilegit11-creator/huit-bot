@@ -580,8 +580,8 @@ class ZaloDispatcher:
 
         # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Yuki
         test_targets = [
-            {"id": "7456361874031804652", "name": "demo", "type": ThreadType.GROUP},
-            {"id": "7581087306337796515", "name": "Yuki", "type": ThreadType.USER}
+            {"id": "475259879796859360", "name": "demo", "type": ThreadType.GROUP},
+            {"id": "7662918962461429024", "name": "Yuki", "type": ThreadType.USER}
         ]
         any_succ = False
         for t in test_targets:
@@ -597,12 +597,12 @@ class ZaloDispatcher:
         return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Yuki."
 
     def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
-        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 7456361874031804652)."""
+        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 475259879796859360)."""
         if not self.client:
             if not self.connect():
                 return False, "Không thể kết nối Zalo Web! Vui lòng cập nhật Cookie Zalo trong cài đặt."
 
-        demo_id = "7456361874031804652"
+        demo_id = "475259879796859360"
         now_vn = database.get_vn_now_str()
 
         # Tìm hoạt động mới nhất hoặc dùng hoạt động mẫu
@@ -704,9 +704,11 @@ class ZaloDispatcher:
             msg_id = getattr(res, "msgId", None) or getattr(res, "message_id", None)
             log_str = f"[{self.bot_name}] Đã gửi tin nhắn test thành công tới {target_id}!"
             print(f"📨 [Zalo Test] {log_str} (msgId: {msg_id})")
-            db_t = db_file or getattr(self, "db_file", None) or database.DB_FILE
             try:
-                database.log_event("TEST", log_str, db_file=db_t)
+                import database
+                db_t = db_file or getattr(self, "db_file", None) or getattr(database, "DB_FILE", None)
+                if db_t:
+                    database.log_event("TEST", log_str, db_file=db_t)
             except Exception:
                 pass
             return True, f"Đã gửi tin nhắn test thành công tới {target_id} (Mã tin: {msg_id or 'OK'})!"

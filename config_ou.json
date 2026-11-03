@@ -2,11 +2,11 @@
   "instance_name": "Bot OU (Kênh 5 - Đại học Mở TP.HCM - Điểm rèn luyện)",
   "bot_name": "Yuki 5 (OU ĐRL)",
   "admin": {
-    "name": "Yuki",
+    "name": "Trần Lê Phát",
     "github": "yukilegit11-creator",
     "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
     "role": "Admin & Lead Developer",
-    "zalo_uid": "7581087306337796515"
+    "zalo_uid": "7662918962461429024"
   },
   "facebook": {
     "enabled": true,
@@ -40,20 +40,20 @@
     "keep_alive": true,
     "keep_alive_interval_seconds": 120,
     "cookies": {
-      "XSRF-TOKEN": "eyJpdiI6IitKVmpVR2Z4bFE2dE0rQVFCU1wveFhBPT0iLCJ2YWx1ZSI6InRFT1U5cndpczdcL2ZhR2tzSHpcL3NZYnhSODBla2NMXC9KbHNXNzZlWDI0TVpBRXgwYjNGUzBRMlNTMHBTRzltQXExOXp0WFN1MEdsU2NwZHNzOVRENFhRPT0iLCJtYWMiOiI1YjhiZDE3N2RiOWU5YTI0ZTRiZTBlMjNiN2YyMTMxOWI4MjUyNWIxNzFkNTYxMmU3YTNkYjA3ZTFlNjUwODU0In0%3D",
-      "hcmcoudrl_session": "eyJpdiI6IkEzaTlJMnBWaUxJQkFCTWJsMWt0aVE9PSIsInZhbHVlIjoiN213K0c2N2xQbjVVTzBqSXFRYU84Qk5VcVd2V3FobytKdHEyckRXcVBaZ1p6UzdxOGdtc2EzWGlFU2t4Zmp0dnJtV0JrN0RBTHlFbkNlSGxZV1kyL2hZUlIrUlpkajhMazFLQlJVWCtVdEsxZHpJZExVdTI2bFlQQXF0Lzl6T00iLCJtYWMiOiJmNjVkNDBmMTI0MTFmZjMyYjA3MTFmM2I5ZTIwZjE0ZmNiZjZiZWM1ZjQ0YzE1NjZkNzczMGE2MjIwMDAzZDA4IiwidGFnIjoiIn0%3D",
-      "laravel_session": "eyJpdiI6IlF6cHpkZUNVZHNVRTRTenAxSXhOSmc9PSIsInZhbHVlIjoiQUtpb2x6dXkzQUkrQ0t5WlM3UVwvcmtzN3dFWjUrdUo3cXRENzljUFBBN3ZkeGtPWjFvNFliSDdXaDR3SXV3cjZvQUIrd0w5b1ozVVlOT0lnSzJpVDdBPT0iLCJtYWMiOiJiMjhjZGUxMTBlZmYxY2FiYTNiNWE2OTliMjI2ZDI0ZDc4MzAyNGM0N2Q3MGE0MGZmYjdiNDE3NjE0NmQ3ZTFmIn0%3D"
+      "XSRF-TOKEN": "eyJpdiI6Imhqd1NlUEh6Kys4Y2I5b1l2R1wvelhRPT0iLCJ2YWx1ZSI6InB3YkF1ejB6bmNFdUpCRlFMdEVDQitHT29pYTVvZ2xEc01CblgyWCtxeDdTekhLaDV0dHJic2hLdlFxTEJhRDRvcDE5V0RHTG9xNXlrc1hWWE1WcmV3PT0iLCJtYWMiOiJiOGM1ZjVlZGM5MjFmZTEwZjI2NTA3ZWU2MGY4ZDgzM2IyODM3ZDBjOTc2YTEzNWZlMDEzY2I4OTdlNjdiZDA5In0%3D",
+      "hcmcoudrl_session": "eyJpdiI6IkhZb01hbSs4SGx3WXRubU1pRS8yYmc9PSIsInZhbHVlIjoiZDZYR3dNYjg5VDlEMHprOW5aZ0RkODc3Q1I5WG9Vdy9HSHowOG43Qmc2WkZrTEF5U3BRR1dLcFNDNHZ4M3M1Tnd4RkluNzhlUjBVNytmb0EwQXY2WFlYSllqU2xzM1V4MHZkZ2RXK2hNMTJvd29BckM1NmpySHVwczBhY3o3aTgiLCJtYWMiOiJhOGNmYWUzMDYzZGNiMDIwOWUwY2YzZDQ0M2E1ODZiZGRjZGU0MTVmYWQ0MGE0YmYzNDllMDhiMzY2NTYwMGQzIiwidGFnIjoiIn0%3D",
+      "laravel_session": "eyJpdiI6InBVOW90YXlZQTBZZk5KUTA2UkRNSmc9PSIsInZhbHVlIjoidEFwbmkzdklRWFF6Rm1kOWV2QUt6S1haaVdHWk8xUmd6TGVNY1J6alNTazlOU0duZGpMUFVWTHZkVGlIYU40SUhlb29QOVhieEtzRXd6YWJTdWRlN2c9PSIsIm1hYyI6IjU3NmEyZTk5NjE3NDBkMTA1MmUyMjA0OTIxZDUwYzJjMzhlM2M5ZWI1ZWUyOGZmOWJlNjJmNzAwMDI3NjA2MzcifQ%3D%3D"
     }
   },
   "zalo": {
     "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
-    "target_thread_id": "7456361874031804652",
+    "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
     "target_group_name": "demo",
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "7456361874031804652",
+        "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
         "enabled": true
@@ -69,7 +69,7 @@
         "name": "Thu Phương",
         "type": "USER",
         "enabled": true,
-        "note": "Tài khoản sinh viên Phan Thị Thu Phương (2654092020)"
+        "note": "Phan Thị Thu Phương (2654092020)"
       }
     ],
     "cookies": {
@@ -89,7 +89,7 @@
   },
   "cookie_alert": {
     "enabled": true,
-    "target_group_id": "7456361874031804652",
+    "target_group_id": "475259879796859360",
     "target_group_name": "demo",
     "admin_uid": "7662918962461429024",
     "throttle_seconds": 1800,

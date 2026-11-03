@@ -272,7 +272,7 @@ def format_ou_announcement_message(ann: dict, bot_name: str = "Yuki 5 (OU ĐRL)"
 
 
 def send_cookie_error_alert(zalo_inst: ZaloDispatcher, error_source: str, error_detail: str):
-    """Gửi cảnh báo lỗi Cookie trực tiếp về Nhóm demo (7456361874031804652) và Admin Yuki khi có sự cố cookie."""
+    """Gửi cảnh báo lỗi Cookie trực tiếp về Nhóm demo (475259879796859360) và Admin Yuki khi có sự cố cookie."""
     global last_cookie_alert_time
     now_ts = time.time()
     if now_ts - last_cookie_alert_time < COOKIE_ALERT_THROTTLE:
@@ -293,8 +293,8 @@ def send_cookie_error_alert(zalo_inst: ZaloDispatcher, error_source: str, error_
 
     try:
         if zalo_inst and zalo_inst.client:
-            # 1. Gửi về nhóm demo (7456361874031804652)
-            demo_group_id = "7456361874031804652"
+            # 1. Gửi về nhóm demo (475259879796859360)
+            demo_group_id = "475259879796859360"
             try:
                 zalo_inst.client.send(Message(text=warn_text), thread_id=demo_group_id, thread_type=ThreadType.GROUP)
                 print(f"🚨 [OU] Đã gửi thông báo lỗi cookie vào Nhóm demo ({demo_group_id})")

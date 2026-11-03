@@ -2,11 +2,11 @@
   "instance_name": "Bot UFM - Đại học Tài chính - Marketing (HDU Portal)",
   "bot_name": "Yuki 4 (UFM ĐRL)",
   "admin": {
-    "name": "Yuki",
+    "name": "Trần Lê Phát",
     "github": "yukilegit11-creator",
     "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
     "role": "Admin & Lead Developer",
-    "zalo_uid": "7581087306337796515"
+    "zalo_uid": "7662918962461429024"
   },
   "ufm_portal": {
     "base_url": "https://hoatdong.ufm.edu.vn",
@@ -19,25 +19,25 @@
   },
   "zalo": {
     "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
-    "target_thread_id": "475259879796859360",
+    "target_thread_id": "3790417084788199906",
     "target_type": "GROUP",
-    "target_group_name": "demo",
+    "target_group_name": "Tbao , đky sự kiện UFM",
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "7456361874031804652",
+        "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "6158781927613051118",
+        "id": "3790417084788199906",
         "name": "Tbao , đky sự kiện UFM",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "4719340886712427240",
+        "id": "2349841347887711204",
         "name": "Ufm và canh bạc drl",
         "type": "GROUP",
         "enabled": true

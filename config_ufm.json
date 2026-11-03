@@ -2,42 +2,42 @@
   "instance_name": "Bot UFM (Kênh 4 - Cổng Hoạt Động & ĐRL UFM)",
   "bot_name": "Yuki 4 (UFM ĐRL)",
   "admin": {
-    "name": "Yuki",
+    "name": "Trần Lê Phát",
     "github": "yukilegit11-creator",
     "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
     "role": "Admin & Lead Developer",
-    "zalo_uid": "7581087306337796515"
+    "zalo_uid": "7662918962461429024"
   },
   "ufm_portal": {
     "base_url": "https://hoatdong.ufm.edu.vn",
     "username": "2621008460",
     "password": "focusoncareer2111!!!",
     "cookies": {
-      ".AspNetCore.Antiforgery.fsuMR8kP07M": "CfDJ8Ne9aImXaz1Nt3A2_PFaVnlXQyyUy3jNEnexIfGjgnbtm8Ips1uiiUkpWBICWatyd0fnDm5A8T00h3CtIMn_jqnTVzlv7Lr-RryUsSYgIjjCBYgUtvE-s-qoB1-QD7QMyqPu1P6ZdErOnMkh9eEVGm0",
-      ".AspNetCore.Cookies": "CfDJ8Ne9aImXaz1Nt3A2_PFaVnkkFY0BzVmaHmLjcMmS3ARn3YneUKPwmdOjNP7JWqLcqfGBtoAYD0Y0Fpsf3-GWVQP8JQg5PEt90hPknV7MpBsrcfNswigqAWxKoUw4ItfIV0PZZlNnY91Wpk6p-m-v56FLR_pAJ8OdePuFCp9Syda4NI5QTSwwrfRAqRPY71-WzepiN7jqXFy2Ds-e36FRnujyX-GhXSHSaWd83Pixxmq3FXqJRN2vpJIwbgfVRxBw-vgcWotSOwEO3ipwJqKmNrmgVXHFEmhcu-25PRHYY5tJByYdAsEyuEmffPWRM4we6pY6g2xZh2m5qo37ebaKezoKwHjMtV_lIOqFvUTiza3S5CzLeY1YSSYYDVIU5h7q32-16lsZHf5hH_8k4w0INAr-zl3WVWlyu1gpP70KFuFeMgCxLKwaB4EeIfqej6JdEmJ7GVrANWtSXrFec4_-7ykAq777A_b1dognp86_SHu7"
+      ".AspNetCore.Antiforgery.fsuMR8kP07M": "CfDJ8Ne9aImXaz1Nt3A2_PFaVnkUqs8PdDv_c-bKK8816GjVzpfhthlnTfEfKixu1dZkyh9rEVBHY2WIQ5JexW71DLp1howgrWOYPcLxb4w4F8_3rFw5zd0tNfOrnibGGb7rXoo1qYC9LWOPzv_AzY9_FIM",
+      ".AspNetCore.Cookies": "CfDJ8Ne9aImXaz1Nt3A2_PFaVnlTf29tK150p-wFwV1s_j2AmyFSV9aorVZVwuKCdg8GrL6Wl9P05PlwY3S8-YQzw-jCizJtpvfXwQ8fQVWgU8iyuqdCgLLGSF-AzD_x6S0AfQEhSJy1I_mhsv87jOEFywO3W1G4E7X5ZONOrDP1OetbtqkVvqnzQ1TIAneBpmbUByqpZr2Ky0YpW5uszr1h_oYPg_TLJCg6857aP6AoxUYvSbaap40KZcmwm3MthK2JIhcBd_MNYJh9P-DEix7mJe75TFbujCKn-6Odmqo_jusV8yWwlRy-UpStpF__NTBhe1kCl_f7KnrdqCcW6bJ4o3eWZgeYf3cQmDaG7_VDKejVf5xh4d0As2_ZB6gz4bWiB00MlCXsecPv_ts9bNpg_18hbHdK8lVQWrNZwbi9AjmRuxQisIRvRFVQczoFegCF6pibRSy9HQTK0phPQCYe5w64PO0BuxPBG4PVHaVsJl4K"
     }
   },
   "zalo": {
     "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
-    "target_thread_id": "475259879796859360",
+    "target_thread_id": "3790417084788199906",
     "target_type": "GROUP",
-    "target_group_name": "demo",
+    "target_group_name": "Tbao , đky sự kiện UFM",
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "7456361874031804652",
+        "id": "475259879796859360",
         "name": "demo",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "6158781927613051118",
+        "id": "3790417084788199906",
         "name": "Tbao , đky sự kiện UFM",
         "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "4719340886712427240",
+        "id": "2349841347887711204",
         "name": "Ufm và canh bạc drl",
         "type": "GROUP",
         "enabled": true
