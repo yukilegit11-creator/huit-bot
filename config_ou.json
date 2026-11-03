@@ -9,7 +9,7 @@
     "zalo_uid": "7581087306337796515"
   },
   "facebook": {
-    "enabled": true,
+    "enabled": false,
     "target_page": "https://www.facebook.com/diemrenluyenou",
     "page_name": "Điểm rèn luyện OU",
     "filter_keywords": false,
@@ -40,9 +40,9 @@
     "keep_alive": true,
     "keep_alive_interval_seconds": 120,
     "cookies": {
-      "XSRF-TOKEN": "eyJpdiI6IlwvZjVvTjA3TkdXMWlIS21Cc2FuSDRBPT0iLCJ2YWx1ZSI6IkNPdFpBSE1QUXNMMFo2M05CWnV4dTFCTzdhbm50eHFWUlM2UmdFTDh1a0FmQ3cyOGtEdHRiTDdheHY0SVR2RWpxTG1JVVJrMG56c1I0RG12dUZjcFpBPT0iLCJtYWMiOiJkZjM5NTQyMjNjOWRmNDRmZTI2NTNkMzk3Y2M3ZWQwMWZhMWE2NjlmM2RiNDJlNDFlNDY2OWY0YTlkZTBlOTg1In0%3D",
-      "hcmcoudrl_session": "eyJpdiI6IldodXEyZFVqRXZBOGJQWTBlQTZiQWc9PSIsInZhbHVlIjoiYWg3ak5XMGxOSHQzV0EraVJML0NQY0tLMTN4ZTRMekhtNk5ZL1BjL1JFc0d0NTJPL3liSTlPNGswazU2enVxYUZld05rRmxndEZRVDRGUFdZMHhkZitjQzJXUnp2R1BBWmhYQnorZ05hNDFzQjFjREplbzNZYVloTDZFS2dxeG0iLCJtYWMiOiJkOTEwNTIxZTYxYzRlM2FhZjA3YWM5MTY5OTQxNTMwZGRhMGRlMzUxMzM0YzY0YTMxY2FiYjUzZWUzYzBiZGQ4IiwidGFnIjoiIn0%3D",
-      "laravel_session": "eyJpdiI6IjBMeHg0ek9jSElrK01aOWhlcVE5Wnc9PSIsInZhbHVlIjoiV3lEd1JjbklrWFwvUit5S3ZEc3RKbnFWZUFkYTY3am5vRWpmUmxjWW00WGhYeXBrRXdSd1QySVwveDU2RVBUY3FUd0VHZUZ5bU43cE5ibGNuanBkYnJIUT09IiwibWFjIjoiNTljYThhZDExYjdjNmQzZDA0ZTFmMTJiYzA4Nzg5MzAzYTUzZmZhNTRiZTU4MGY2ODI2YmNkYmQxZDNjZjIyNyJ9"
+      "XSRF-TOKEN": "eyJpdiI6IksyWG9Pdng1K1dZSmMxclFYeGphTVE9PSIsInZhbHVlIjoiaEhveU9zalh3M1dsMnBvTmt0ZENtQTUwUW5yeWxXWFBzUUErN2ZoYXR0c28yT1Judms4d1NhVndoRk9kdG5TRXRYRk12ZlVSSE95YStXVWZOZE5EYnc9PSIsIm1hYyI6ImU2ZDk3MDczMWE4OTNkN2NiNjFhNzI4ZDAxNjFmNGJmY2ZhYmI2NGNlZGRhMWI4M2JmOTgwMjEwMTgwNDMxYmIifQ%3D%3D",
+      "hcmcoudrl_session": "eyJpdiI6IjJYaUh5dWF6Y0JPYjU3NmZrQUx3RWc9PSIsInZhbHVlIjoiRXdDVnhmQ21aS3ZxQlQ4LzVqZXVBQTN1YnJSaHNXQkY4V2FtNGhtQ3N5TFk2d0swM0p4WFlla0pCVzRaZ05zZHhlMnU4ZWRYclA3b3NGYzlxRUNKUXd6MG1iVE05eldUdHJjeVFoUkVJam95VUtEY2ZIUllUeENVV05sazhmOWoiLCJtYWMiOiI2ZjllNTJkMTQxNDhkMjYzMWJlYjA4NDlkMGE3Mzc2NTc2OWEzMzJhNmZjMmI5ZDExZjU0MjI3ZTZhMDA1MmEyIiwidGFnIjoiIn0%3D",
+      "laravel_session": "eyJpdiI6IkRNQkNla1lnRzdBcjJwNzN3eTZyaFE9PSIsInZhbHVlIjoic1wvT20xNU5pUHNiNit1UEhhN2JXXC9GbW1OZTNveHlIVlwvSnptdDBhYlIxZE1kbEhUbGJkbHVvVWpoZytxcUhPQWIzMUZ3TUxBSkt4dkR0SXFhRUhZM0E9PSIsIm1hYyI6IjY2YzRmYmY4N2FmYjAxYjBiZjUzNDUzODA5ZDk3MTI0YzMwZWM0NzkyMGQ1NzY1ODc3MWEwMzljYTMzMDhhMzAifQ%3D%3D"
     }
   },
   "zalo": {
@@ -93,7 +93,7 @@
   },
   "scanner": {
     "check_interval_seconds": 25,
-    "scan_facebook": true,
+    "scan_facebook": false,
     "scan_portal": true,
     "max_post_age_hours": 3.0
   },

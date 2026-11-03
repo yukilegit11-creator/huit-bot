@@ -294,6 +294,7 @@ class OUPortalScraper:
                                     pass
 
                         events.append({
+                            "activity_id": f"OU_EV_{qid}",
                             "id": f"OU_EV_{qid}",
                             "raw_id": str(qid),
                             "dieu": f"Điều {dieu_no}" if dieu_no else "",

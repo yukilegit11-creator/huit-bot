@@ -357,7 +357,8 @@ def main():
                     print(f"💓 [OU Portal Heartbeat] {k_msg}")
 
             # --- 2. QUÉT BÀI VIẾT FACEBOOK (Điểm rèn luyện OU) ---
-            if fb_cfg.get("enabled", True):
+            # --- 2. QUÉT BÀI VIẾT FACEBOOK (Tùy chọn, mặc định TẮT khi chỉ quét dangkysukien) ---
+            if fb_cfg.get("enabled", False) and scanner_cfg.get("scan_facebook", False):
                 fb_url = fb_cfg.get("target_page", "https://www.facebook.com/diemrenluyenou")
                 print(f"🔎 [FB OU] Đang quét: {fb_url} (Không lọc từ khóa)...")
                 html = fb_scraper.fetch_url(fb_url)
@@ -402,44 +403,33 @@ def main():
                 else:
                     print("⚠️ [FB OU] Không tải được nội dung HTML của Fanpage.")
 
-            # --- 3. QUÉT CỔNG ĐIỂM RÈN LUYỆN OU (Sự kiện & Thông báo) ---
+            # --- 3. QUÉT CỔNG ĐIỂM RÈN LUYỆN OU (https://diemrl.ou.edu.vn/test/diemrl/dangkysukien) ---
             if fresh_cfg.get("ou_portal", {}).get("enabled", True):
-                # A. Quét sự kiện đăng ký
-                print("🔎 [Cổng ĐRL OU] Đang kiểm tra danh sách sự kiện mới...")
+                print(f"🔎 [Cổng ĐRL OU] Đang quét: {portal_scraper.EVENTS_URL}...")
                 ok_ev, events, msg_ev = portal_scraper.fetch_events()
                 if ok_ev:
-                    new_ev_count = 0
-                    for ev in events:
-                        eid = ev["id"]
-                        title = ev["title"]
+                    if len(events) == 0:
+                        print("  -> Danh sách sự kiện: 0 (Chưa có sự kiện nào mở đăng ký).")
+                    else:
+                        print(f"  -> Tìm thấy {len(events)} sự kiện trên cổng!")
+                        new_ev_count = 0
+                        for ev in events:
+                            eid = ev.get("activity_id") or ev.get("id")
+                            title = ev.get("title", "Sự kiện")
 
-                        if not database.is_activity_seen(eid, db_file=DB_FILE):
-                            new_ev_count += 1
-                            database.record_seen_activity(ev, is_sent=True, db_file=DB_FILE)
-                            database.add_crawled_activity(ev, action_type="NEW", is_sent=True, db_file=DB_FILE)
-                            database.log_event("ACTIVITY_NEW", f"Phát hiện sự kiện ĐRL OU mới: {title[:60]}", db_file=DB_FILE)
+                            if not database.is_activity_seen(eid, db_file=DB_FILE):
+                                new_ev_count += 1
+                                database.record_seen_activity(ev, is_sent=True, db_file=DB_FILE)
+                                database.add_crawled_activity(ev, action_type="NEW", is_sent=True, db_file=DB_FILE)
+                                database.log_event("ACTIVITY_NEW", f"Phát hiện sự kiện ĐRL OU mới: {title[:60]}", db_file=DB_FILE)
 
-                            ev_msg = format_ou_event_message(ev, bot_name=bot_name)
-                            dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
+                                ev_msg = format_ou_event_message(ev, bot_name=bot_name)
+                                dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
 
-                    if new_ev_count > 0:
-                        print(f"🎉 [Cổng ĐRL OU] Đã phát hiện và gửi {new_ev_count} sự kiện mới!")
+                        if new_ev_count > 0:
+                            print(f"🎉 [Cổng ĐRL OU] Đã phát hiện và gửi {new_ev_count} sự kiện mới!")
                 else:
                     print(f"⚠️ [Cổng ĐRL OU] {msg_ev}")
-
-                # B. Quét thông báo chung
-                ok_tb, thongbao_list, msg_tb = portal_scraper.fetch_announcements()
-                if ok_tb:
-                    for tb in thongbao_list:
-                        tbid = tb["id"]
-                        tb_content = tb["content"]
-                        if not database.is_activity_seen(tbid, db_file=DB_FILE):
-                            database.record_seen_activity(tb, is_sent=True, db_file=DB_FILE)
-                            database.add_crawled_activity(tb, action_type="ANNOUNCEMENT", is_sent=True, db_file=DB_FILE)
-                            database.log_event("ANNOUNCEMENT_NEW", f"Thông báo ĐRL OU mới: {tb_content[:60]}", db_file=DB_FILE)
-
-                            tb_msg = format_ou_announcement_message(tb, bot_name=bot_name)
-                            dispatch_zalo_message(zalo_disp, tb_msg, item_id=tbid)
 
             # Nghỉ ngơi giữa các chu kỳ quét
             time.sleep(interval)
