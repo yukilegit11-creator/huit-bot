@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import re
 import hashlib
 from datetime import datetime, timezone, timedelta
 
@@ -15,7 +16,41 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import database
 from ou_scraper import OUPortalScraper, OUFacebookScraper
-from zalo_sender import ZaloDispatcher, extract_form_links, extract_post_title
+from zalo_sender import ZaloDispatcher
+
+def extract_form_links(text: str) -> list:
+    if not text:
+        return []
+    patterns = [
+        r'https?://forms\.gle/[a-zA-Z0-9_\-]+',
+        r'https?://docs\.google\.com/forms/[^\s\)\"\'>]+',
+        r'https?://docs\.google\.com/document/[^\s\)\"\'>]+',
+        r'https?://docs\.google\.com/spreadsheets/[^\s\)\"\'>]+',
+        r'https?://forms\.office\.com/[^\s\)\"\'>]+',
+        r'https?://(?:bit\.ly|tinyurl\.com|shorturl\.at)/[a-zA-Z0-9_\-]+',
+    ]
+    found = []
+    for pat in patterns:
+        matches = re.findall(pat, text, re.IGNORECASE)
+        for m in matches:
+            clean_m = m.rstrip('.,;:)')
+            if clean_m not in found:
+                found.append(clean_m)
+    return found
+
+
+def extract_post_title(text: str, max_len: int = 150) -> str:
+    if not text:
+        return "Thông báo mới"
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    for line in lines:
+        if line.startswith("http://") or line.startswith("https://"):
+            continue
+        cleaned = re.sub(r'^[\W_]+', '', line)
+        if len(cleaned) >= 5:
+            return cleaned[:max_len]
+    return lines[0][:max_len] if lines else "Thông báo mới"
+
 from zlapi.models import Message, ThreadType
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -358,6 +393,17 @@ def main():
             max_age_hours = scanner_cfg.get("max_post_age_hours", 3.0)
 
             # Cập nhật cookies Facebook nếu có thay đổi từ config
+            # Cập nhật cookies Facebook tự động kế thừa từ VAA
+            vaa_cfg_path = os.path.join(ROOT_DIR, "vaabot.json")
+            if os.path.exists(vaa_cfg_path):
+                try:
+                    with open(vaa_cfg_path, "r", encoding="utf-8") as vf:
+                        v_cfg = json.load(vf)
+                        v_cookies = v_cfg.get("fb_cookies", {})
+                        if v_cookies:
+                            fb_scraper.update_cookies(v_cookies)
+                except Exception:
+                    pass
             new_fb_cookies = fresh_cfg.get("fb_cookies", {})
             if new_fb_cookies:
                 fb_scraper.update_cookies(new_fb_cookies)
@@ -374,7 +420,7 @@ def main():
 
             # --- 2. QUÉT BÀI VIẾT FACEBOOK (Điểm rèn luyện OU) ---
             # --- 2. QUÉT BÀI VIẾT FACEBOOK (Tùy chọn, mặc định TẮT khi chỉ quét dangkysukien) ---
-            if fb_cfg.get("enabled", False) and scanner_cfg.get("scan_facebook", False):
+            if fb_cfg.get("enabled", True) and scanner_cfg.get("scan_facebook", True):
                 fb_url = fb_cfg.get("target_page", "https://www.facebook.com/diemrenluyenou")
                 print(f"🔎 [FB OU] Đang quét: {fb_url} (Không lọc từ khóa)...")
                 html = fb_scraper.fetch_url(fb_url)
@@ -384,7 +430,7 @@ def main():
                     send_cookie_error_alert(zalo_disp, "Facebook Comet (VAA Cookies)", "Cookie Facebook bị Checkpoint/Hết hạn trên Fanpage OU")
 
                 if html:
-                    posts = fb_scraper.parse_posts(html, max_age_hours=max_age_hours)
+                    posts = fb_scraper.parse_posts(html, max_age_hours=max_age_hours, page_url=fb_url)
                     print(f"  -> Tìm thấy {len(posts)} bài viết hợp lệ.")
                     new_fb_count = 0
 

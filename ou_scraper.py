@@ -1,3 +1,4 @@
+from scraper import FacebookCometScraper
 import os
 import sys
 import time
@@ -425,112 +426,7 @@ class OUPortalScraper:
             return False, [], f"Lỗi lấy thông báo ĐRL OU: {e}"
 
 
-class OUFacebookScraper:
+class OUFacebookScraper(FacebookCometScraper):
     def __init__(self, cookies: dict = None, page_url: str = "https://www.facebook.com/diemrenluyenou"):
+        super().__init__(cookies=cookies)
         self.page_url = page_url
-        self.session = requests.Session()
-        self.session.headers.update(DESKTOP_HEADERS)
-        self.cookie_expired = False
-        if cookies:
-            self.session.cookies.update(cookies)
-
-    def update_cookies(self, cookies: dict):
-        self.session.cookies.clear()
-        self.session.cookies.update(cookies)
-        self.cookie_expired = False
-
-    def fetch_url(self, url: str) -> str:
-        target_url = url.replace("mbasic.facebook.com", "www.facebook.com").replace("m.facebook.com", "www.facebook.com")
-        try:
-            resp = self.session.get(target_url, timeout=30, allow_redirects=True)
-            if resp.status_code == 200:
-                text_low = resp.text.lower()
-                is_chk = "/checkpoint/" in resp.url or "/login/" in resp.url or '"is_checkpointed":true' in text_low or 'id="login_top"' in text_low
-                if is_chk:
-                    self.cookie_expired = True
-                    print(f"⚠️ Phát hiện Cookie Facebook OU bị Checkpoint/Hết hạn. Chuyển sang quét Ẩn danh (Guest Mode)...")
-                    anon = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
-                    if anon.status_code == 200:
-                        return anon.text
-                return resp.text
-            else:
-                anon = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
-                return anon.text if anon.status_code == 200 else ""
-        except Exception as e:
-            print(f"⚠️ Lỗi kết nối Facebook OU: {e}")
-            try:
-                anon = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
-                return anon.text if anon.status_code == 200 else ""
-            except Exception:
-                return ""
-
-    def parse_posts(self, html_text: str, max_age_hours: float = 3.0) -> list:
-        if not html_text:
-            return []
-
-        soup = BeautifulSoup(html_text, "html.parser")
-        scripts = soup.find_all("script", attrs={"type": "application/json"})
-        posts = []
-        now_ts = datetime.now(timezone.utc).timestamp()
-
-        for s in scripts:
-            if not s.string:
-                continue
-            try:
-                data = json.loads(s.string)
-                self._extract_from_json(data, posts, now_ts, max_age_hours)
-            except Exception:
-                pass
-
-        # Deduplicate by post_id
-        unique_posts = []
-        seen_pids = set()
-        for p in posts:
-            pid = p["post_id"]
-            if pid not in seen_pids:
-                seen_pids.add(pid)
-                unique_posts.append(p)
-
-        return unique_posts
-
-    def _extract_from_json(self, obj, posts: list, now_ts: float, max_age_hours: float):
-        if isinstance(obj, dict):
-            if "message" in obj and isinstance(obj["message"], dict) and "text" in obj["message"]:
-                txt = str(obj["message"]["text"]).strip()
-                if len(txt) >= 15:
-                    pid = str(obj.get("post_id") or obj.get("id") or "")
-                    if not pid or len(pid) < 5:
-                        pid = hashlib.md5(txt[:120].encode("utf-8")).hexdigest()
-
-                    # Extract creation time
-                    ctime = obj.get("creation_time") or obj.get("publish_time")
-                    post_time_str = "Vừa xong"
-                    if ctime and isinstance(ctime, (int, float)):
-                        if ctime > 1e11:
-                            ctime = ctime / 1000.0
-                        # Lọc thời gian bài viết (<= max_age_hours)
-                        age_hours = (now_ts - ctime) / 3600.0
-                        if age_hours > max_age_hours:
-                            return
-                        post_time_str = datetime.fromtimestamp(ctime, tz=timezone.utc).astimezone(VN_TZ).strftime("%d/%m/%Y %H:%M:%S")
-
-                    author = "Điểm rèn luyện OU"
-                    if obj.get("actors") and isinstance(obj["actors"], list) and len(obj["actors"]) > 0:
-                        author = obj["actors"][0].get("name", author)
-
-                    url = obj.get("permalink_url") or obj.get("url") or f"https://www.facebook.com/{pid}"
-
-                    posts.append({
-                        "post_id": pid,
-                        "content": txt,
-                        "post_url": url,
-                        "posted_time": post_time_str,
-                        "author": author,
-                        "creation_time": ctime
-                    })
-
-            for v in obj.values():
-                self._extract_from_json(v, posts, now_ts, max_age_hours)
-        elif isinstance(obj, list):
-            for item in obj:
-                self._extract_from_json(item, posts, now_ts, max_age_hours)
