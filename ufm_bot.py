@@ -267,7 +267,7 @@ def run_bot():
     print("🔌 Khởi động kết nối Zalo cho Bot UFM (Kênh 4)...")
     if zalo.connect():
         print("✅ Kết nối Zalo Bot UFM thành công!")
-        zalo.start_listener()
+        # zalo.start_listener() (Tắt WebSocket listener để tránh xung đột đa bot)
     else:
         print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, Bot UFM vẫn tiếp tục cào và lưu DB.")
 
