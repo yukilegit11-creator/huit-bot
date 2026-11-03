@@ -162,6 +162,113 @@ class UFMBotZaloClient(ZaloAPI):
                 pass
             return
 
+        # 2.6 Lệnh liệt kê danh sách nhóm nhận tin của bot
+        if lower_txt in ("/listgroup", "/groups", "danh sách nhóm", "/dsnhom", "ds nhóm", "nhóm zalo"):
+            cfg_data = getattr(self, "full_cfg", {})
+            if not cfg_data:
+                try:
+                    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                        cfg_data = json.load(f)
+                except Exception:
+                    cfg_data = {}
+            tgs = cfg_data.get("zalo", {}).get("target_groups", [])
+            lines = [
+                f"📋 [{self.bot_name} - DANH SÁCH MỤC TIÊU NHẬN TIN]",
+                "━━━━━━━━━━━━━━━━━━━━"
+            ]
+            for i, g in enumerate(tgs):
+                t_kind = "Nhóm" if g.get("type") == "GROUP" else "Cá nhân"
+                en = "✅ Bật" if g.get("enabled", True) else "⏸️ Tắt"
+                lines.append(f"{i+1}. {g.get('name')} ({t_kind}) - {en}")
+                lines.append(f"   ID: {g.get('id')}")
+            lines.extend([
+                "━━━━━━━━━━━━━━━━━━━━",
+                "💡 Cú pháp bắn tin test:",
+                "👉 /test <tên nhóm hoặc ID> (Ví dụ: /test demo)",
+                "👉 /testall (Bắn thử toàn bộ nhóm đang bật)",
+                f"🤖 {self.bot_name}"
+            ])
+            try:
+                self.send(Message(text="\n".join(lines)), thread_id=thread_id, thread_type=thread_type)
+            except Exception:
+                pass
+            return
+
+        # 2.7 Lệnh bắn thử toàn bộ nhóm đang bật
+        if lower_txt in ("/testall", "test all", "test tất cả", "bắn test all"):
+            cfg_data = getattr(self, "full_cfg", {})
+            if not cfg_data:
+                try:
+                    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                        cfg_data = json.load(f)
+                except Exception:
+                    cfg_data = {}
+            tgs = [g for g in cfg_data.get("zalo", {}).get("target_groups", []) if g.get("enabled", True)]
+            dispatcher = ZaloDispatcher(db_file=self.db_file)
+            dispatcher.client = self
+            dispatcher.bot_name = self.bot_name
+            succ, fail = 0, 0
+            for g in tgs:
+                ok, _ = dispatcher.send_test_message_to_target(
+                    target_id=str(g["id"]),
+                    target_type=g.get("type", "GROUP"),
+                    db_file=self.db_file
+                )
+                if ok: succ += 1
+                else: fail += 1
+                time.sleep(1)
+            reply = f"🚀 [{self.bot_name} - TEST TẤT CẢ]\nĐã gửi tin nhắn test tới {succ}/{len(tgs)} nhóm đang bật (Thất bại: {fail})."
+            try:
+                self.send(Message(text=reply), thread_id=thread_id, thread_type=thread_type)
+            except Exception:
+                pass
+            return
+
+        # 2.8 Lệnh bắn thử theo tên nhóm hoặc ID
+        if lower_txt.startswith("/test ") or lower_txt.startswith("test "):
+            target_query = lower_txt[6:].strip() if lower_txt.startswith("/test ") else lower_txt[5:].strip()
+            cfg_data = getattr(self, "full_cfg", {})
+            if not cfg_data:
+                try:
+                    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                        cfg_data = json.load(f)
+                except Exception:
+                    cfg_data = {}
+            tgs = cfg_data.get("zalo", {}).get("target_groups", [])
+            matched_tg = None
+            for g in tgs:
+                if target_query == str(g.get("id")) or target_query in g.get("name", "").lower():
+                    matched_tg = g
+                    break
+            
+            dispatcher = ZaloDispatcher(db_file=self.db_file)
+            dispatcher.client = self
+            dispatcher.bot_name = self.bot_name
+
+            if matched_tg:
+                ok, msg = dispatcher.send_test_message_to_target(
+                    target_id=str(matched_tg["id"]),
+                    target_type=matched_tg.get("type", "GROUP"),
+                    db_file=self.db_file
+                )
+                reply = f"🚀 [{self.bot_name}]\n{msg}"
+            else:
+                if target_query.isdigit() and len(target_query) > 5:
+                    ok, msg = dispatcher.send_test_message_to_target(
+                        target_id=target_query,
+                        target_type="GROUP",
+                        db_file=self.db_file
+                    )
+                    reply = f"🚀 [{self.bot_name}]\n{msg}"
+                else:
+                    reply = f"⚠️ Không tìm thấy nhóm nào khớp với '{target_query}'.\nGõ /listgroup để xem danh sách nhóm!"
+
+            try:
+                self.send(Message(text=reply), thread_id=thread_id, thread_type=thread_type)
+            except Exception:
+                pass
+            return
+
         # 3. Phân tích thông tin sinh viên
         try:
             import smart_parser
@@ -468,7 +575,7 @@ class ZaloDispatcher:
 
         # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Trần Lê Phát
         test_targets = [
-            {"id": "475259879796859360", "name": "demo", "type": ThreadType.GROUP},
+            {"id": "7456361874031804652", "name": "demo", "type": ThreadType.GROUP},
             {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": ThreadType.USER}
         ]
         any_succ = False
@@ -485,12 +592,12 @@ class ZaloDispatcher:
         return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát."
 
     def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
-        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 475259879796859360)."""
+        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 7456361874031804652)."""
         if not self.client:
             if not self.connect():
                 return False, "Không thể kết nối Zalo Web! Vui lòng cập nhật Cookie Zalo trong cài đặt."
 
-        demo_id = "475259879796859360"
+        demo_id = "7456361874031804652"
         now_vn = database.get_vn_now_str()
 
         # Tìm hoạt động mới nhất hoặc dùng hoạt động mẫu
@@ -551,3 +658,55 @@ class ZaloDispatcher:
             print(f"❌ [Zalo] {err_str}")
             database.log_event("ERROR", err_str, db_file=db_file)
             return False, err_str
+
+    def send_test_message_to_target(self, target_id: str, target_type: str = "GROUP", custom_text: str = None, db_file: str = None) -> tuple:
+        """Gửi tin nhắn test tới một target_id cụ thể (GROUP hoặc USER) của bot."""
+        if not self.client:
+            if not self.connect():
+                return False, "Không thể kết nối Zalo API!"
+
+        now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+        is_group = str(target_type).upper() == "GROUP"
+        t_type = ThreadType.GROUP if is_group else ThreadType.USER
+
+        if custom_text and custom_text.strip():
+            msg_text = custom_text.strip()
+        else:
+            tag_str = "@All\n" if is_group else ""
+            msg_text = (
+                f"{tag_str}🧪 [KIỂM TRA TÍN HIỆU ZALO 24/7] 🧪\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🤖 Bot phát tín hiệu: {self.bot_name}\n"
+                f"🎯 Mục tiêu: {target_id} ({'Nhóm' if is_group else 'Cá nhân'})\n"
+                f"⏰ Thời gian: {now_vn}\n"
+                f"🌐 Máy chủ: VPS Cloud (180.93.125.40)\n"
+                f"✅ Trạng thái kết nối: Hoạt động hoàn hảo 100%!\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🎯 Hệ thống đã sẵn sàng bắn thông báo tự động ngay khi có bài viết hoặc sự kiện mới."
+            )
+
+        if is_group:
+            mention = Mention(uid="-1", length=len("@All"), offset=0)
+            msg_obj = Message(text=msg_text, mention=mention)
+        else:
+            msg_obj = Message(text=msg_text)
+
+        try:
+            res = self.client.send(msg_obj, thread_id=str(target_id), thread_type=t_type)
+            if hasattr(res, "error_code") and res.error_code not in (0, None):
+                err_msg = getattr(res, "error_message", "Thất bại")
+                return False, f"Zalo báo lỗi #{res.error_code}: {err_msg}"
+            msg_id = getattr(res, "msgId", None) or getattr(res, "message_id", None)
+            log_str = f"[{self.bot_name}] Đã gửi tin nhắn test thành công tới {target_id}!"
+            print(f"📨 [Zalo Test] {log_str} (msgId: {msg_id})")
+            db_t = db_file or getattr(self, "db_file", None) or database.DB_FILE
+            try:
+                database.log_event("TEST", log_str, db_file=db_t)
+            except Exception:
+                pass
+            return True, f"Đã gửi tin nhắn test thành công tới {target_id} (Mã tin: {msg_id or 'OK'})!"
+        except Exception as e:
+            err_str = f"Lỗi gửi tin nhắn test tới {target_id}: {e}"
+            print(f"❌ [Zalo Test] {err_str}")
+            return False, err_str
+

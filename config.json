@@ -65,72 +65,93 @@
       "id": "target_13",
       "name": "TT Đổi mới Sáng tạo & Khởi nghiệp HUIT",
       "url": "https://www.facebook.com/hotrosinhvienssc.huit"
+    },
+    {
+      "id": "target_14",
+      "name": "Yu Ki (FB Profile)",
+      "url": "https://www.facebook.com/profile.php?id=61595329828799"
     }
   ],
   "fb_cookies": {
-    "datr": "QbjDap5S3XtDDPF8wUPLvuRU",
-    "fr": "1FY5Bow7D6XcJftMv.AWfp38T4Wx0A9Ab9Wxaz5FoR3NJby5yXlSl76d-zx2SiE3r_U1U.Bq54po..AAA.0.0.Bq54po.AWe-Xvi62pncNSW9JS1eCy0pExg",
-    "xs": "20%3ADnGCXmH-2sB1vQ%3A2%3A1792852867%3A-1%3A-1%3A%3AAc3lYDPrBuhjl21yprnKu92s0vXiAH47zpgUHNbQKx4",
-    "c_user": "100087432870248",
-    "sb": "QbjDantBe3VGruYaEe2PSt3i",
     "ps_l": "1",
+    "datr": "yE_oaikA_BpQ9ptfhYVdVcJr",
+    "fr": "1KicnKIphdBicOGvp.AWenQGaxDP2tU2Q9x_XcF5k2rrvXNDKKixAsz1RARGvb3PW90HQ.Bq6ZRU..AAA.0.0.Bq6ZRU.AWcuJ3L6qfuDEakhVTqTVNiBr5E",
+    "xs": "43%3AS2vZd3sAq5XXrg%3A2%3A1793692750%3A-1%3A-1%3A%3AAc3LJnzUc1vqymcab_Cprs7gkwddTC0-SNhOCn7TTg",
+    "locale": "vi_VN",
+    "c_user": "61574475721537",
+    "presence": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793692760303%2C%22v%22%3A1%7D",
+    "dpr": "1.2000000476837158",
     "ps_n": "1",
-    "dpr": "1.5",
-    "wd": "1276x574"
+    "sb": "yE_oamQF97AaPZ6Q_kZ6_A7F",
+    "wd": "1600x742"
   },
   "zalo": {
-    "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
+    "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",
     "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
     "target_group_name": "demo",
     "auto_tag_all": true,
     "target_groups": [
       {
-        "id": "475259879796859360",
+        "id": "7456361874031804652",
         "name": "demo",
+        "type": "GROUP",
         "enabled": true
       },
       {
-        "id": "3556085774387844897",
-        "name": "TBao điểm rèn luyện",
-        "enabled": false
-      },
-      {
-        "id": "7086011981379160878",
+        "id": "267037922319116834",
         "name": "Săn drl Hu ít",
-        "enabled": false
+        "type": "GROUP",
+        "enabled": true
       },
       {
-        "id": "979670734727637728",
+        "id": "7816659739943537644",
         "name": "Thông báo drl",
-        "enabled": false
+        "type": "GROUP",
+        "enabled": true
       },
       {
-        "id": "6036269726715046333",
-        "name": "Thông báo ‼️",
-        "enabled": false
+        "id": "6270243835909820050",
+        "name": "Huit _CTV BOT tbao Zalo",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "8647983209102501525",
+        "name": "TSTD Huit 2027",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "3098651132176283286",
+        "name": "Thông báo P. CTSV HUIT 2",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "3777114335248827133",
+        "name": "Marketing K26 - HUIT",
+        "type": "GROUP",
+        "enabled": true
       },
       {
         "id": "7662918962461429024",
         "name": "Trần Lê Phát",
         "type": "USER",
-        "enabled": false
+        "enabled": true
       }
     ],
     "cookies": {
-      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA7SvxleZan.1",
-      "_gat": "1",
-      "_ga": "GA1.2.1298407733.1793676454",
+      "zpdid": "41BwdLBrfJiN5vsKLVl9F1aUdPHO_ymu",
+      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HH6Mn7vs0KLGvTOb-i8GvV0bLfGRCg25y7LtuI",
       "_zlang": "vn",
-      "_ga_3EM8ZPYYN3": "GS2.2.s1793681845",
-      "_gid": "GA1.2.120731817.1793676458",
-      "zpw_sek": "r4No.466784528.a0.SKth2jCgIkvGNy-3OSuTc3liUFDYz3_ADw9dp1ciLy8X_cNf5VWgpIVuRA01yo2wFS2drHCJ4CyWpsRcgQGTc0",
-      "ZConsentDenied": "timestamp=1793679453752&location=https://zalo.me/pc",
-      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA7SvxleZan.1",
-      "_ga_YS1V643LGV": "GS2.1.s1793684527",
-      "app.event.zalo.me": "3236038380622178657",
-      "zpsid": "IdfO.466784528.13.iNFf3PvFmmMEtX4Uaa_31UiyiJ6eUVGzgdhnFP3rZbP3GfHbdpIzxFHFmmK"
-    }
+      "zpsid": "eMKnVcAlVqAZUYmFEOO_FBK8CMicYZiuiG0hQYEKIdpBI3ujAy9ME-4_2oiQp7SXYIaG87xZ7H6f45b6VCLIIUy-1qmSq0b8_1rRH3RNNLBu72n009P4LcK",
+      "__zi": "3000.QOBlzDCV2uGerkFzm0LMrMNQv_d43HxKPzEe_ie46TPgqAxv.1",
+      "zlogtype": "EXPIRED",
+      "zpw_sek": "Qpnh.404184050.a0.juUpxhnV0b8_AeS_x76G9xPJzKplIx8MgmV1Jve8-qI4FkSUc4EWGFaTfsQCJAq5iCNDMkMfxtAqSDoi91kG9m",
+      "app.event.zalo.me": "5649720127043044590"
+    },
+    "secret_key": "1fvQhWykcIOw9U20g4l7AA=="
   },
   "supabase": {
     "enabled": true,
@@ -150,7 +171,7 @@
     "drl"
   ],
   "scanner": {
-    "max_post_age_hours": 2.0,
+    "max_post_age_hours": 2,
     "check_interval_seconds": 30,
     "delay_between_pages_seconds": 9,
     "max_post_age_minutes": 10
@@ -192,7 +213,7 @@
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1801460070.560389,
+        "expirationDate": 1801468758.435018,
         "hostOnly": false,
         "httpOnly": true,
         "name": "fr",
@@ -201,11 +222,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "1dAtNBSnXaVwDzODb.AWdYHAzWkzwRov2f4QPM92RagnOPgKSMaNHErqPlI23ExpgGLpk.Bq6WpN..AAA.0.0.Bq6XJj.AWej4-zEGSfo5nS165Gsn3xnZZk"
+        "value": "1KicnKIphdBicOGvp.AWenQGaxDP2tU2Q9x_XcF5k2rrvXNDKKixAsz1RARGvb3PW90HQ.Bq6ZRU..AAA.0.0.Bq6ZRU.AWcuJ3L6qfuDEakhVTqTVNiBr5E"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1825217999.406145,
+        "expirationDate": 1825228758.435071,
         "hostOnly": false,
         "httpOnly": true,
         "name": "xs",
@@ -214,7 +235,7 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "11%3AOOp5G84zDO3otQ%3A2%3A1793610749%3A-1%3A-1%3A%3AAc3l7Waui5PXsZJlL1MABGmQXPaWeqn7Y0C13Rds-g"
+        "value": "43%3AS2vZd3sAq5XXrg%3A2%3A1793692750%3A-1%3A-1%3A%3AAc3LJnzUc1vqymcab_Cprs7gkwddTC0-SNhOCn7TTg"
       },
       {
         "domain": ".facebook.com",
@@ -231,7 +252,7 @@
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1825217999.405976,
+        "expirationDate": 1825228758.434924,
         "hostOnly": false,
         "httpOnly": false,
         "name": "c_user",
@@ -252,11 +273,11 @@
         "secure": true,
         "session": true,
         "storeId": null,
-        "value": "C%7B%22lm3%22%3A%22u.100067484752827%22%2C%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793684137561%2C%22v%22%3A1%7D"
+        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793692760303%2C%22v%22%3A1%7D"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1794288874,
+        "expirationDate": 1794297560,
         "hostOnly": false,
         "httpOnly": false,
         "name": "dpr",
@@ -282,7 +303,7 @@
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1828170752.038199,
+        "expirationDate": 1828252756.407321,
         "hostOnly": false,
         "httpOnly": true,
         "name": "sb",
@@ -295,7 +316,7 @@
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1794288874,
+        "expirationDate": 1794297560,
         "hostOnly": false,
         "httpOnly": false,
         "name": "wd",

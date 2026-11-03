@@ -2,6 +2,8 @@ import os
 import sys
 import json
 import sqlite3
+import time
+import asyncio
 from typing import Optional
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -467,7 +469,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
     }
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
-        {"id": "475259879796859360", "name": "demo"},
+        {"id": "7456361874031804652", "name": "demo"},
         {"id": "7662918962461429024", "name": "Trần Lê Phát"}
     ]
     sent_any = False
@@ -486,7 +488,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -535,6 +537,160 @@ def sync_messenger_config_to_all(messenger_block: dict):
                     json.dump(c, f, ensure_ascii=False, indent=2)
             except Exception as e:
                 print(f"⚠️ [Messenger Sync] Lỗi cập nhật {cp}: {e}")
+
+
+# ==================== QUAD BOT ZALO TESTING ENDPOINTS ====================
+
+@app.get("/api/zalo/quad-target-groups")
+def api_quad_target_groups():
+    """Lấy danh sách toàn bộ các nhóm mục tiêu Zalo của cả 4 Bot để phục vụ kiểm tra/bắn tin."""
+    bots_cfg = [
+        {"bot_id": "bot1", "name": "Bot 1 - HUIT (Yuki 1)", "cfg_path": CONFIG_FILE},
+        {"bot_id": "bot2", "name": "Bot 2 - VAA (Yuki 2)", "cfg_path": os.path.join(SCRIPT_DIR, "vaabot.json")},
+        {"bot_id": "bot3", "name": "Bot 3 - IUH (Yuki 3 ĐRL)", "cfg_path": os.path.join(SCRIPT_DIR, "config_iuh.json")},
+        {"bot_id": "bot4", "name": "Bot 4 - UFM (Yuki 4 ĐRL)", "cfg_path": os.path.join(SCRIPT_DIR, "config_ufm.json")},
+    ]
+    result = []
+    for b in bots_cfg:
+        cfg_p = b["cfg_path"]
+        groups = []
+        if os.path.exists(cfg_p):
+            try:
+                with open(cfg_p, "r", encoding="utf-8") as fp:
+                    cdata = json.load(fp)
+                    groups = cdata.get("zalo", {}).get("target_groups", [])
+            except Exception as e:
+                print(f"Lỗi đọc config {cfg_p}: {e}")
+        result.append({
+            "bot_id": b["bot_id"],
+            "bot_name": b["name"],
+            "config_path": cfg_p,
+            "groups": groups
+        })
+    return {"status": "ok", "bots": result}
+
+@app.post("/api/zalo/send-test-target")
+async def api_send_test_target(req: Request):
+    """Bắn tin nhắn thử nghiệm tới 1 nhóm hoặc người nhận cụ thể của bất kỳ Bot nào trong 4 Bot."""
+    try:
+        data = await req.json()
+    except Exception:
+        data = {}
+
+    bot_id = data.get("bot_id", "bot1")
+    target_id = str(data.get("target_id", "")).strip()
+    target_type = data.get("target_type", "GROUP")
+    target_name = data.get("target_name", target_id)
+    custom_msg = data.get("custom_message", None)
+
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Thiếu target_id (ID nhóm hoặc người nhận)!")
+
+    bot_map = {
+        "bot1": {"name": "Bot 1 - HUIT (Yuki 1)", "cfg": CONFIG_FILE, "db": database.DB_FILE},
+        "bot2": {"name": "Bot 2 - VAA (Yuki 2)", "cfg": os.path.join(SCRIPT_DIR, "vaabot.json"), "db": database.BOT2_DB_FILE},
+        "bot3": {"name": "Bot 3 - IUH (Yuki 3 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_iuh.json"), "db": database.IUH_DB_FILE},
+        "bot4": {"name": "Bot 4 - UFM (Yuki 4 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_ufm.json"), "db": database.UFM_DB_FILE},
+    }
+
+    bot_info = bot_map.get(bot_id, bot_map["bot1"])
+    from zalo_sender import ZaloDispatcher
+    dispatcher = ZaloDispatcher(bot_info["cfg"], db_file=bot_info["db"])
+    dispatcher.bot_name = bot_info["name"]
+
+    ok, msg = dispatcher.send_test_message_to_target(
+        target_id=target_id,
+        target_type=target_type,
+        custom_text=custom_msg,
+        db_file=bot_info["db"]
+    )
+    if ok:
+        return {
+            "status": "ok",
+            "success": True,
+            "message": msg,
+            "target_name": target_name,
+            "target_id": target_id,
+            "bot_name": bot_info["name"]
+        }
+    else:
+        raise HTTPException(status_code=500, detail=f"[{bot_info['name']}] {msg}")
+
+@app.post("/api/zalo/send-test-all-groups")
+async def api_send_test_all_groups(req: Request):
+    """Bắn tin nhắn thử nghiệm tới toàn bộ các nhóm đang bật của 1 Bot."""
+    try:
+        data = await req.json()
+    except Exception:
+        data = {}
+
+    bot_id = data.get("bot_id", "bot1")
+    bot_map = {
+        "bot1": {"name": "Bot 1 - HUIT (Yuki 1)", "cfg": CONFIG_FILE, "db": database.DB_FILE},
+        "bot2": {"name": "Bot 2 - VAA (Yuki 2)", "cfg": os.path.join(SCRIPT_DIR, "vaabot.json"), "db": database.BOT2_DB_FILE},
+        "bot3": {"name": "Bot 3 - IUH (Yuki 3 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_iuh.json"), "db": database.IUH_DB_FILE},
+        "bot4": {"name": "Bot 4 - UFM (Yuki 4 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_ufm.json"), "db": database.UFM_DB_FILE},
+    }
+
+    bot_info = bot_map.get(bot_id, bot_map["bot1"])
+    from zalo_sender import ZaloDispatcher
+    dispatcher = ZaloDispatcher(bot_info["cfg"], db_file=bot_info["db"])
+    dispatcher.bot_name = bot_info["name"]
+
+    with open(bot_info["cfg"], "r", encoding="utf-8") as fp:
+        cfg_data = json.load(fp)
+
+    tgs = [g for g in cfg_data.get("zalo", {}).get("target_groups", []) if g.get("enabled", True)]
+    results = []
+    for g in tgs:
+        ok, msg = dispatcher.send_test_message_to_target(
+            target_id=str(g["id"]),
+            target_type=g.get("type", "GROUP"),
+            db_file=bot_info["db"]
+        )
+        results.append({
+            "id": g["id"],
+            "name": g.get("name"),
+            "success": ok,
+            "message": msg
+        })
+        await asyncio.sleep(1)
+
+    succ_count = sum(1 for r in results if r["success"])
+    return {
+        "status": "ok",
+        "bot_name": bot_info["name"],
+        "total": len(tgs),
+        "success_count": succ_count,
+        "details": results
+    }
+
+@app.post("/api/zalo/send-demo-alert")
+@app.post("/api/ufm/send-demo-alert")
+def api_master_send_demo_alert():
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
+    # 1. Ưu tiên gửi từ UFM Dispatcher
+    try:
+        from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
+        ufm_cfg = os.path.join(SCRIPT_DIR, "config_ufm.json")
+        ufm_db = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
+        dispatcher = UFMDispatcher(ufm_cfg, db_file=ufm_db)
+        ok, msg = dispatcher.send_demo_group_alert(db_file=ufm_db)
+        if ok:
+            return {"status": "ok", "success": True, "message": msg}
+    except Exception as e:
+        print(f"⚠️ [UFM Demo Alert] Lỗi Dispatcher UFM: {e}")
+
+    # 2. Thử gửi từ Master Dispatcher
+    try:
+        dispatcher = ZaloDispatcher(CONFIG_FILE)
+        if hasattr(dispatcher, "send_demo_group_alert"):
+            ok, msg = dispatcher.send_demo_group_alert()
+            return {"status": "ok" if ok else "error", "success": ok, "message": msg}
+        else:
+            return api_test_zalo_alert()
+    except Exception as e:
+        return {"status": "error", "success": False, "message": str(e)}
 
 @app.get("/api/messenger/status")
 @app.get("/api/bot2/messenger/status")
@@ -940,7 +1096,7 @@ Chúc các bạn theo dõi thuận lợi!""",
     }
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
-        {"id": "475259879796859360", "name": "demo"},
+        {"id": "7456361874031804652", "name": "demo"},
         {"id": "7662918962461429024", "name": "Trần Lê Phát"}
     ]
     sent_any = False
@@ -959,7 +1115,7 @@ Chúc các bạn theo dõi thuận lợi!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -1168,7 +1324,7 @@ def api_bot3_test_zalo_alert():
         "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
     }
     test_targets = [
-        {"id": "475259879796859360", "name": "demo", "type": "GROUP"},
+        {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},
         {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
@@ -1272,6 +1428,11 @@ def dashboard_view():
         </div>
 
         <!-- GITHUB SYNC BUTTON -->
+                <!-- TEST ZALO 4 BOT MODAL BUTTON -->
+        <button onclick="openQuadTestModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs transition flex items-center gap-1.5" title="Mở bảng kiểm tra & bắn tin nhắn test cho từng nhóm Zalo của 4 Bot">
+          <i class="fa-solid fa-vial-circle-check"></i>
+          <span>Test Nhóm Zalo (4 Bot)</span>
+        </button>
         <button id="btn-sync-github-bot1" onclick="syncWithGitHub()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs transition flex items-center gap-2" title="Đồng bộ toàn bộ thay đổi lên GitHub">
           <i class="fa-brands fa-github text-slate-900"></i>
           <span id="github-sync-label-bot1">GitHub Sync</span>
@@ -1528,7 +1689,7 @@ def dashboard_view():
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 7456361874031804652)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
             <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm ĐRL K15)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
           </div>
 
@@ -1966,6 +2127,9 @@ def dashboard_view():
           </div>
 
           <div class="flex items-center gap-3">
+            <button onclick="sendTestToSingleGroup('${{g.id}}', '${{g.name}}', '${{g.type || 'GROUP'}}', 'bot1')" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" title="Gửi tin nhắn test riêng vào nhóm này">
+              <i class="fa-solid fa-paper-plane text-xs"></i> Test
+            </button>
             <button onclick="toggleZaloGroup('${{g.id}}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${{g.enabled ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'}}">
               <i class="fa-solid ${{g.enabled ? 'fa-toggle-on text-emerald-600 text-base' : 'fa-toggle-off text-slate-400 text-base'}}"></i>
               ${{g.enabled ? 'BẬT' : 'TẮT'}}
@@ -2451,6 +2615,287 @@ def dashboard_view():
     setInterval(fetchLogs, 1000);
     setInterval(fetchLatestData, 15000);
   </script>
+
+  <!-- ==================== QUAD BOT ZALO TEST MODAL ==================== -->
+  <div id="quad-test-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-slate-800">
+      <!-- Header -->
+      <div class="p-4 px-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-500/20">
+            <i class="fa-solid fa-vial-circle-check"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base leading-tight">Bắn Tin Nhắn Test Zalo (4 Bot Yuki)</h3>
+            <p class="text-xs text-slate-500">Kiểm tra kết nối và gửi tin test riêng lẻ từng nhóm hoặc tất cả nhóm</p>
+          </div>
+        </div>
+        <button onclick="closeQuadTestModal()" class="w-8 h-8 rounded-lg bg-white/80 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition font-bold text-lg">
+          ✕
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- 4 Bot Selector Tabs -->
+        <div class="grid grid-cols-4 gap-2 bg-slate-100 p-1.5 rounded-xl text-xs font-bold text-center">
+          <button id="quad-tab-bot1" onclick="switchQuadTestBot('bot1')" class="py-2 rounded-lg bg-white text-indigo-700 shadow-xs transition">
+            🎓 Bot 1 (HUIT)
+          </button>
+          <button id="quad-tab-bot2" onclick="switchQuadTestBot('bot2')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            ✈️ Bot 2 (VAA)
+          </button>
+          <button id="quad-tab-bot3" onclick="switchQuadTestBot('bot3')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🔴 Bot 3 (IUH)
+          </button>
+          <button id="quad-tab-bot4" onclick="switchQuadTestBot('bot4')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🏛️ Bot 4 (UFM)
+          </button>
+        </div>
+
+        <!-- Custom message input -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nội dung tin nhắn test (Để trống để dùng mẫu chuẩn @All):</label>
+          <input type="text" id="quad-custom-msg" placeholder="Ví dụ: 🔔 Bot test tín hiệu Zalo hoạt động tốt..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Action bar for selected bot -->
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <span id="quad-bot-title" class="text-xs font-bold text-slate-800">Bot 1 - HUIT</span>
+            <span id="quad-groups-summary" class="text-[11px] text-slate-500 ml-2">Đang tải...</span>
+          </div>
+          <button id="btn-test-all-quad" onclick="triggerTestAllForCurrentBot()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Gửi Test Tất Cả Nhóm
+          </button>
+        </div>
+
+        <!-- Target Groups List -->
+        <div class="space-y-2">
+          <label class="block text-xs font-bold text-slate-700">Danh sách nhóm mục tiêu của Bot này (Bấm "Gửi Test" từng nhóm):</label>
+          <div id="quad-groups-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Live status / log output -->
+        <div id="quad-test-status" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 px-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+        <span>💡 Lệnh trong Zalo: <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-indigo-600">/test &lt;tên nhóm&gt;</code> hoặc <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-indigo-600">/testall</code></span>
+        <button onclick="closeQuadTestModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentQuadBot = 'bot1';
+    let quadBotsData = {{}};
+
+    async function sendTestToSingleGroup(targetId, targetName, targetType, botId) {{
+      if (!confirm('🧪 Bạn có chắc muốn gửi tin nhắn TEST vào: ' + (targetName || targetId) + ' (ID: ' + targetId + ')?')) return;
+      try {{
+        const res = await fetch('/api/zalo/send-test-target', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            bot_id: botId,
+            target_id: targetId,
+            target_type: targetType,
+            target_name: targetName
+          }})
+        }});
+        const data = await res.json();
+        if (res.ok && data.success) {{
+          alert('✅ ' + data.message);
+        }} else {{
+          alert('❌ ' + (data.detail || data.message || 'Lỗi gửi tin test'));
+        }}
+      }} catch (err) {{
+        alert('Lỗi gửi tin test: ' + err);
+      }}
+    }}
+
+    async function openQuadTestModal(botId) {{
+      if (!botId) botId = 'bot1';
+      const modal = document.getElementById('quad-test-modal');
+      if (modal) modal.classList.remove('hidden');
+      await loadQuadTargetGroups();
+      switchQuadTestBot(botId);
+    }}
+
+    function closeQuadTestModal() {{
+      const modal = document.getElementById('quad-test-modal');
+      if (modal) modal.classList.add('hidden');
+    }}
+
+    async function loadQuadTargetGroups() {{
+      try {{
+        const res = await fetch('/api/zalo/quad-target-groups');
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          data.bots.forEach(function(b) {{
+            quadBotsData[b.bot_id] = b;
+          }});
+        }}
+      }} catch (err) {{
+        console.error('Lỗi tải danh sách nhóm quad:', err);
+      }}
+    }}
+
+    function switchQuadTestBot(botId) {{
+      currentQuadBot = botId;
+      var botTabs = ['bot1', 'bot2', 'bot3', 'bot4'];
+      for (var i = 0; i < botTabs.length; i++) {{
+        var b = botTabs[i];
+        var tab = document.getElementById('quad-tab-' + b);
+        if (tab) {{
+          if (b === botId) {{
+            tab.className = 'py-2 rounded-lg bg-white text-indigo-700 shadow-xs transition';
+          }} else {{
+            tab.className = 'py-2 rounded-lg text-slate-600 hover:text-slate-900 transition';
+          }}
+        }}
+      }}
+
+      var botData = quadBotsData[botId];
+      if (!botData) return;
+
+      var titleEl = document.getElementById('quad-bot-title');
+      if (titleEl) titleEl.innerText = botData.bot_name;
+
+      var groups = botData.groups || [];
+      var enabledCount = 0;
+      for (var j = 0; j < groups.length; j++) {{
+        if (groups[j].enabled) enabledCount++;
+      }}
+      var summaryEl = document.getElementById('quad-groups-summary');
+      if (summaryEl) summaryEl.innerText = '(' + enabledCount + '/' + groups.length + ' nhóm đang bật)';
+
+      var container = document.getElementById('quad-groups-list');
+      if (!container) return;
+
+      if (groups.length === 0) {{
+        container.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">Chưa cấu hình nhóm Zalo nào cho Bot này.</div>';
+        return;
+      }}
+
+      var itemsHtml = '';
+      for (var k = 0; k < groups.length; k++) {{
+        var g = groups[k];
+        var isUser = (g.type || '').toUpperCase() === 'USER';
+        var typeBadge = isUser ? '<span class="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">Cá nhân</span>' : '<span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">Nhóm</span>';
+        var statusBadge = g.enabled ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Đang nhận tin</span>' : '<span class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded-full">Đã tắt</span>';
+        var iconClass = isUser ? 'fa-user' : 'fa-users';
+        var bgClass = g.enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400';
+
+        itemsHtml += '<div class="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between transition">' +
+          '<div class="flex items-center gap-3">' +
+            '<div class="w-9 h-9 rounded-xl ' + bgClass + ' flex items-center justify-center font-bold text-sm">' +
+              '<i class="fa-solid ' + iconClass + '"></i>' +
+            '</div>' +
+            '<div>' +
+              '<div class="flex items-center gap-2">' +
+                '<span class="text-xs font-bold text-slate-900">' + g.name + '</span>' +
+                typeBadge + statusBadge +
+              '</div>' +
+              '<div class="text-[11px] text-slate-400 font-mono mt-0.5">ID: ' + g.id + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button onclick="sendTestFromQuadModal('' + g.id + '', '' + (g.name || g.id).replace(/'/g, "\'") + '', '' + (g.type || 'GROUP') + '', '' + botId + '')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5">' +
+            '<i class="fa-solid fa-paper-plane text-xs"></i> Gửi Test' +
+          '</button>' +
+        '</div>';
+      }}
+      container.innerHTML = itemsHtml;
+    }}
+
+    async function sendTestFromQuadModal(targetId, targetName, targetType, botId) {{
+      var statusDiv = document.getElementById('quad-test-status');
+      if (statusDiv) {{
+        statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-amber-50 border-amber-200 text-amber-800 block';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi tin nhắn test tới "' + targetName + '" (' + targetId + ')...';
+      }}
+
+      var customMsg = '';
+      var inputEl = document.getElementById('quad-custom-msg');
+      if (inputEl && inputEl.value) {{
+        customMsg = inputEl.value.trim();
+      }}
+
+      try {{
+        var res = await fetch('/api/zalo/send-test-target', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            bot_id: botId,
+            target_id: targetId,
+            target_type: targetType,
+            target_name: targetName,
+            custom_message: customMsg || null
+          }})
+        }});
+        var data = await res.json();
+        if (res.ok && data.success) {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-800 block';
+            statusDiv.innerHTML = '✅ <b>Thành công!</b> ' + data.message;
+          }}
+        }} else {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+            statusDiv.innerHTML = '❌ <b>Lỗi:</b> ' + (data.detail || data.message || 'Không thể gửi tin');
+          }}
+        }}
+      }} catch (err) {{
+        if (statusDiv) {{
+          statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+          statusDiv.innerHTML = '❌ <b>Lỗi kết nối:</b> ' + err;
+        }}
+      }}
+    }}
+
+    async function triggerTestAllForCurrentBot() {{
+      var botName = (quadBotsData[currentQuadBot] && quadBotsData[currentQuadBot].bot_name) || currentQuadBot;
+      if (!confirm('Bạn có chắc muốn gửi tin nhắn TEST tới TẤT CẢ các nhóm đang bật của ' + botName + '?')) return;
+
+      var statusDiv = document.getElementById('quad-test-status');
+      if (statusDiv) {{
+        statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-amber-50 border-amber-200 text-amber-800 block';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi tin nhắn test lần lượt tới các nhóm...';
+      }}
+
+      try {{
+        var res = await fetch('/api/zalo/send-test-all-groups', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ bot_id: currentQuadBot }})
+        }});
+        var data = await res.json();
+        if (res.ok && data.status === 'ok') {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-800 block';
+            statusDiv.innerHTML = '✅ <b>Hoàn tất!</b> Đã gửi thành công ' + data.success_count + '/' + data.total + ' nhóm của ' + data.bot_name + '.';
+          }}
+        }} else {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+            statusDiv.innerHTML = '❌ <b>Lỗi:</b> ' + (data.detail || 'Không thể gửi test tất cả');
+          }}
+        }}
+      }} catch (err) {{
+        if (statusDiv) {{
+          statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+          statusDiv.innerHTML = '❌ <b>Lỗi kết nối:</b> ' + err;
+        }}
+      }}
+    }}
+  </script>
+
 </body>
 </html>
 """
@@ -2547,6 +2992,11 @@ def dashboard_view_bot2():
         </div>
 
         <!-- GITHUB SYNC BUTTON -->
+                <!-- TEST ZALO 4 BOT MODAL BUTTON -->
+        <button onclick="openQuadTestModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs transition flex items-center gap-1.5" title="Mở bảng kiểm tra & bắn tin nhắn test cho từng nhóm Zalo của 4 Bot">
+          <i class="fa-solid fa-vial-circle-check"></i>
+          <span>Test Nhóm Zalo (4 Bot)</span>
+        </button>
         <button id="btn-sync-github-bot2" onclick="syncWithGitHub()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs transition flex items-center gap-2" title="Đồng bộ toàn bộ thay đổi lên GitHub">
           <i class="fa-brands fa-github text-slate-900"></i>
           <span id="github-sync-label-bot2">GitHub Sync</span>
@@ -2807,7 +3257,7 @@ def dashboard_view_bot2():
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 7456361874031804652)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
             <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm Sự Kiện VAA)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
           </div>
 
@@ -3281,6 +3731,9 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
           </div>
 
           <div class="flex items-center gap-3">
+            <button onclick="sendTestToSingleGroup('${{g.id}}', '${{g.name}}', '${{g.type || 'GROUP'}}', 'bot2')" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200" title="Gửi tin nhắn test riêng vào nhóm này">
+              <i class="fa-solid fa-paper-plane text-xs"></i> Test
+            </button>
             <button onclick="toggleZaloGroup('${{g.id}}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${{g.enabled ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'}}">
               <i class="fa-solid ${{g.enabled ? 'fa-toggle-on text-emerald-600 text-base' : 'fa-toggle-off text-slate-400 text-base'}}"></i>
               ${{g.enabled ? 'BẬT' : 'TẮT'}}
@@ -3784,6 +4237,287 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
     setInterval(fetchLogs, 1000);
     setInterval(fetchLatestData, 15000);
   </script>
+
+  <!-- ==================== QUAD BOT ZALO TEST MODAL ==================== -->
+  <div id="quad-test-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-slate-800">
+      <!-- Header -->
+      <div class="p-4 px-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-500/20">
+            <i class="fa-solid fa-vial-circle-check"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base leading-tight">Bắn Tin Nhắn Test Zalo (4 Bot Yuki)</h3>
+            <p class="text-xs text-slate-500">Kiểm tra kết nối và gửi tin test riêng lẻ từng nhóm hoặc tất cả nhóm</p>
+          </div>
+        </div>
+        <button onclick="closeQuadTestModal()" class="w-8 h-8 rounded-lg bg-white/80 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition font-bold text-lg">
+          ✕
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- 4 Bot Selector Tabs -->
+        <div class="grid grid-cols-4 gap-2 bg-slate-100 p-1.5 rounded-xl text-xs font-bold text-center">
+          <button id="quad-tab-bot1" onclick="switchQuadTestBot('bot1')" class="py-2 rounded-lg bg-white text-indigo-700 shadow-xs transition">
+            🎓 Bot 1 (HUIT)
+          </button>
+          <button id="quad-tab-bot2" onclick="switchQuadTestBot('bot2')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            ✈️ Bot 2 (VAA)
+          </button>
+          <button id="quad-tab-bot3" onclick="switchQuadTestBot('bot3')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🔴 Bot 3 (IUH)
+          </button>
+          <button id="quad-tab-bot4" onclick="switchQuadTestBot('bot4')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🏛️ Bot 4 (UFM)
+          </button>
+        </div>
+
+        <!-- Custom message input -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nội dung tin nhắn test (Để trống để dùng mẫu chuẩn @All):</label>
+          <input type="text" id="quad-custom-msg" placeholder="Ví dụ: 🔔 Bot test tín hiệu Zalo hoạt động tốt..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Action bar for selected bot -->
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <span id="quad-bot-title" class="text-xs font-bold text-slate-800">Bot 1 - HUIT</span>
+            <span id="quad-groups-summary" class="text-[11px] text-slate-500 ml-2">Đang tải...</span>
+          </div>
+          <button id="btn-test-all-quad" onclick="triggerTestAllForCurrentBot()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Gửi Test Tất Cả Nhóm
+          </button>
+        </div>
+
+        <!-- Target Groups List -->
+        <div class="space-y-2">
+          <label class="block text-xs font-bold text-slate-700">Danh sách nhóm mục tiêu của Bot này (Bấm "Gửi Test" từng nhóm):</label>
+          <div id="quad-groups-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Live status / log output -->
+        <div id="quad-test-status" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 px-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+        <span>💡 Lệnh trong Zalo: <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-indigo-600">/test &lt;tên nhóm&gt;</code> hoặc <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-indigo-600">/testall</code></span>
+        <button onclick="closeQuadTestModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentQuadBot = 'bot1';
+    let quadBotsData = {{}};
+
+    async function sendTestToSingleGroup(targetId, targetName, targetType, botId) {{
+      if (!confirm('🧪 Bạn có chắc muốn gửi tin nhắn TEST vào: ' + (targetName || targetId) + ' (ID: ' + targetId + ')?')) return;
+      try {{
+        const res = await fetch('/api/zalo/send-test-target', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            bot_id: botId,
+            target_id: targetId,
+            target_type: targetType,
+            target_name: targetName
+          }})
+        }});
+        const data = await res.json();
+        if (res.ok && data.success) {{
+          alert('✅ ' + data.message);
+        }} else {{
+          alert('❌ ' + (data.detail || data.message || 'Lỗi gửi tin test'));
+        }}
+      }} catch (err) {{
+        alert('Lỗi gửi tin test: ' + err);
+      }}
+    }}
+
+    async function openQuadTestModal(botId) {{
+      if (!botId) botId = 'bot1';
+      const modal = document.getElementById('quad-test-modal');
+      if (modal) modal.classList.remove('hidden');
+      await loadQuadTargetGroups();
+      switchQuadTestBot(botId);
+    }}
+
+    function closeQuadTestModal() {{
+      const modal = document.getElementById('quad-test-modal');
+      if (modal) modal.classList.add('hidden');
+    }}
+
+    async function loadQuadTargetGroups() {{
+      try {{
+        const res = await fetch('/api/zalo/quad-target-groups');
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          data.bots.forEach(function(b) {{
+            quadBotsData[b.bot_id] = b;
+          }});
+        }}
+      }} catch (err) {{
+        console.error('Lỗi tải danh sách nhóm quad:', err);
+      }}
+    }}
+
+    function switchQuadTestBot(botId) {{
+      currentQuadBot = botId;
+      var botTabs = ['bot1', 'bot2', 'bot3', 'bot4'];
+      for (var i = 0; i < botTabs.length; i++) {{
+        var b = botTabs[i];
+        var tab = document.getElementById('quad-tab-' + b);
+        if (tab) {{
+          if (b === botId) {{
+            tab.className = 'py-2 rounded-lg bg-white text-indigo-700 shadow-xs transition';
+          }} else {{
+            tab.className = 'py-2 rounded-lg text-slate-600 hover:text-slate-900 transition';
+          }}
+        }}
+      }}
+
+      var botData = quadBotsData[botId];
+      if (!botData) return;
+
+      var titleEl = document.getElementById('quad-bot-title');
+      if (titleEl) titleEl.innerText = botData.bot_name;
+
+      var groups = botData.groups || [];
+      var enabledCount = 0;
+      for (var j = 0; j < groups.length; j++) {{
+        if (groups[j].enabled) enabledCount++;
+      }}
+      var summaryEl = document.getElementById('quad-groups-summary');
+      if (summaryEl) summaryEl.innerText = '(' + enabledCount + '/' + groups.length + ' nhóm đang bật)';
+
+      var container = document.getElementById('quad-groups-list');
+      if (!container) return;
+
+      if (groups.length === 0) {{
+        container.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">Chưa cấu hình nhóm Zalo nào cho Bot này.</div>';
+        return;
+      }}
+
+      var itemsHtml = '';
+      for (var k = 0; k < groups.length; k++) {{
+        var g = groups[k];
+        var isUser = (g.type || '').toUpperCase() === 'USER';
+        var typeBadge = isUser ? '<span class="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">Cá nhân</span>' : '<span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">Nhóm</span>';
+        var statusBadge = g.enabled ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Đang nhận tin</span>' : '<span class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded-full">Đã tắt</span>';
+        var iconClass = isUser ? 'fa-user' : 'fa-users';
+        var bgClass = g.enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400';
+
+        itemsHtml += '<div class="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between transition">' +
+          '<div class="flex items-center gap-3">' +
+            '<div class="w-9 h-9 rounded-xl ' + bgClass + ' flex items-center justify-center font-bold text-sm">' +
+              '<i class="fa-solid ' + iconClass + '"></i>' +
+            '</div>' +
+            '<div>' +
+              '<div class="flex items-center gap-2">' +
+                '<span class="text-xs font-bold text-slate-900">' + g.name + '</span>' +
+                typeBadge + statusBadge +
+              '</div>' +
+              '<div class="text-[11px] text-slate-400 font-mono mt-0.5">ID: ' + g.id + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button onclick="sendTestFromQuadModal('' + g.id + '', '' + (g.name || g.id).replace(/'/g, "\'") + '', '' + (g.type || 'GROUP') + '', '' + botId + '')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5">' +
+            '<i class="fa-solid fa-paper-plane text-xs"></i> Gửi Test' +
+          '</button>' +
+        '</div>';
+      }}
+      container.innerHTML = itemsHtml;
+    }}
+
+    async function sendTestFromQuadModal(targetId, targetName, targetType, botId) {{
+      var statusDiv = document.getElementById('quad-test-status');
+      if (statusDiv) {{
+        statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-amber-50 border-amber-200 text-amber-800 block';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi tin nhắn test tới "' + targetName + '" (' + targetId + ')...';
+      }}
+
+      var customMsg = '';
+      var inputEl = document.getElementById('quad-custom-msg');
+      if (inputEl && inputEl.value) {{
+        customMsg = inputEl.value.trim();
+      }}
+
+      try {{
+        var res = await fetch('/api/zalo/send-test-target', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            bot_id: botId,
+            target_id: targetId,
+            target_type: targetType,
+            target_name: targetName,
+            custom_message: customMsg || null
+          }})
+        }});
+        var data = await res.json();
+        if (res.ok && data.success) {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-800 block';
+            statusDiv.innerHTML = '✅ <b>Thành công!</b> ' + data.message;
+          }}
+        }} else {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+            statusDiv.innerHTML = '❌ <b>Lỗi:</b> ' + (data.detail || data.message || 'Không thể gửi tin');
+          }}
+        }}
+      }} catch (err) {{
+        if (statusDiv) {{
+          statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+          statusDiv.innerHTML = '❌ <b>Lỗi kết nối:</b> ' + err;
+        }}
+      }}
+    }}
+
+    async function triggerTestAllForCurrentBot() {{
+      var botName = (quadBotsData[currentQuadBot] && quadBotsData[currentQuadBot].bot_name) || currentQuadBot;
+      if (!confirm('Bạn có chắc muốn gửi tin nhắn TEST tới TẤT CẢ các nhóm đang bật của ' + botName + '?')) return;
+
+      var statusDiv = document.getElementById('quad-test-status');
+      if (statusDiv) {{
+        statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-amber-50 border-amber-200 text-amber-800 block';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi tin nhắn test lần lượt tới các nhóm...';
+      }}
+
+      try {{
+        var res = await fetch('/api/zalo/send-test-all-groups', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ bot_id: currentQuadBot }})
+        }});
+        var data = await res.json();
+        if (res.ok && data.status === 'ok') {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-800 block';
+            statusDiv.innerHTML = '✅ <b>Hoàn tất!</b> Đã gửi thành công ' + data.success_count + '/' + data.total + ' nhóm của ' + data.bot_name + '.';
+          }}
+        }} else {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+            statusDiv.innerHTML = '❌ <b>Lỗi:</b> ' + (data.detail || 'Không thể gửi test tất cả');
+          }}
+        }}
+      }} catch (err) {{
+        if (statusDiv) {{
+          statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+          statusDiv.innerHTML = '❌ <b>Lỗi kết nối:</b> ' + err;
+        }}
+      }}
+    }}
+  </script>
+
 </body>
 </html>
 """
@@ -3882,6 +4616,11 @@ def dashboard_view_bot3():
         </div>
 
         <!-- GITHUB SYNC BUTTON -->
+                <!-- TEST ZALO 4 BOT MODAL BUTTON -->
+        <button onclick="openQuadTestModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs transition flex items-center gap-1.5" title="Mở bảng kiểm tra & bắn tin nhắn test cho từng nhóm Zalo của 4 Bot">
+          <i class="fa-solid fa-vial-circle-check"></i>
+          <span>Test Nhóm Zalo (4 Bot)</span>
+        </button>
         <button id="btn-sync-github-bot3" onclick="syncWithGitHub()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs transition flex items-center gap-2">
           <i class="fa-brands fa-github text-slate-900"></i>
           <span id="github-sync-label-bot3">GitHub Sync</span>
@@ -4236,6 +4975,9 @@ def dashboard_view_bot3():
               <div class="text-[10px] text-slate-400 font-mono mt-0.5">ID: ${{g.id}}</div>
             </div>
             <div class="flex items-center gap-2">
+              <button onclick="sendTestToSingleGroup('${{g.id}}', '${{g.name}}', '${{g.type || 'GROUP'}}', 'bot3')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 flex items-center gap-1" title="Gửi tin nhắn test riêng vào nhóm này">
+                <i class="fa-solid fa-paper-plane text-[10px]"></i> Test
+              </button>
               <button onclick="toggleTargetGroup('${{g.id}}', ${{!g.enabled}})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${{g.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}}">
                 ${{g.enabled ? 'Đang nhận' : 'Tắt'}}
               </button>
@@ -4578,6 +5320,287 @@ def dashboard_view_bot3():
     setInterval(fetchLatestData, 10000);
     setInterval(fetchHistory, 10000);
   </script>
+
+  <!-- ==================== QUAD BOT ZALO TEST MODAL ==================== -->
+  <div id="quad-test-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4" style="z-index: 9999;">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-slate-800">
+      <!-- Header -->
+      <div class="p-4 px-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-500/20">
+            <i class="fa-solid fa-vial-circle-check"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base leading-tight">Bắn Tin Nhắn Test Zalo (4 Bot Yuki)</h3>
+            <p class="text-xs text-slate-500">Kiểm tra kết nối và gửi tin test riêng lẻ từng nhóm hoặc tất cả nhóm</p>
+          </div>
+        </div>
+        <button onclick="closeQuadTestModal()" class="w-8 h-8 rounded-lg bg-white/80 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition font-bold text-lg">
+          ✕
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- 4 Bot Selector Tabs -->
+        <div class="grid grid-cols-4 gap-2 bg-slate-100 p-1.5 rounded-xl text-xs font-bold text-center">
+          <button id="quad-tab-bot1" onclick="switchQuadTestBot('bot1')" class="py-2 rounded-lg bg-white text-indigo-700 shadow-xs transition">
+            🎓 Bot 1 (HUIT)
+          </button>
+          <button id="quad-tab-bot2" onclick="switchQuadTestBot('bot2')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            ✈️ Bot 2 (VAA)
+          </button>
+          <button id="quad-tab-bot3" onclick="switchQuadTestBot('bot3')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🔴 Bot 3 (IUH)
+          </button>
+          <button id="quad-tab-bot4" onclick="switchQuadTestBot('bot4')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+            🏛️ Bot 4 (UFM)
+          </button>
+        </div>
+
+        <!-- Custom message input -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nội dung tin nhắn test (Để trống để dùng mẫu chuẩn @All):</label>
+          <input type="text" id="quad-custom-msg" placeholder="Ví dụ: 🔔 Bot test tín hiệu Zalo hoạt động tốt..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Action bar for selected bot -->
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <span id="quad-bot-title" class="text-xs font-bold text-slate-800">Bot 1 - HUIT</span>
+            <span id="quad-groups-summary" class="text-[11px] text-slate-500 ml-2">Đang tải...</span>
+          </div>
+          <button id="btn-test-all-quad" onclick="triggerTestAllForCurrentBot()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Gửi Test Tất Cả Nhóm
+          </button>
+        </div>
+
+        <!-- Target Groups List -->
+        <div class="space-y-2">
+          <label class="block text-xs font-bold text-slate-700">Danh sách nhóm mục tiêu của Bot này (Bấm "Gửi Test" từng nhóm):</label>
+          <div id="quad-groups-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Live status / log output -->
+        <div id="quad-test-status" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 px-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+        <span>💡 Lệnh trong Zalo: <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-indigo-600">/test &lt;tên nhóm&gt;</code> hoặc <code class="bg-white px-1.5 py-0.5 rounded border font-mono text-indigo-600">/testall</code></span>
+        <button onclick="closeQuadTestModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentQuadBot = 'bot1';
+    let quadBotsData = {{}};
+
+    async function sendTestToSingleGroup(targetId, targetName, targetType, botId) {{
+      if (!confirm('🧪 Bạn có chắc muốn gửi tin nhắn TEST vào: ' + (targetName || targetId) + ' (ID: ' + targetId + ')?')) return;
+      try {{
+        const res = await fetch('/api/zalo/send-test-target', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            bot_id: botId,
+            target_id: targetId,
+            target_type: targetType,
+            target_name: targetName
+          }})
+        }});
+        const data = await res.json();
+        if (res.ok && data.success) {{
+          alert('✅ ' + data.message);
+        }} else {{
+          alert('❌ ' + (data.detail || data.message || 'Lỗi gửi tin test'));
+        }}
+      }} catch (err) {{
+        alert('Lỗi gửi tin test: ' + err);
+      }}
+    }}
+
+    async function openQuadTestModal(botId) {{
+      if (!botId) botId = 'bot1';
+      const modal = document.getElementById('quad-test-modal');
+      if (modal) modal.classList.remove('hidden');
+      await loadQuadTargetGroups();
+      switchQuadTestBot(botId);
+    }}
+
+    function closeQuadTestModal() {{
+      const modal = document.getElementById('quad-test-modal');
+      if (modal) modal.classList.add('hidden');
+    }}
+
+    async function loadQuadTargetGroups() {{
+      try {{
+        const res = await fetch('/api/zalo/quad-target-groups');
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          data.bots.forEach(function(b) {{
+            quadBotsData[b.bot_id] = b;
+          }});
+        }}
+      }} catch (err) {{
+        console.error('Lỗi tải danh sách nhóm quad:', err);
+      }}
+    }}
+
+    function switchQuadTestBot(botId) {{
+      currentQuadBot = botId;
+      var botTabs = ['bot1', 'bot2', 'bot3', 'bot4'];
+      for (var i = 0; i < botTabs.length; i++) {{
+        var b = botTabs[i];
+        var tab = document.getElementById('quad-tab-' + b);
+        if (tab) {{
+          if (b === botId) {{
+            tab.className = 'py-2 rounded-lg bg-white text-indigo-700 shadow-xs transition';
+          }} else {{
+            tab.className = 'py-2 rounded-lg text-slate-600 hover:text-slate-900 transition';
+          }}
+        }}
+      }}
+
+      var botData = quadBotsData[botId];
+      if (!botData) return;
+
+      var titleEl = document.getElementById('quad-bot-title');
+      if (titleEl) titleEl.innerText = botData.bot_name;
+
+      var groups = botData.groups || [];
+      var enabledCount = 0;
+      for (var j = 0; j < groups.length; j++) {{
+        if (groups[j].enabled) enabledCount++;
+      }}
+      var summaryEl = document.getElementById('quad-groups-summary');
+      if (summaryEl) summaryEl.innerText = '(' + enabledCount + '/' + groups.length + ' nhóm đang bật)';
+
+      var container = document.getElementById('quad-groups-list');
+      if (!container) return;
+
+      if (groups.length === 0) {{
+        container.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">Chưa cấu hình nhóm Zalo nào cho Bot này.</div>';
+        return;
+      }}
+
+      var itemsHtml = '';
+      for (var k = 0; k < groups.length; k++) {{
+        var g = groups[k];
+        var isUser = (g.type || '').toUpperCase() === 'USER';
+        var typeBadge = isUser ? '<span class="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">Cá nhân</span>' : '<span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">Nhóm</span>';
+        var statusBadge = g.enabled ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Đang nhận tin</span>' : '<span class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded-full">Đã tắt</span>';
+        var iconClass = isUser ? 'fa-user' : 'fa-users';
+        var bgClass = g.enabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400';
+
+        itemsHtml += '<div class="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between transition">' +
+          '<div class="flex items-center gap-3">' +
+            '<div class="w-9 h-9 rounded-xl ' + bgClass + ' flex items-center justify-center font-bold text-sm">' +
+              '<i class="fa-solid ' + iconClass + '"></i>' +
+            '</div>' +
+            '<div>' +
+              '<div class="flex items-center gap-2">' +
+                '<span class="text-xs font-bold text-slate-900">' + g.name + '</span>' +
+                typeBadge + statusBadge +
+              '</div>' +
+              '<div class="text-[11px] text-slate-400 font-mono mt-0.5">ID: ' + g.id + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button onclick="sendTestFromQuadModal('' + g.id + '', '' + (g.name || g.id).replace(/'/g, "\'") + '', '' + (g.type || 'GROUP') + '', '' + botId + '')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5">' +
+            '<i class="fa-solid fa-paper-plane text-xs"></i> Gửi Test' +
+          '</button>' +
+        '</div>';
+      }}
+      container.innerHTML = itemsHtml;
+    }}
+
+    async function sendTestFromQuadModal(targetId, targetName, targetType, botId) {{
+      var statusDiv = document.getElementById('quad-test-status');
+      if (statusDiv) {{
+        statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-amber-50 border-amber-200 text-amber-800 block';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi tin nhắn test tới "' + targetName + '" (' + targetId + ')...';
+      }}
+
+      var customMsg = '';
+      var inputEl = document.getElementById('quad-custom-msg');
+      if (inputEl && inputEl.value) {{
+        customMsg = inputEl.value.trim();
+      }}
+
+      try {{
+        var res = await fetch('/api/zalo/send-test-target', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            bot_id: botId,
+            target_id: targetId,
+            target_type: targetType,
+            target_name: targetName,
+            custom_message: customMsg || null
+          }})
+        }});
+        var data = await res.json();
+        if (res.ok && data.success) {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-800 block';
+            statusDiv.innerHTML = '✅ <b>Thành công!</b> ' + data.message;
+          }}
+        }} else {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+            statusDiv.innerHTML = '❌ <b>Lỗi:</b> ' + (data.detail || data.message || 'Không thể gửi tin');
+          }}
+        }}
+      }} catch (err) {{
+        if (statusDiv) {{
+          statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+          statusDiv.innerHTML = '❌ <b>Lỗi kết nối:</b> ' + err;
+        }}
+      }}
+    }}
+
+    async function triggerTestAllForCurrentBot() {{
+      var botName = (quadBotsData[currentQuadBot] && quadBotsData[currentQuadBot].bot_name) || currentQuadBot;
+      if (!confirm('Bạn có chắc muốn gửi tin nhắn TEST tới TẤT CẢ các nhóm đang bật của ' + botName + '?')) return;
+
+      var statusDiv = document.getElementById('quad-test-status');
+      if (statusDiv) {{
+        statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-amber-50 border-amber-200 text-amber-800 block';
+        statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi tin nhắn test lần lượt tới các nhóm...';
+      }}
+
+      try {{
+        var res = await fetch('/api/zalo/send-test-all-groups', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ bot_id: currentQuadBot }})
+        }});
+        var data = await res.json();
+        if (res.ok && data.status === 'ok') {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-800 block';
+            statusDiv.innerHTML = '✅ <b>Hoàn tất!</b> Đã gửi thành công ' + data.success_count + '/' + data.total + ' nhóm của ' + data.bot_name + '.';
+          }}
+        }} else {{
+          if (statusDiv) {{
+            statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+            statusDiv.innerHTML = '❌ <b>Lỗi:</b> ' + (data.detail || 'Không thể gửi test tất cả');
+          }}
+        }}
+      }} catch (err) {{
+        if (statusDiv) {{
+          statusDiv.className = 'p-3 rounded-xl text-xs font-medium border bg-rose-50 border-rose-200 text-rose-800 block';
+          statusDiv.innerHTML = '❌ <b>Lỗi kết nối:</b> ' + err;
+        }}
+      }}
+    }}
+  </script>
+
 </body>
 </html>
 """
