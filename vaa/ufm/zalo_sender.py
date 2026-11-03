@@ -468,7 +468,7 @@ class ZaloDispatcher:
 
         # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Trần Lê Phát
         test_targets = [
-            {"id": "475259879796859360", "name": "demo", "type": ThreadType.GROUP},
+            {"id": "7456361874031804652", "name": "demo", "type": ThreadType.GROUP},
             {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": ThreadType.USER}
         ]
         any_succ = False
@@ -485,12 +485,12 @@ class ZaloDispatcher:
         return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát."
 
     def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
-        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 475259879796859360)."""
+        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 7456361874031804652)."""
         if not self.client:
             if not self.connect():
                 return False, "Không thể kết nối Zalo Web! Vui lòng cập nhật Cookie Zalo trong cài đặt."
 
-        demo_id = "475259879796859360"
+        demo_id = "7456361874031804652"
         now_vn = database.get_vn_now_str()
 
         # Tìm hoạt động mới nhất hoặc dùng hoạt động mẫu

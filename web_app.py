@@ -467,7 +467,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
     }
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
-        {"id": "475259879796859360", "name": "demo"},
+        {"id": "7456361874031804652", "name": "demo"},
         {"id": "7662918962461429024", "name": "Trần Lê Phát"}
     ]
     sent_any = False
@@ -486,7 +486,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -940,7 +940,7 @@ Chúc các bạn theo dõi thuận lợi!""",
     }
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
-        {"id": "475259879796859360", "name": "demo"},
+        {"id": "7456361874031804652", "name": "demo"},
         {"id": "7662918962461429024", "name": "Trần Lê Phát"}
     ]
     sent_any = False
@@ -959,7 +959,7 @@ Chúc các bạn theo dõi thuận lợi!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
     # 1. Ưu tiên gửi từ UFM Dispatcher
     try:
         from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
@@ -1168,7 +1168,7 @@ def api_bot3_test_zalo_alert():
         "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
     }
     test_targets = [
-        {"id": "475259879796859360", "name": "demo", "type": "GROUP"},
+        {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},
         {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
@@ -1528,7 +1528,7 @@ def dashboard_view():
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 7456361874031804652)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
             <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm ĐRL K15)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 col-span-2">
           </div>
 
@@ -2807,7 +2807,7 @@ def dashboard_view_bot2():
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 475259879796859360)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
+            <input type="text" id="manual-group-id" placeholder="ID Nhóm (vd: 7456361874031804652)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
             <input type="text" id="manual-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm Sự Kiện VAA)" class="px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 col-span-2">
           </div>
 

@@ -329,7 +329,7 @@ def api_zalo_check_status():
 
 @app.post("/api/zalo/send-demo-alert")
 def api_zalo_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 7456361874031804652)."""
     try:
         zalo = ZaloDispatcher(CONFIG_FILE)
         ok, msg = zalo.send_demo_group_alert()
@@ -1857,7 +1857,7 @@ def dashboard():
     async function triggerSendDemoAlert() {
       const confirmRes = await Swal.fire({
         title: '📢 Gửi thông báo vào nhóm demo?',
-        text: 'Hệ thống sẽ lấy thông tin sự kiện/hoạt động UFM mới nhất và gửi trực tiếp vào nhóm "demo" (ID: 475259879796859360) kèm tag @All.',
+        text: 'Hệ thống sẽ lấy thông tin sự kiện/hoạt động UFM mới nhất và gửi trực tiếp vào nhóm "demo" (ID: 7456361874031804652) kèm tag @All.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#10b981',
