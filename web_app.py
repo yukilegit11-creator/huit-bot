@@ -483,6 +483,34 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
 
+@app.post("/api/zalo/send-demo-alert")
+@app.post("/api/ufm/send-demo-alert")
+def api_master_send_demo_alert():
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    # 1. Ưu tiên gửi từ UFM Dispatcher
+    try:
+        from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
+        ufm_cfg = os.path.join(SCRIPT_DIR, "config_ufm.json")
+        ufm_db = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
+        dispatcher = UFMDispatcher(ufm_cfg, db_file=ufm_db)
+        ok, msg = dispatcher.send_demo_group_alert(db_file=ufm_db)
+        if ok:
+            return {"status": "ok", "success": True, "message": msg}
+    except Exception as e:
+        print(f"⚠️ [UFM Demo Alert] Lỗi Dispatcher UFM: {e}")
+
+    # 2. Thử gửi từ Master Dispatcher
+    try:
+        dispatcher = ZaloDispatcher(CONFIG_FILE)
+        if hasattr(dispatcher, "send_demo_group_alert"):
+            ok, msg = dispatcher.send_demo_group_alert()
+            return {"status": "ok" if ok else "error", "success": ok, "message": msg}
+        else:
+            return api_test_zalo_alert()
+    except Exception as e:
+        err_msg = f"Không thể gửi thông báo vào nhóm demo: {e}"
+        return {"status": "error", "success": False, "message": err_msg}
+
 # ==================== MAIN DASHBOARD HTML VIEW ====================
 
 
@@ -736,6 +764,34 @@ Chúc các bạn theo dõi thuận lợi!""",
         return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
+
+@app.post("/api/zalo/send-demo-alert")
+@app.post("/api/ufm/send-demo-alert")
+def api_master_send_demo_alert():
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    # 1. Ưu tiên gửi từ UFM Dispatcher
+    try:
+        from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
+        ufm_cfg = os.path.join(SCRIPT_DIR, "config_ufm.json")
+        ufm_db = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
+        dispatcher = UFMDispatcher(ufm_cfg, db_file=ufm_db)
+        ok, msg = dispatcher.send_demo_group_alert(db_file=ufm_db)
+        if ok:
+            return {"status": "ok", "success": True, "message": msg}
+    except Exception as e:
+        print(f"⚠️ [UFM Demo Alert] Lỗi Dispatcher UFM: {e}")
+
+    # 2. Thử gửi từ Master Dispatcher
+    try:
+        dispatcher = ZaloDispatcher(CONFIG_FILE)
+        if hasattr(dispatcher, "send_demo_group_alert"):
+            ok, msg = dispatcher.send_demo_group_alert()
+            return {"status": "ok" if ok else "error", "success": ok, "message": msg}
+        else:
+            return api_test_zalo_alert()
+    except Exception as e:
+        err_msg = f"Không thể gửi thông báo vào nhóm demo: {e}"
+        return {"status": "error", "success": False, "message": err_msg}
 
 def get_config_iuh():
     with open(CONFIG_IUH_FILE, "r", encoding="utf-8") as f:

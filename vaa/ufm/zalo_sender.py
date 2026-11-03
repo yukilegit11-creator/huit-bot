@@ -149,6 +149,19 @@ class UFMBotZaloClient(ZaloAPI):
                 print(f"❌ Lỗi gửi thống kê: {e}")
             return
 
+        # 2.5 Lệnh bắn thông báo thử nghiệm vào nhóm demo
+        if lower_txt in ("/demo", "/testdemo", "bắn demo", "gửi demo", "demo alert", "/senddemo"):
+            dispatcher = ZaloDispatcher(self.config_path, db_file=self.db_file)
+            dispatcher.client = self
+            dispatcher.bot_name = self.bot_name
+            ok_demo, msg_demo = dispatcher.send_demo_group_alert(db_file=self.db_file)
+            reply = f"🚀 [{self.bot_name}]\n{msg_demo}"
+            try:
+                self.send(Message(text=reply), thread_id=thread_id, thread_type=thread_type)
+            except Exception:
+                pass
+            return
+
         # 3. Phân tích thông tin sinh viên
         try:
             import smart_parser
@@ -470,3 +483,71 @@ class ZaloDispatcher:
         if any_succ:
             return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"
         return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát."
+
+    def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
+        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 475259879796859360)."""
+        if not self.client:
+            if not self.connect():
+                return False, "Không thể kết nối Zalo Web! Vui lòng cập nhật Cookie Zalo trong cài đặt."
+
+        demo_id = "475259879796859360"
+        now_vn = database.get_vn_now_str()
+
+        # Tìm hoạt động mới nhất hoặc dùng hoạt động mẫu
+        act = custom_act
+        if not act:
+            try:
+                acts = database.get_crawled_activities(limit=1, db_file=db_file)
+                if acts:
+                    act = dict(acts[0])
+            except Exception:
+                pass
+
+        if not act:
+            act = {
+                "activity_id": f"DEMO_{int(time.time())}",
+                "raw_id": "DEMO",
+                "title": "Hoạt động Thử Nghiệm Hệ Thống Bot UFM & Bắn Zalo",
+                "unit": "Phòng Công tác sinh viên - Đại học Tài chính - Marketing (UFM)",
+                "event_time": now_vn,
+                "location": "Trường ĐH Tài chính - Marketing (Cơ sở Long Trường)",
+                "group_criteria": "3.a.1 - Rèn luyện thể chất & kỹ năng sinh viên",
+                "points": 5.0,
+                "ctxh": 10.0,
+                "status": "Đang mở đăng ký (Thử nghiệm)",
+                "detail_url": "https://hoatdong.ufm.edu.vn/DangKy",
+                "register_url": "https://hoatdong.ufm.edu.vn/DangKy",
+                "source": "Thử nghiệm từ Web Dashboard UFM"
+            }
+
+        msg_text = format_ufm_message(act, is_reopened=False, auto_tag_all=True, bot_name=self.bot_name)
+        mention = Mention(uid="-1", length=len("@All"), offset=0)
+        msg_obj = Message(text=msg_text, mention=mention)
+
+        try:
+            self.client.send(msg_obj, thread_id=demo_id, thread_type=ThreadType.GROUP)
+            log_str = f"[{self.bot_name}] Đã gửi thông báo thành công vào nhóm [demo] (ID: {demo_id})"
+            print(f"📨 [Zalo] {log_str}")
+            database.log_event("DEMO", log_str, db_file=db_file)
+            database.record_delivery(
+                post_id=str(act.get("activity_id", f"DEMO_{int(time.time())}")),
+                post_title=act.get("title", "Demo Notification"),
+                source_page="UFM Portal Demo",
+                author=act.get("unit", "UFM"),
+                post_url=act.get("register_url", "https://hoatdong.ufm.edu.vn/DangKy"),
+                content_snippet=msg_text[:3000],
+                has_form=1,
+                matched_keyword=f"+{act.get('points', 5)} ĐRL",
+                zalo_target_id=demo_id,
+                zalo_target_name="demo",
+                target_type="GROUP",
+                status="SUCCESS",
+                crawled_at=now_vn,
+                db_file=db_file
+            )
+            return True, f"Đã gửi thông báo thành công vào nhóm demo (ID: {demo_id})!"
+        except Exception as e:
+            err_str = f"Lỗi gửi thông báo vào nhóm demo: {e}"
+            print(f"❌ [Zalo] {err_str}")
+            database.log_event("ERROR", err_str, db_file=db_file)
+            return False, err_str

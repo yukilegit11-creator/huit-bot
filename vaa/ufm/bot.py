@@ -20,6 +20,13 @@ from batch_register import execute_batch_registration
 import database
 import threading
 
+# Messenger (tùy chọn, chỉ chạy khi bật trong config.json)
+try:
+    from messenger_sender import MessengerDispatcher
+    HAS_MESSENGER = True
+except ImportError:
+    HAS_MESSENGER = False
+
 def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -50,6 +57,20 @@ def run_bot():
     else:
         print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, Bot UFM vẫn tiếp tục cào và lưu DB.")
 
+    # Khởi tạo Messenger (nếu bật)
+    messenger = None
+    if HAS_MESSENGER and config.get("messenger", {}).get("enabled", False):
+        messenger = MessengerDispatcher(CONFIG_FILE)
+        print("🔌 Khởi động kết nối Facebook Messenger cho Bot UFM...")
+        if messenger.connect():
+            print("✅ Kết nối Messenger Bot UFM thành công!")
+        else:
+            print("⚠️ Kết nối Messenger tạm thời chưa khả dụng.")
+    elif HAS_MESSENGER:
+        print("ℹ️ Module Messenger đã sẵn sàng nhưng chưa được BẬT trong config.json (messenger.enabled = false)")
+    else:
+        print("ℹ️ Module Messenger chưa cài đặt (fbchat-muqit). Bỏ qua kênh Messenger.")
+
     database.set_bot_status("bot_state", "running")
     database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot UFM quét tự động 24/7.")
 
@@ -79,6 +100,20 @@ def run_bot():
         if not zalo.client and cycle % 5 == 0:
             if zalo.connect():
                 zalo.start_listener()
+
+        # Tự động thử kết nối lại Messenger nếu cần
+        if HAS_MESSENGER and messenger and not messenger.client and cycle % 5 == 0:
+            messenger.connect()
+        # Kiểm tra nếu Messenger vừa được bật trong config
+        if HAS_MESSENGER and not messenger and cycle % 10 == 0:
+            try:
+                cfg_check = load_config()
+                if cfg_check.get("messenger", {}).get("enabled", False):
+                    messenger = MessengerDispatcher(CONFIG_FILE)
+                    if messenger.connect():
+                        print("✅ [Messenger] Kết nối Messenger thành công (vừa được bật)!")
+            except Exception:
+                pass
 
         cycle += 1
         database.set_bot_status("total_scans", str(cycle))
@@ -138,6 +173,12 @@ def run_bot():
                             database.log_event("ACTIVITY", log_msg)
                             database.add_crawled_activity(act, action_type="REOPENED", is_sent=True)
                             zalo.send_activity_alert(act, is_reopened=True)
+                            # Gửi song song qua Messenger
+                            if messenger and config.get("messenger", {}).get("enabled", False):
+                                try:
+                                    messenger.send_activity_alert(act, is_reopened=True)
+                                except Exception as me:
+                                    print(f"⚠️ [Messenger] Lỗi gửi bài mở slot: {me}")
 
                             # Tự động nã đăng ký cho sinh viên nếu bật chế độ Auto-Snipe
                             if config.get("scanner", {}).get("auto_snipe_for_students", False):
@@ -157,6 +198,12 @@ def run_bot():
 
                     # Bắn Zalo ngay lập tức
                     zalo.send_activity_alert(act, is_reopened=False)
+                    # Bắn Messenger song song
+                    if messenger and config.get("messenger", {}).get("enabled", False):
+                        try:
+                            messenger.send_activity_alert(act, is_reopened=False)
+                        except Exception as me:
+                            print(f"⚠️ [Messenger] Lỗi gửi bài mới: {me}")
 
                     # Tự động nã đăng ký cho sinh viên nếu bật chế độ Auto-Snipe
                     if config.get("scanner", {}).get("auto_snipe_for_students", False) and "mở đăng ký" in act.get("status", "").lower():

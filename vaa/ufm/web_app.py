@@ -36,6 +36,13 @@ from ufm_scraper import UFMPortalScraper
 from batch_register import check_student_cookie, execute_batch_registration, BATCH_PROGRESS
 import smart_parser
 
+# Messenger (tùy chọn)
+try:
+    from messenger_sender import MessengerDispatcher
+    HAS_MESSENGER = True
+except ImportError:
+    HAS_MESSENGER = False
+
 app = FastAPI(title="Yuki 4 - UFM Bot Dashboard (Đại học Tài chính - Marketing)", version="2.0")
 
 
@@ -79,6 +86,11 @@ def api_status():
         "zalo_cookie_error": bot_status.get("zalo_cookie_error", ""),
         "zalo_account_uid": bot_status.get("zalo_account_uid", ""),
         "zalo_last_connected": bot_status.get("zalo_last_connected", ""),
+        "messenger_enabled": cfg.get("messenger", {}).get("enabled", False),
+        "messenger_cookie_status": bot_status.get("messenger_cookie_status", "unknown"),
+        "messenger_cookie_error": bot_status.get("messenger_cookie_error", ""),
+        "messenger_account_uid": bot_status.get("messenger_account_uid", ""),
+        "messenger_last_connected": bot_status.get("messenger_last_connected", ""),
         "stats": stats,
         "student_stats": st_stats,
         "bot_name": cfg.get("bot_name", "Yuki 4 (UFM)"),
@@ -103,6 +115,10 @@ def scan_now():
         return {"success": False, "message": msg}
 
     zalo = ZaloDispatcher(CONFIG_FILE)
+    # Messenger
+    msger = None
+    if HAS_MESSENGER and cfg.get("messenger", {}).get("enabled", False):
+        msger = MessengerDispatcher(CONFIG_FILE)
     new_count = 0
     reopened_count = 0
 
@@ -117,12 +133,22 @@ def scan_now():
                 reopened_count += 1
                 database.add_crawled_activity(act, action_type="REOPENED", is_sent=True)
                 zalo.send_activity_alert(act, is_reopened=True)
+                if msger:
+                    try:
+                        msger.send_activity_alert(act, is_reopened=True)
+                    except Exception:
+                        pass
             continue
 
         new_count += 1
         database.record_seen_activity(act, is_sent=True)
         database.add_crawled_activity(act, action_type="NEW", is_sent=True)
         zalo.send_activity_alert(act, is_reopened=False)
+        if msger:
+            try:
+                msger.send_activity_alert(act, is_reopened=False)
+            except Exception:
+                pass
 
     now_str = database.get_vn_now_str()
     database.set_bot_status("last_scan_time", now_str)
@@ -301,6 +327,18 @@ def api_zalo_check_status():
             "message": f"Phiên Zalo đã bị hủy hoặc hết hạn: {err}"
         }
 
+@app.post("/api/zalo/send-demo-alert")
+def api_zalo_send_demo_alert():
+    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
+    try:
+        zalo = ZaloDispatcher(CONFIG_FILE)
+        ok, msg = zalo.send_demo_group_alert()
+        return {"success": ok, "message": msg}
+    except Exception as e:
+        err = f"Lỗi thực thi gửi thông báo nhóm demo: {e}"
+        database.log_event("ERROR", err)
+        return {"success": False, "message": err}
+
 @app.post("/api/zalo/update-cookies")
 def api_zalo_update_cookies(data: dict):
     raw_cookie = data.get("cookies")
@@ -375,6 +413,211 @@ def api_zalo_update_cookies(data: dict):
         "message": f"Tuyệt vời! Đã cập nhật và xác thực thành công tài khoản Zalo (UID: {test_uid})!",
         "uid": str(test_uid)
     }
+
+# ========================================================
+# CÁC API CHO FACEBOOK MESSENGER
+# ========================================================
+
+@app.get("/api/messenger/status")
+def api_messenger_status():
+    """Kiểm tra trạng thái module Messenger."""
+    if not HAS_MESSENGER:
+        return {"available": False, "message": "Module Messenger chưa được cài đặt (pip install fbchat-muqit)"}
+    cfg = get_config()
+    messenger_cfg = cfg.get("messenger", {})
+    b_status = database.get_all_bot_status()
+    return {
+        "available": True,
+        "enabled": messenger_cfg.get("enabled", False),
+        "cookie_status": b_status.get("messenger_cookie_status", "unknown"),
+        "cookie_error": b_status.get("messenger_cookie_error", ""),
+        "account_uid": b_status.get("messenger_account_uid", ""),
+        "last_connected": b_status.get("messenger_last_connected", ""),
+        "target_groups": messenger_cfg.get("target_groups", []),
+        "has_cookies": bool(messenger_cfg.get("cookies"))
+    }
+
+@app.post("/api/messenger/toggle")
+def api_messenger_toggle():
+    """Bật / Tắt module Messenger."""
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": False, "cookies": [], "target_groups": []}
+    cfg["messenger"]["enabled"] = not cfg["messenger"].get("enabled", False)
+    save_config(cfg)
+    state = cfg["messenger"]["enabled"]
+    database.log_event("CONFIG", f"[Messenger] Đã {'BẬT' if state else 'TẮT'} kênh Facebook Messenger.")
+    return {"success": True, "enabled": state, "message": f"Facebook Messenger đã {'BẬT' if state else 'TẮT'}!"}
+
+@app.post("/api/messenger/update-cookies")
+def api_messenger_update_cookies(data: dict):
+    """Cập nhật cookie Facebook cho Messenger."""
+    raw_cookie = data.get("cookies")
+    if not raw_cookie:
+        return {"success": False, "message": "Vui lòng dán chuỗi JSON Cookie Facebook (mảng từ Extension hoặc JSON object)!"}
+
+    cookie_list = []
+    if isinstance(raw_cookie, str):
+        raw_cookie = raw_cookie.strip()
+        try:
+            parsed = json.loads(raw_cookie)
+        except Exception as e:
+            return {"success": False, "message": f"Dữ liệu dán vào không phải JSON hợp lệ: {e}"}
+    else:
+        parsed = raw_cookie
+
+    if isinstance(parsed, list):
+        cookie_list = parsed
+    elif isinstance(parsed, dict):
+        # Chuyển dict thành list format cho fbchat-muqit
+        for k, v in parsed.items():
+            cookie_list.append({"name": k, "value": v, "domain": ".facebook.com", "path": "/"})
+    else:
+        return {"success": False, "message": "Định dạng Cookie không đúng (phải là mảng hoặc JSON object)!"}
+
+    # Kiểm tra có cookie cần thiết không (c_user và xs)
+    cookie_names = [c.get("name", "") for c in cookie_list if isinstance(c, dict)]
+    if "c_user" not in cookie_names and "xs" not in cookie_names:
+        # Có thể cookie ở dạng key-value đơn giản
+        has_essential = any(c.get("name") in ("c_user", "xs", "datr", "fr") for c in cookie_list if isinstance(c, dict))
+        if not has_essential:
+            return {"success": False, "message": "Cookie Facebook thiếu token quan trọng (cần ít nhất: c_user, xs). Hãy xuất cookie từ trình duyệt bằng Extension C3C hoặc EditThisCookie."}
+
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": False, "cookies": [], "target_groups": []}
+    cfg["messenger"]["cookies"] = cookie_list
+    save_config(cfg)
+
+    # Thử kết nối để xác thực cookie
+    if HAS_MESSENGER:
+        try:
+            msger = MessengerDispatcher(CONFIG_FILE)
+            if msger.connect():
+                uid = getattr(msger.client, 'uid', 'unknown')
+                database.log_event("AUTH", f"✅ [Messenger] Cookie Facebook hợp lệ (UID: {uid})")
+                return {
+                    "success": True,
+                    "message": f"Tuyệt vời! Cookie Facebook hợp lệ (UID: {uid}). Đã lưu thành công!",
+                    "uid": str(uid)
+                }
+            else:
+                database.log_event("AUTH", "[Messenger] Cookie Facebook đã lưu nhưng chưa xác thực được.")
+                return {"success": True, "message": "Đã lưu Cookie Facebook. Chưa xác thực được - cookie có thể hết hạn hoặc thư viện fbchat-muqit chưa sẵn sàng."}
+        except Exception as e:
+            return {"success": True, "message": f"Đã lưu Cookie Facebook nhưng gặp lỗi khi xác thực: {e}"}
+    else:
+        return {"success": True, "message": "Đã lưu Cookie Facebook. Cần cài thư viện fbchat-muqit để kết nối (pip install fbchat-muqit)."}
+
+@app.post("/api/messenger/check-connection")
+def api_messenger_check_connection():
+    """Kiểm tra kết nối Facebook Messenger."""
+    if not HAS_MESSENGER:
+        return {"success": False, "message": "Module Messenger chưa cài đặt (pip install fbchat-muqit)"}
+
+    msger = MessengerDispatcher(CONFIG_FILE)
+    ok = msger.connect()
+    if ok:
+        uid = getattr(msger.client, 'uid', 'unknown')
+        return {
+            "success": True,
+            "status": "valid",
+            "uid": str(uid),
+            "message": f"Cookie Facebook đang hoạt động tốt (UID: {uid})!"
+        }
+    else:
+        b_status = database.get_all_bot_status()
+        err = b_status.get("messenger_cookie_error", "Không thể kết nối (Cookie hết hạn hoặc chưa cấu hình)")
+        return {
+            "success": False,
+            "status": "expired",
+            "message": f"Phiên Facebook đã hết hạn: {err}"
+        }
+
+@app.get("/api/messenger/fetch-groups")
+def api_messenger_fetch_groups():
+    """Lấy danh sách nhóm chat từ Facebook Messenger."""
+    if not HAS_MESSENGER:
+        return {"success": False, "message": "Module Messenger chưa cài đặt", "groups": []}
+
+    msger = MessengerDispatcher(CONFIG_FILE)
+    if not msger.connect():
+        return {"success": False, "message": "Không thể kết nối tới Facebook Messenger", "groups": []}
+
+    try:
+        groups = msger.fetch_all_groups()
+        return {"success": True, "groups": groups}
+    except Exception as e:
+        return {"success": False, "message": str(e), "groups": []}
+
+@app.post("/api/messenger/add-group")
+def api_messenger_add_group(data: dict):
+    """Thêm nhóm Messenger thủ công bằng Thread ID."""
+    thread_id = str(data.get("thread_id", "")).strip()
+    group_name = str(data.get("name", "")).strip() or f"Nhóm Messenger {thread_id}"
+
+    if not thread_id:
+        return {"success": False, "message": "Vui lòng nhập Thread ID của nhóm Messenger!"}
+
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": False, "cookies": [], "target_groups": []}
+
+    existing_ids = {str(g["id"]) for g in cfg["messenger"].get("target_groups", [])}
+    if thread_id in existing_ids:
+        return {"success": False, "message": f"Nhóm với ID {thread_id} đã tồn tại trong danh sách!"}
+
+    cfg["messenger"]["target_groups"].append({
+        "id": thread_id,
+        "name": group_name,
+        "type": "GROUP",
+        "enabled": True
+    })
+    save_config(cfg)
+    database.log_event("CONFIG", f"[Messenger] Đã thêm nhóm [{group_name}] (ID: {thread_id})")
+    return {"success": True, "message": f"Đã thêm nhóm [{group_name}] (ID: {thread_id}) thành công!"}
+
+@app.post("/api/messenger/remove-group")
+def api_messenger_remove_group(data: dict):
+    """Xóa nhóm Messenger khỏi danh sách."""
+    thread_id = str(data.get("thread_id", "")).strip()
+    if not thread_id:
+        return {"success": False, "message": "Thiếu Thread ID!"}
+
+    cfg = get_config()
+    groups = cfg.get("messenger", {}).get("target_groups", [])
+    new_groups = [g for g in groups if str(g.get("id")) != thread_id]
+
+    if len(new_groups) == len(groups):
+        return {"success": False, "message": f"Không tìm thấy nhóm với ID {thread_id}!"}
+
+    cfg["messenger"]["target_groups"] = new_groups
+    save_config(cfg)
+    database.log_event("CONFIG", f"[Messenger] Đã xóa nhóm (ID: {thread_id})")
+    return {"success": True, "message": f"Đã xóa nhóm Messenger (ID: {thread_id}) khỏi danh sách!"}
+
+@app.post("/api/messenger/save-groups")
+def api_messenger_save_groups(data: dict):
+    """Lưu trạng thái bật/tắt các nhóm Messenger."""
+    groups = data.get("groups", [])
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": False, "cookies": [], "target_groups": []}
+    cfg["messenger"]["target_groups"] = groups
+    save_config(cfg)
+    database.log_event("CONFIG", "[Messenger] Đã cập nhật danh sách nhóm nhận tin Messenger.")
+    return {"success": True, "message": "Đã lưu danh sách nhóm Messenger!"}
+
+@app.post("/api/messenger/test-send")
+def api_messenger_test_send(data: dict = None):
+    """Gửi tin nhắn thử nghiệm qua Messenger."""
+    if not HAS_MESSENGER:
+        return {"success": False, "message": "Module Messenger chưa cài đặt (pip install fbchat-muqit)"}
+
+    target_id = data.get("target_id") if data else None
+    msger = MessengerDispatcher(CONFIG_FILE)
+    ok, msg = msger.send_test_message(target_thread_id=target_id)
+    return {"success": ok, "message": msg}
 
 # ========================================================
 # CÁC API DÀNH RIÊNG CHO QUẢN LÝ 100 TÀI KHOẢN SINH VIÊN
@@ -796,6 +1039,12 @@ def dashboard():
           <span id="zaloStatusText">Zalo: Đang kết nối</span>
         </div>
 
+        <!-- Messenger Session Pill -->
+        <div id="messengerStatusPill" onclick="openMessengerCookieModal()" class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 transition hover:scale-105" title="Bấm để kiểm tra hoặc cập nhật Cookie Facebook Messenger">
+          <i class="bi bi-messenger text-xs"></i>
+          <span id="messengerStatusText">Messenger: Đang kiểm tra</span>
+        </div>
+
         <!-- Live Status Pill -->
         <div id="statusPill" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -812,6 +1061,12 @@ def dashboard():
         <button onclick="triggerTestZalo()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-indigo-600/30">
           <i class="bi bi-send-fill text-xs"></i>
           <span>Bắn tin thử</span>
+        </button>
+
+        <!-- Send Demo Group Alert Button -->
+        <button onclick="triggerSendDemoAlert()" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/30">
+          <i class="bi bi-megaphone-fill text-xs"></i>
+          <span>Gửi nhóm demo</span>
         </button>
 
         <!-- Toggle Switch -->
@@ -922,7 +1177,7 @@ def dashboard():
       </button>
       <button onclick="switchTab('config')" id="tabBtnConfig" class="px-4 py-2 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800/50 transition flex items-center gap-2 whitespace-nowrap">
         <i class="bi bi-sliders"></i>
-        <span>Cấu Hình & Nhóm Zalo</span>
+        <span>Cấu Hình & Kênh Nhận Tin</span>
       </button>
     </div>
 
@@ -1207,6 +1462,66 @@ def dashboard():
             </div>
           </div>
         </div>
+
+        <!-- Facebook Messenger Target Groups Card -->
+        <div class="space-y-4 p-4 rounded-xl bg-gray-900/60 border border-blue-900/50">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <h3 class="text-sm font-bold text-blue-400 flex items-center gap-2">
+              <i class="bi bi-messenger"></i>
+              <span>Nhóm Nhận Tin Facebook Messenger</span>
+            </h3>
+            <div class="flex items-center gap-2">
+              <button onclick="openAddMessengerGroupModal()" class="text-xs text-emerald-400 hover:underline flex items-center gap-1">
+                <i class="bi bi-plus-circle"></i> Thêm ID
+              </button>
+              <button onclick="fetchMessengerGroupsFromClient()" class="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                <i class="bi bi-arrow-repeat"></i> Đồng bộ FB
+              </button>
+            </div>
+          </div>
+          <div id="messengerGroupsContainer" class="space-y-2 max-h-64 overflow-y-auto custom-scroll pr-1">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="saveMessengerGroupsConfig()" class="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition">
+              Lưu danh sách nhóm Messenger
+            </button>
+            <button onclick="toggleMessengerChannel()" id="btnToggleMessenger" class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-semibold text-gray-300 transition">
+              Bật/Tắt Kênh
+            </button>
+          </div>
+        </div>
+
+        <!-- Facebook Messenger Cookie Card -->
+        <div class="space-y-4 p-4 rounded-xl bg-gray-900/60 border border-blue-900/50">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-sky-400 flex items-center gap-2">
+              <i class="bi bi-shield-lock"></i>
+              <span>Cookie & Phiên Facebook Bot</span>
+            </h3>
+            <span id="cfgMessengerStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-700 text-gray-400 border border-gray-600">CHƯA CẤU HÌNH</span>
+          </div>
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-lg bg-gray-800/60 border border-gray-700/60">
+              <div class="text-gray-400">UID Tài Khoản Facebook:</div>
+              <div id="cfgMessengerUid" class="font-bold text-white font-mono mt-0.5">Chưa xác định</div>
+            </div>
+            <div class="p-3 rounded-lg bg-gray-800/60 border border-gray-700/60">
+              <div class="text-gray-400">Kết Nối Gần Nhất:</div>
+              <div id="cfgMessengerLastTime" class="font-bold text-gray-200 mt-0.5">Chưa kết nối</div>
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="checkMessengerSessionNow()" class="w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Kiểm tra</span>
+              </button>
+              <button onclick="openMessengerCookieModal()" class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30">
+                <i class="bi bi-pencil-square"></i>
+                <span>Sửa Cookie FB</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1365,6 +1680,65 @@ def dashboard():
           document.getElementById('cfgZaloLastTime').innerText = data.zalo_last_connected || 'Vừa xong';
         }
 
+        // Xử lý hiển thị Messenger Status
+        const msgPill = document.getElementById('messengerStatusPill');
+        const msgText = document.getElementById('messengerStatusText');
+        const msgBadge = document.getElementById('cfgMessengerStatusBadge');
+        const msgUid = document.getElementById('cfgMessengerUid');
+        const msgLast = document.getElementById('cfgMessengerLastTime');
+        const btnToggleMsg = document.getElementById('btnToggleMessenger');
+
+        const isMsgEnabled = Boolean(data.messenger_enabled);
+        const msgStatus = data.messenger_cookie_status || 'unknown';
+
+        if (btnToggleMsg) {
+          if (isMsgEnabled) {
+            btnToggleMsg.className = "px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition";
+            btnToggleMsg.innerHTML = '<i class="bi bi-toggle-on"></i> Đang BẬT';
+          } else {
+            btnToggleMsg.className = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-xs font-semibold text-gray-400 transition";
+            btnToggleMsg.innerHTML = '<i class="bi bi-toggle-off"></i> Đang TẮT';
+          }
+        }
+
+        if (msgPill && msgText) {
+          if (!isMsgEnabled) {
+            msgPill.className = "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700 transition hover:scale-105";
+            msgText.innerText = "Messenger: Đang TẮT";
+          } else if (msgStatus === 'valid') {
+            msgPill.className = "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 transition hover:scale-105";
+            msgText.innerText = "Messenger: Sẵn sàng" + (data.messenger_account_uid ? ` (${data.messenger_account_uid})` : '');
+          } else if (msgStatus === 'expired') {
+            msgPill.className = "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-pulse transition hover:scale-105";
+            msgText.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500 animate-ping mr-0.5"></span><span>Messenger: HẾT HẠN!</span>';
+          } else {
+            msgPill.className = "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 transition hover:scale-105";
+            msgText.innerText = "Messenger: Chưa có cookie";
+          }
+        }
+
+        if (msgBadge) {
+          if (!isMsgEnabled) {
+            msgBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-800 text-gray-400 border border-gray-700";
+            msgBadge.innerText = "ĐANG TẮT";
+          } else if (msgStatus === 'valid') {
+            msgBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+            msgBadge.innerText = "HỢP LỆ";
+          } else if (msgStatus === 'expired') {
+            msgBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse";
+            msgBadge.innerText = "HẾT HẠN";
+          } else {
+            msgBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+            msgBadge.innerText = "CHƯA NẠP";
+          }
+        }
+        if (msgUid) {
+          msgUid.innerText = data.messenger_account_uid || 'Chưa xác định';
+        }
+        if (msgLast) {
+          msgLast.innerText = data.messenger_last_connected || 'Chưa kết nối';
+        }
+
       } catch (e) {
         console.error(e);
       }
@@ -1478,6 +1852,42 @@ def dashboard():
       }
       fetchStatus();
       fetchLogs();
+    }
+
+    async function triggerSendDemoAlert() {
+      const confirmRes = await Swal.fire({
+        title: '📢 Gửi thông báo vào nhóm demo?',
+        text: 'Hệ thống sẽ lấy thông tin sự kiện/hoạt động UFM mới nhất và gửi trực tiếp vào nhóm "demo" (ID: 475259879796859360) kèm tag @All.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '🚀 Bắn Ngay',
+        cancelButtonText: 'Hủy'
+      });
+      if (!confirmRes.isConfirmed) return;
+
+      Swal.fire({
+        title: 'Đang gửi thông báo vào nhóm demo...',
+        text: 'Vui lòng chờ giây lát trong khi bot kết nối Zalo và phát tin...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        const prefix = window.location.pathname.startsWith('/ufm') ? '/ufm' : '';
+        const res = await fetch(prefix + '/api/zalo/send-demo-alert', { method: 'POST' });
+        const data = await res.json();
+        if (data.success || data.status === 'ok') {
+          Swal.fire('Thành công!', data.message || 'Đã gửi thông báo vào nhóm demo!', 'success');
+        } else {
+          Swal.fire('Thất bại', data.message || 'Chưa gửi được tin nhắn vào nhóm demo. Hãy kiểm tra Cookie Zalo!', 'error');
+        }
+        fetchStatus();
+        fetchLogs();
+      } catch (err) {
+        Swal.fire('Lỗi kết nối', err.message, 'error');
+      }
     }
 
     async function fetchActivities() {
@@ -1986,6 +2396,8 @@ def dashboard():
       document.getElementById('cfgInterval').value = (currentConfig.scanner && currentConfig.scanner.check_interval_seconds) || 20;
 
       renderTargetGroupsEditor(currentConfig.zalo && currentConfig.zalo.target_groups ? currentConfig.zalo.target_groups : []);
+      renderMessengerGroupsEditor(currentConfig.messenger && currentConfig.messenger.target_groups ? currentConfig.messenger.target_groups : []);
+      renderAllActiveChannels();
     }
 
     function renderTargetGroupsEditor(groups) {

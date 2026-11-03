@@ -50,19 +50,17 @@
       }
     ],
     "cookies": {
-      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
-      "_ga": "GA1.2.1518733191.1793162405",
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8W-dUoidafSW7QSxgNHJLE8V9ldfJSp.1",
+      "_ga": "GA1.2.1298407733.1793676454",
       "_zlang": "vn",
-      "_ga_3EM8ZPYYN3": "GS2.2.s1793666006",
-      "_gid": "GA1.2.1204234086.1793641271",
-      "zpw_sek": "0SCx.466784528.a0.eMZBHG1XcQM351p8ieNEq-YdgxYnl-ogzU6Cd_ZNXAhxjvQ6tEQFugh3dg7IkFFnxejqdi1OmuJpX3ZuUk_Eqm",
-      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
-      "_ga_YS1V643LGV": "GS2.1.s1793602424",
-      "_ga_YT9TMXZYV9": "GS2.1.s1793665657",
-      "app.event.zalo.me": "3236038380622178657",
-      "zoaw_sek": "0X11.1070774772.3.n_VJv4eu5tA-WSLDIZWNSaeu5t9AE1ToIrUSbo0u5t8",
-      "zoaw_type": "0",
-      "zpsid": "abHv.466784528.7.0T7lLZd0P8efKRQHDS1aYaop5huFzbEo3VLMiZTwATdapJFgE3PFOrF0P8e"
+      "_ga_3EM8ZPYYN3": "GS2.2.s1793681845",
+      "_gid": "GA1.2.120731817.1793676458",
+      "zpw_sek": "oPV6.404184050.a0.0bCDkNS3oGxqTanZ9orRUtqFFX0a5ta9Qa5qK49x40v0O1rFSbWl3q4LCH5X46PPUoFXDbNmLYncBBuGxqTRUm",
+      "ZConsentDenied": "timestamp=1793679453752&location=https://zalo.me/pc",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8W-dUoidafSW7QSxgNHJLE8V9ldfJSp.1",
+      "_ga_YS1V643LGV": "GS2.1.s1793681842",
+      "app.event.zalo.me": "5649720127043044590",
+      "zpsid": "7eF4.404184050.4.LySYxeDftYDnCiaxZsdU8_OQh1UpNUyRjrdh4utJat1UP8b3WeorokbftYC"
     }
   },
   "scanner": {
@@ -72,5 +70,10 @@
     "scan_custom_activities": true,
     "auto_snipe_for_students": false,
     "max_post_age_hours": 2.0
+  },
+  "messenger": {
+    "enabled": false,
+    "cookies": [],
+    "target_groups": []
   }
 }
