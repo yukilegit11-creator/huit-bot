@@ -1,5 +1,6 @@
 import re
 import json
+import time
 import hashlib
 import requests
 import urllib3
@@ -17,13 +18,25 @@ class IUHPortalScraper:
         if self.phpsessid:
             self.session.cookies.set("PHPSESSID", self.phpsessid, domain="doantn.iuh.edu.vn")
         
+        # Thiết lập Browser Headers chuẩn Chrome Desktop chống bị chặn / đá phiên
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Encoding": "gzip, deflate",
+            "Cache-Control": "max-age=0",
+            "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1",
             "Referer": "https://doantn.iuh.edu.vn/home.html",
             "Connection": "keep-alive"
         }
+        self.last_touch_time = time.time()
 
     @staticmethod
     def extract_phpsessid(raw) -> str:
@@ -63,15 +76,45 @@ class IUHPortalScraper:
         self.session.cookies.clear()
         if self.phpsessid:
             self.session.cookies.set("PHPSESSID", self.phpsessid, domain="doantn.iuh.edu.vn")
+        self.last_touch_time = time.time()
 
-    def fetch_activities(self) -> tuple:
+    def keep_alive(self) -> tuple:
+        """
+        Gửi yêu cầu heartbeat ping nhẹ tới cổng portal IUH để reset idle timer của PHP session.
+        Trả về (True, 'Alive') nếu session hợp lệ, hoặc (False, 'Expired/Error') nếu session chết.
+        """
+        if not self.phpsessid:
+            return False, "Chưa thiết lập Cookie PHPSESSID"
+        try:
+            r = self.session.get(self.TARGET_URL, headers=self.headers, verify=False, timeout=15)
+            self.last_touch_time = time.time()
+            if r.status_code != 200:
+                return False, f"Heartbeat HTTP error: {r.status_code}"
+            html = r.text
+            if "login.html" in html and ("<meta http-equiv='refresh'" in html or "URL=login.html" in html):
+                return False, "Cookie PHPSESSID đã hết hạn hoặc bị đăng xuất"
+            return True, "Session PHP vẫn sống và hợp lệ (Keep-Alive OK)"
+        except Exception as e:
+            return False, f"Lỗi kết nối heartbeat: {e}"
+
+    def fetch_activities(self, retries: int = 2) -> tuple:
         if not self.phpsessid:
             return False, "Chưa thiết lập Cookie PHPSESSID", []
 
-        try:
-            r = self.session.get(self.TARGET_URL, headers=self.headers, verify=False, timeout=20)
-        except Exception as e:
-            return False, f"Lỗi kết nối tới doantn.iuh.edu.vn: {e}", []
+        last_err = None
+        r = None
+        for attempt in range(retries):
+            try:
+                r = self.session.get(self.TARGET_URL, headers=self.headers, verify=False, timeout=20)
+                self.last_touch_time = time.time()
+                break
+            except Exception as e:
+                last_err = e
+                if attempt < retries - 1:
+                    time.sleep(2)
+
+        if r is None:
+            return False, f"Lỗi kết nối tới doantn.iuh.edu.vn: {last_err}", []
 
         if r.status_code != 200:
             return False, f"Mã trạng thái HTTP {r.status_code}", []

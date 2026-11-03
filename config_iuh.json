@@ -4,7 +4,7 @@
   "portal": {
     "url": "https://doantn.iuh.edu.vn/doanvien.html",
     "phpsessid": "vfbsgb1d91o2ainlfge5p414ep",
-    "username": "2564049",
+    "username": "25640491",
     "password": "phamhang1207"
   },
   "zalo": {
@@ -46,7 +46,7 @@
     "secret_key": "1fvQhWykcIOw9U20g4l7AA=="
   },
   "scanner": {
-    "check_interval_seconds": 15,
+    "check_interval_seconds": 25,
     "notify_reopened_slots": false,
     "max_post_age_hours": 2,
     "max_post_age_minutes": 10
