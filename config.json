@@ -119,16 +119,17 @@
     ],
     "cookies": {
       "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA7SvxleZan.1",
+      "_gat": "1",
       "_ga": "GA1.2.1298407733.1793676454",
       "_zlang": "vn",
       "_ga_3EM8ZPYYN3": "GS2.2.s1793681845",
       "_gid": "GA1.2.120731817.1793676458",
-      "zpw_sek": "owkI.466784528.a0.sE0KDwJwFJudZxXJ5XvgI4my3oCL94WGVci2Fdng1tnFBnqbVMGI3rXJM1rs8rTgIX3G1MJ3PnzN7p0rtdHgI0",
+      "zpw_sek": "r4No.466784528.a0.SKth2jCgIkvGNy-3OSuTc3liUFDYz3_ADw9dp1ciLy8X_cNf5VWgpIVuRA01yo2wFS2drHCJ4CyWpsRcgQGTc0",
       "ZConsentDenied": "timestamp=1793679453752&location=https://zalo.me/pc",
       "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA7SvxleZan.1",
       "_ga_YS1V643LGV": "GS2.1.s1793684527",
       "app.event.zalo.me": "3236038380622178657",
-      "zpsid": "iyJW.466784528.12.LgxprFtqeBxjPNAbyVIWleY7qehBmfU6oS6IXlDExUqW-VVU_AtTLvVqeBu"
+      "zpsid": "IdfO.466784528.13.iNFf3PvFmmMEtX4Uaa_31UiyiJ6eUVGzgdhnFP3rZbP3GfHbdpIzxFHFmmK"
     }
   },
   "supabase": {
