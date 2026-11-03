@@ -20,6 +20,7 @@ files_to_sync = [
     ("web_app.py", "/root/huit-bot/web_app.py"),
     ("zalo_sender.py", "/root/huit-bot/zalo_sender.py"),
     ("messenger_sender.py", "/root/huit-bot/messenger_sender.py"),
+    ("scraper.py", "/root/huit-bot/scraper.py"),
     ("iuh_scraper.py", "/root/huit-bot/iuh_scraper.py"),
     ("ufm_scraper.py", "/root/huit-bot/ufm_scraper.py"),
     ("fb_cookies.json", "/root/huit-bot/fb_cookies.json"),
