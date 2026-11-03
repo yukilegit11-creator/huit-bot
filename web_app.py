@@ -454,22 +454,34 @@ def api_test_zalo_alert():
     test_post = {
         "author": "Ban Quản Trị HUIT",
         "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M - %d/%m/%Y"),
-        "content": """🔔 THÔNG BÁO KIỂM TRA HỆ THỐNG BOT 24/7
+        "content": """🔔 THÔNG BÁO KIỂM TRA HỆ THỐNG BOT 1 (HUIT) - BẮN TEST NỘI BỘ
 
 📌 Bài viết thử nghiệm: Mở đăng ký tham gia chương trình Sinh viên Tình nguyện (Được cộng 10 Điểm Rèn Luyện).
 
 Link đăng ký: https://forms.gle/testHuitDocForm2026
 
-Chúc toàn thể sinh viên HUIT học tập thật tốt!""",
+Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
         "post_url": "https://www.facebook.com/dtn.hsv.huit",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    sent = dispatcher.send_alert(test_post, "KÊNH KIỂM TRA BOT")
-    if sent:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công (kèm @All và Link Form GG Doc) tới các nhóm Zalo được chọn!"}
+    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
+    test_targets = [
+        {"id": "475259879796859360", "name": "demo"},
+        {"id": "7662918962461429024", "name": "Trần Lê Phát"}
+    ]
+    sent_any = False
+    for t in test_targets:
+        try:
+            if dispatcher.send_alert(test_post, "KÊNH KIỂM TRA BOT 1", target_thread_id=t["id"]):
+                sent_any = True
+        except Exception as e:
+            print(f"Lỗi gửi test tới {t['name']}: {e}")
+
+    if sent_any:
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
     else:
-        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc chưa bật nhóm nào!")
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
 
 # ==================== MAIN DASHBOARD HTML VIEW ====================
 
@@ -694,9 +706,9 @@ def api_bot2_delete_zalo_group(group_id: str):
 def api_bot2_test_zalo_alert():
     dispatcher = ZaloDispatcher(CONFIG_BOT2_FILE)
     test_post = {
-        "author": "Ban Quản Trị Bot Kênh 2",
+        "author": "Ban Quản Trị Bot 2 (VAA)",
         "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M - %d/%m/%Y"),
-        "content": """🔔 THÔNG BÁO KIỂM TRA BOT KÊNH 2 (RIÊNG BIỆT)
+        "content": """🔔 THÔNG BÁO KIỂM TRA BOT 2 (VAA) - BẮN TEST NỘI BỘ
 
 📌 Bài viết thử nghiệm: Mở form đăng ký tham gia chương trình hoạt động.
 
@@ -707,11 +719,23 @@ Chúc các bạn theo dõi thuận lợi!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    sent = dispatcher.send_alert(test_post, "KÊNH KIỂM TRA BOT 2")
-    if sent:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công (kèm @All và Link Form GG Doc) cho Bot 2!"}
+    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
+    test_targets = [
+        {"id": "475259879796859360", "name": "demo"},
+        {"id": "7662918962461429024", "name": "Trần Lê Phát"}
+    ]
+    sent_any = False
+    for t in test_targets:
+        try:
+            if dispatcher.send_alert(test_post, "KÊNH KIỂM TRA BOT 2", target_thread_id=t["id"]):
+                sent_any = True
+        except Exception as e:
+            print(f"Lỗi gửi test Bot 2 tới {t['name']}: {e}")
+
+    if sent_any:
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
     else:
-        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc chưa bật nhóm nào!")
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
 
 def get_config_iuh():
     with open(CONFIG_IUH_FILE, "r", encoding="utf-8") as f:
@@ -896,9 +920,13 @@ def api_bot3_test_zalo_alert():
         "slots": "150/150",
         "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
     }
-    sent = send_zalo_iuh(zalo, test_act, is_reopened=False)
+    test_targets = [
+        {"id": "475259879796859360", "name": "demo", "type": "GROUP"},
+        {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
+    ]
+    sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
     if sent:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công tới nhóm demo và Trần Lê Phát!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc người nhận!")
 

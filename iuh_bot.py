@@ -54,18 +54,21 @@ def format_iuh_message(act: dict, is_reopened: bool = False, auto_tag_all: bool 
     ])
     return "\n".join(lines)
 
-def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False):
+def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, custom_targets: list = None):
     config = load_config()
     zalo_cfg = config.get("zalo", {})
-    configured_groups = zalo_cfg.get("target_groups")
-    if configured_groups is not None:
-        target_list = [t for t in configured_groups if t.get("enabled") is True or str(t.get("enabled", "")).lower() in ("true", "1")]
-        if not target_list:
-            print("⏸️ [IUH] Tất cả người nhận / nhóm Zalo đều đang ở trạng thái TẮT. Không gửi thông báo.")
-            return False
+    if custom_targets is not None:
+        target_list = custom_targets
     else:
-        fallback_id = zalo_cfg.get("target_thread_id")
-        target_list = [{"id": fallback_id, "name": zalo_cfg.get("target_group_name", "demo"), "type": zalo_cfg.get("target_type", "GROUP"), "enabled": True}] if fallback_id else []
+        configured_groups = zalo_cfg.get("target_groups")
+        if configured_groups is not None:
+            target_list = [t for t in configured_groups if t.get("enabled") is True or str(t.get("enabled", "")).lower() in ("true", "1")]
+            if not target_list:
+                print("⏸️ [IUH] Tất cả người nhận / nhóm Zalo đều đang ở trạng thái TẮT. Không gửi thông báo.")
+                return False
+        else:
+            fallback_id = zalo_cfg.get("target_thread_id")
+            target_list = [{"id": fallback_id, "name": zalo_cfg.get("target_group_name", "demo"), "type": zalo_cfg.get("target_type", "GROUP"), "enabled": True}] if fallback_id else []
 
     if not target_list:
         return False

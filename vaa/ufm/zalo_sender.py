@@ -453,7 +453,20 @@ class ZaloDispatcher:
             except Exception as e:
                 return False, f"Lỗi gửi tin: {e}"
 
-        res = self.send_activity_alert(test_act, db_file=db_file)
-        if res:
-            return True, "Đã gửi thông báo thử nghiệm thành công tới các nhóm Zalo đang bật!"
-        return False, "Chưa gửi được tin thử nghiệm (kiểm tra lại danh sách nhóm Zalo hoặc trạng thái kết nối)"
+        # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Trần Lê Phát
+        test_targets = [
+            {"id": "475259879796859360", "name": "demo", "type": ThreadType.GROUP},
+            {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": ThreadType.USER}
+        ]
+        any_succ = False
+        for t in test_targets:
+            msg_text = format_ufm_message(test_act, is_reopened=False, auto_tag_all=False, bot_name=self.bot_name)
+            try:
+                self.client.send(Message(text=msg_text), thread_id=t["id"], thread_type=t["type"])
+                database.log_event("TEST", f"Đã gửi tin thử nghiệm tới {t['name']} ({t['id']})", db_file=db_file)
+                any_succ = True
+            except Exception as e:
+                print(f"Lỗi gửi test tới {t['name']}: {e}")
+        if any_succ:
+            return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"
+        return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát."

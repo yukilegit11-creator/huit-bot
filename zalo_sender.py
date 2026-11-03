@@ -443,7 +443,16 @@ class ZaloDispatcher:
         # Xác định danh sách các nhóm đích
         target_list = []
         if target_thread_id:
-            target_list = [{"id": str(target_thread_id), "name": "Mục chỉ định"}]
+            tid_str = str(target_thread_id).strip()
+            found_g = next((g for g in self.zalo_cfg.get("target_groups", []) if str(g.get("id")).strip() == tid_str), None)
+            if found_g:
+                target_list = [dict(found_g)]
+            else:
+                target_list = [{
+                    "id": tid_str,
+                    "name": "Trần Lê Phát" if tid_str == "7662918962461429024" else "Mục chỉ định",
+                    "type": "USER" if tid_str == "7662918962461429024" else "GROUP"
+                }]
         else:
             configured_groups = self.zalo_cfg.get("target_groups")
             if configured_groups is not None:
