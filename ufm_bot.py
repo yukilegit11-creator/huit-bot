@@ -41,14 +41,10 @@ def format_ufm_message(act: dict, is_reopened: bool = False, auto_tag_all: bool 
     title = f"{id_prefix}{act.get('title', 'Không có tiêu đề')}"
     unit = act.get("unit", "Chưa rõ đơn vị")
     event_time = act.get("event_time", "Xem chi tiết tại cổng")
-    location = act.get("location", "Theo thông báo của đơn vị")
     status = act.get("status", "Đang mở")
     points = float(act.get("points", 0) or 0)
     ctxh = float(act.get("ctxh", 0) or 0)
-    group_criteria = act.get("group_criteria", "")
     reg_url = act.get("register_url") or "https://hoatdong.ufm.edu.vn/DangKy"
-    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
-    posted_time = act.get("posted_time") or act.get("first_seen") or now_vn
 
     lines = [
         f"{tag_str}{header}",
@@ -65,26 +61,15 @@ def format_ufm_message(act: dict, is_reopened: bool = False, auto_tag_all: bool 
     if points_str_list:
         lines.append(f"🎯 Điểm: {' • '.join(points_str_list)}")
 
-    lines.append(f"⏰ Thời gian đăng bài: {posted_time}")
-
     if event_time and event_time != "Chưa rõ thời gian":
-        lines.append(f"📅 Thời gian diễn ra: {event_time}")
-
-    if location and location != "Chưa rõ địa điểm":
-        lines.append(f"📍 Địa điểm: {location}")
-
-    if group_criteria:
-        lines.append(f"📊 Nhóm: {group_criteria}")
+        lines.append(f"📅 Thời gian: {event_time}")
 
     lines.append(f"👥 Trạng thái: {status}")
 
     lines.extend([
         "━━━━━━━━━━━━━━━━━━━━",
         "👉 Vào cổng đăng ký ngay:",
-        reg_url,
-        "━━━━━━━━━━━━━━━━━━━━",
-        "🙏 Xin lỗi nếu thông báo này đã làm phiền các bạn!",
-        f"🤖 {bot_name}"
+        reg_url
     ])
 
     return "\n".join(lines)

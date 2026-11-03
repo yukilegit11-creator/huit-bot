@@ -39,25 +39,13 @@ def format_iuh_message(act: dict, is_reopened: bool = False, auto_tag_all: bool 
         f"{tag_str}{header}",
         "━━━━━━━━━━━━━━━━━━━━",
         f"📌 Hoạt động: {act.get('title', '')}",
-        f"🎯 Điểm rèn luyện: +{act.get('points', 0)} điểm (Học kỳ: {act.get('semester', '')})",
+        f"🎯 Điểm rèn luyện: +{act.get('points', 0)} ĐRL (Học kỳ: {act.get('semester', '')})",
         f"⏰ Hạn kết thúc đăng ký: {act.get('deadline', 'Không rõ')}",
         f"👥 Trạng thái: {act.get('status', 'Đang mở')}" + (f" ({act.get('slots')})" if act.get('slots') else ""),
-    ]
-
-    details = act.get("details", "").strip()
-    if details:
-        lines.append("━━━━━━━━━━━━━━━━━━━━")
-        lines.append("📋 Chi tiết hoạt động:")
-        for dline in details.split("\n"):
-            dline = dline.strip()
-            if dline:
-                lines.append(f"  • {dline}")
-
-    lines.extend([
         "━━━━━━━━━━━━━━━━━━━━",
         "👉 Vào cổng đăng ký ngay:",
         "https://doantn.iuh.edu.vn/doanvien.html"
-    ])
+    ]
     return "\n".join(lines)
 
 def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, custom_targets: list = None):

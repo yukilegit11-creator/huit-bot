@@ -88,11 +88,7 @@ def format_post_messenger_message(post_data: dict, page_name: str, bot_name: str
         lines.append(f"🏢 Đăng bởi: {page_name}")
         lines.append(f"⏰ Thời gian: {posted_time}")
 
-    # Nội dung trích dẫn
-    if text:
-        content_preview = text if len(text) <= 500 else text[:500] + "..."
-        lines.append("━━━━━━━━━━━━━━━━━━━━")
-        lines.append(f"📄 Nội dung:\n{content_preview}")
+
 
     if url:
         lines.append("━━━━━━━━━━━━━━━━━━━━")

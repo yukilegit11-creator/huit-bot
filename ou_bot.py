@@ -90,8 +90,6 @@ def format_ou_fb_message(post: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
     has_form = len(form_links) > 0
 
     header = "🔥 [OU - THÔNG BÁO CÓ FORM ĐĂNG KÝ] 🔥" if has_form else "📢 [OU - THÔNG BÁO ĐIỂM RÈN LUYỆN MỚI] 📢"
-
-    # Trích xuất tiêu đề bài viết
     title = extract_post_title(content, max_len=140)
 
     lines = [
@@ -105,7 +103,7 @@ def format_ou_fb_message(post: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
     reg_time_hint = extract_reg_time_from_text(content)
     if reg_time_hint:
         lines.append("━━━━━━━━━━━━━━━━━━━━")
-        lines.append(f"⏰ THỜI GIAN CHO PHÉP ĐĂNG KÝ:\n👉 {reg_time_hint}")
+        lines.append(f"⏰ THỜI GIAN CHO PHÉP ĐĂNG KÝ: {reg_time_hint}")
 
     if has_form:
         lines.append("━━━━━━━━━━━━━━━━━━━━")
@@ -113,21 +111,9 @@ def format_ou_fb_message(post: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
         for idx, flink in enumerate(form_links, 1):
             lines.append(f"👉 Link {idx}: {flink}")
 
-    # Nội dung tóm tắt
-    preview_len = 350
-    content_clean = content.replace("\r", "")
-    if len(content_clean) > preview_len:
-        content_summary = content_clean[:preview_len].rsplit(" ", 1)[0] + "..."
-    else:
-        content_summary = content_clean
-
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append(f"📄 Nội dung chi tiết:\n{content_summary}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
     if post_url:
-        lines.append(f"🔗 Xem bài gốc trên Facebook:\n{post_url}")
         lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append(f"🤖 {bot_name}")
+        lines.append(f"🔗 Link Facebook: {post_url}")
 
     return "\n".join(lines)
 
