@@ -6,7 +6,7 @@
     "phpsessid": "jg13il4uu6nfr8k51cdpldufj2"
   },
   "zalo": {
-    "imei": "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7",
+    "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",
     "target_thread_id": "6906603484437051809",
     "target_type": "GROUP",
     "target_group_name": "TB điểm rèn luyện IUH",
@@ -38,24 +38,21 @@
       }
     ],
     "cookies": {
-      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA7SvxleZan.1",
-      "_gat": "1",
-      "_ga": "GA1.2.1298407733.1793676454",
+      "zpdid": "41BwdLBrfJiN5vsKLVl9F1aUdPHO_ymu",
+      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HH6Mn7vs0KLGvTOb-i8GvV0bLfGRCg25y7LtuI",
       "_zlang": "vn",
-      "_ga_3EM8ZPYYN3": "GS2.2.s1793681845",
-      "_gid": "GA1.2.120731817.1793676458",
-      "zpw_sek": "r4No.466784528.a0.SKth2jCgIkvGNy-3OSuTc3liUFDYz3_ADw9dp1ciLy8X_cNf5VWgpIVuRA01yo2wFS2drHCJ4CyWpsRcgQGTc0",
-      "ZConsentDenied": "timestamp=1793679453752&location=https://zalo.me/pc",
-      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA7SvxleZan.1",
-      "_ga_YS1V643LGV": "GS2.1.s1793684527",
-      "app.event.zalo.me": "3236038380622178657",
-      "zpsid": "IdfO.466784528.13.iNFf3PvFmmMEtX4Uaa_31UiyiJ6eUVGzgdhnFP3rZbP3GfHbdpIzxFHFmmK"
-    }
+      "zpsid": "eMKnVcAlVqAZUYmFEOO_FBK8CMicYZiuiG0hQYEKIdpBI3ujAy9ME-4_2oiQp7SXYIaG87xZ7H6f45b6VCLIIUy-1qmSq0b8_1rRH3RNNLBu72n009P4LcK",
+      "__zi": "3000.QOBlzDCV2uGerkFzm0LMrMNQv_d43HxKPzEe_ie46TPgqAxv.1",
+      "zlogtype": "EXPIRED",
+      "zpw_sek": "Qpnh.404184050.a0.juUpxhnV0b8_AeS_x76G9xPJzKplIx8MgmV1Jve8-qI4FkSUc4EWGFaTfsQCJAq5iCNDMkMfxtAqSDoi91kG9m",
+      "app.event.zalo.me": "5649720127043044590"
+    },
+    "secret_key": "1fvQhWykcIOw9U20g4l7AA=="
   },
   "scanner": {
     "check_interval_seconds": 15,
     "notify_reopened_slots": false,
-    "max_post_age_hours": 2.0,
+    "max_post_age_hours": 2,
     "max_post_age_minutes": 10
   },
   "supabase": {
