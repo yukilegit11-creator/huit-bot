@@ -110,6 +110,7 @@ class UFMPortalScraper:
             return False, "Thiếu thông tin tài khoản hoặc mật khẩu UFM"
 
         try:
+            self.session.cookies.clear()
             r1 = self.session.get(self.SIGNIN_URL, verify=False, timeout=15)
             if r1.status_code != 200:
                 return False, f"Không thể tải trang đăng nhập (HTTP {r1.status_code})"
@@ -122,13 +123,14 @@ class UFMPortalScraper:
             token = token_tag.get("value", "")
             data = {
                 "__RequestVerificationToken": token,
-                "returnUrl": "/",
+                "returnUrl": "/DangKy",
                 "txtuser": u,
                 "txtpass": p
             }
 
             r2 = self.session.post(self.SIGNIN_URL, data=data, verify=False, timeout=20, allow_redirects=True)
-            if "SignOut" in r2.text or "Đăng xuất" in r2.text:
+            has_auth = any(c.name == ".AspNetCore.Cookies" for c in self.session.cookies)
+            if has_auth or "SignOut" in r2.text or "Đăng xuất" in r2.text or r2.url.endswith("/DangKy"):
                 self.save_current_cookies_to_config()
                 return True, "Đăng nhập UFM thành công!"
 
@@ -145,7 +147,7 @@ class UFMPortalScraper:
         """Kiểm tra tính hợp lệ của phiên đăng nhập; nếu hết hạn thì tự động relogin."""
         try:
             r = self.session.get(self.DANGKY_URL, verify=False, timeout=15, allow_redirects=False)
-            if r.status_code == 200 and ("Đăng xuất" in r.text or "SignOut" in r.text):
+            if r.status_code == 200 and "Account/SignIn" not in r.text:
                 return True
         except Exception:
             pass

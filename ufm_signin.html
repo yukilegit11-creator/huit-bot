@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>&#x110;&#x103;ng nh&#x1EAD;p h&#x1EC7; th&#x1ED1;ng - HDU - Hoạt động UFM</title>
+
+    
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Kanit', 'sans-serif'], } } } }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="apple-touch-icon" href="/Content/logohdu.png">
+    <!-- Firebase Web Push SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+    <script src="/js/firebase-notification.js?v=1NRz5sKV7lzfmYinSHClehlTZJMGDwA2F0nHHKT1bg0"></script>
+    <style>
+        html, body {
+            overflow-x: hidden;
+        }
+
+        #mobile-menu-btn {
+            min-width: 2.75rem;
+            min-height: 2.75rem;
+        }
+
+        @media (max-width: 380px) {
+            #mobile-menu-btn {
+                min-width: 2.5rem;
+                min-height: 2.5rem;
+            }
+        }
+    </style>
+
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased min-h-screen flex flex-col">
+
+
+
+   <header b-fr1e8b3rmi class="bg-blue-800 shadow-md">
+    <div b-fr1e8b3rmi class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div b-fr1e8b3rmi class="flex justify-between items-center min-h-[4rem] py-2.5 sm:py-3 gap-2 sm:gap-4">
+            
+            <div b-fr1e8b3rmi class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 lg:flex-none lg:shrink-0 lg:min-w-max">
+                <img b-fr1e8b3rmi src="/Content/logoufm.png" 
+                    alt="Logo" 
+                    class="h-9 sm:h-12 w-auto shrink-0 object-contain transition-all duration-500 
+                            hover:scale-110 hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.7)] 
+                            active:scale-95 cursor-pointer animate-soft-float" 
+                    onerror="this.src='https://via.placeholder.com/40?text=UFM'" />
+                <div b-fr1e8b3rmi class="flex flex-col justify-center min-w-0 lg:min-w-max">
+                    <div b-fr1e8b3rmi class="text-white font-bold text-lg sm:text-2xl tracking-wider leading-none">HDU</div>
+                    <div b-fr1e8b3rmi class="text-blue-200 text-[9px] sm:text-[11px] uppercase font-medium tracking-widest mt-1 truncate">Quản lý hoạt động UFM</div>
+                </div>
+                
+            </div>
+            
+        </div>
+    </div>
+
+</header>
+
+    <main b-fr1e8b3rmi class="flex-grow max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8">
+        <style>
+    /* Hiệu ứng chữ chạy ngang màn hình */
+    .marquee-container {
+        overflow: hidden;
+        white-space: nowrap;
+        background: #fef3c7; /* Màu vàng nhạt */
+        border-bottom: 1px solid #f59e0b;
+        padding: 8px 0;
+    }
+    .marquee-text {
+        display: inline-block;
+        padding-left: 100%;
+        animation: marquee 20s linear infinite;
+        font-weight: bold;
+        color: #b45309;
+    }
+    @keyframes marquee {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(-100%, 0); }
+    }
+</style>
+
+<div class="max-w-md mx-auto mt-16 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+    <div class="bg-blue-800 p-8 text-center border-b-4 border-blue-900">
+        <h2 class="text-3xl font-bold text-white tracking-wide">Đăng nhập</h2>
+        <p class="text-blue-200 mt-2 text-sm">Nhập thông tin từ tài khoản UIS để tiếp tục</p>
+    </div>
+
+    <form action="/Account/SignIn" method="post" class="p-8">
+        <input name="__RequestVerificationToken" type="hidden" value="CfDJ8ODAQypoUS9PqSfI_yMJFUm4sWNDetBLlCZoUak_Jds3BHoLIseOwcXRchKhk3gv2Flb0ooRe4h86yEYvYx18lvCZQeNfzgNVgd4zOF0SmoiMq60gOtlUyENE4puxm2CTbUqAKHaMZa_uAyy4eLGuTY" />
+        <input type="hidden" name="returnUrl" />
+        
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Mã số sinh viên / Mã nhân viên</label>
+            <input type="text" name="txtuser" placeholder="Nhập MSSV..." required autofocus
+                   class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all uppercase placeholder-normal" />
+        </div>
+        
+        <div class="mb-8">
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Mật khẩu UIS</label>
+            <input type="password" name="txtpass" placeholder="Nhập mật khẩu..." required
+                   class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all uppercase tracking-wider mb-4">
+            Đăng Nhập
+        </button>
+
+        <div class="text-center mt-4">
+            <a href="/Account/ResetPasswordMicrosoft" class="text-blue-600 hover:text-blue-800 font-semibold text-sm flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                Quên mật khẩu / Reset Password
+            </a>
+            <p class="text-xs text-gray-500 mt-2">Dành cho sinh viên: Đăng nhập bằng tài khoản MS Teams để reset</p>
+        </div>
+    </form>
+</div>
+
+<div class="marquee-container mb-6 rounded-lg shadow-sm">
+    <div class="marquee-text">
+        📢 CHÚ Ý: Tất cả thông báo đăng ký và điểm danh sẽ được gửi trực tiếp qua MS Teams sinh viên. Đây là minh chứng duy nhất khi có khiếu nại!
+    </div>
+</div>
+
+
+    </main>
+
+    <footer b-fr1e8b3rmi class="bg-white border-t mt-auto">
+        <div b-fr1e8b3rmi class="max-w-7xl mx-auto py-6 px-4 text-center">
+            <button b-fr1e8b3rmi id="footerInstallAppBtn" class="hidden inline-flex items-center justify-center gap-2 text-white bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-full font-bold transition shadow-lg hover:shadow-blue-500/30 animate-bounce mb-4"><i b-fr1e8b3rmi class="bi bi-download"></i> Tải Ứng dụng HDU</button>
+            <div b-fr1e8b3rmi class="text-gray-500 text-sm">
+                Bản quyền © 2026 thuộc về Trường Đại học Tài chính - Marketing (UFM). Phát triển bởi <strong b-fr1e8b3rmi>ThanhDongUFM</strong>.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Xử lý Toggle Mobile Menu
+            const btn = document.getElementById('mobile-menu-btn');
+            const menu = document.getElementById('mobile-menu');
+            if(btn && menu) {
+                btn.addEventListener('click', () => {
+                    menu.classList.toggle('hidden');
+                    const isOpen = !menu.classList.contains('hidden');
+                    btn.setAttribute('aria-expanded', isOpen.toString());
+                    btn.setAttribute('aria-label', isOpen ? 'Đóng menu' : 'Mở menu');
+                });
+            }
+
+            // Chặn In-App Browser (Zalo/Facebook)
+            const inAppRules = ['zalo', 'fban', 'fbav', 'instagram', 'line', 'wv'];
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (inAppRules.some(keyword => userAgent.includes(keyword))) {
+                document.getElementById('browser-redirect-overlay').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                if (/android/.test(userAgent)) {
+                    const currentUrl = window.location.href.replace(/^https?:\/\//, '');
+                    window.location.href = 'intent://' + currentUrl + '#Intent;scheme=https;package=com.android.chrome;end';
+                }
+            }
+
+            // TempData Toast (Hiển thị thông báo góc phải)
+        });
+
+        // Đổi Học kỳ
+        function openSemesterModal() {
+            const currentHk = '';
+            Swal.fire({ title: 'Đang tải danh sách...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+            fetch('/Account/GetDanhSachHocKy')
+                .then(res => res.json())
+                .then(data => {
+                    const options = {};
+                    data.forEach(hk => { options[hk] = hk; });
+                    if (currentHk && !options[currentHk]) options[currentHk] = currentHk + " (Đang chọn)";
+
+                    Swal.fire({
+                        title: 'Chuyển đổi Học kỳ',
+                        input: 'select',
+                        inputOptions: options,
+                        inputValue: currentHk,
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        confirmButtonColor: '#2563eb',
+                        inputValidator: (value) => {
+                            if (!value) return 'Vui lòng chọn một học kỳ!';
+                            if (value === currentHk) return 'Bạn đang xem học kỳ này rồi!';
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetch('/Account/ChangeSemester?newHocKy=' + encodeURIComponent(result.value), { method: 'POST' })
+                            .then(r => r.json())
+                            .then(res => {
+                                if(res.success) {
+                                    Swal.fire({ icon: 'success', title: 'Cập nhật thành công!', showConfirmButton: false, timer: 1000 })
+                                    .then(() => { window.location.reload(); });
+                                } else {
+                                    Swal.fire('Lỗi', res.message, 'error');
+                                }
+                            });
+                        }
+                    });
+                });
+        }
+
+        function openChangePasswordModal() {
+            Swal.fire({
+                title: 'Đổi mật khẩu Cổng thông tin',
+                html: `
+                    <form id="changePasswordForm" action="/Account/ChangePassword" method="POST" class="text-left space-y-4">
+                        <input name="__RequestVerificationToken" type="hidden" value="CfDJ8ODAQypoUS9PqSfI_yMJFUm4sWNDetBLlCZoUak_Jds3BHoLIseOwcXRchKhk3gv2Flb0ooRe4h86yEYvYx18lvCZQeNfzgNVgd4zOF0SmoiMq60gOtlUyENE4puxm2CTbUqAKHaMZa_uAyy4eLGuTY" />
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Mật khẩu cũ</label>
+                            <input type="password" name="oldPass" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Mật khẩu mới</label>
+                            <input type="password" id="newPass" name="newPass" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Xác nhận mật khẩu mới</label>
+                            <input type="password" id="confirmPass" name="confirmPass" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                        </div>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Đổi mật khẩu',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    const form = document.getElementById('changePasswordForm');
+                    const newPass = document.getElementById('newPass').value;
+                    const confirmPass = document.getElementById('confirmPass').value;
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return false;
+                    }
+                    if (newPass !== confirmPass) {
+                        Swal.showValidationMessage('Mật khẩu mới và xác nhận không khớp!');
+                        return false;
+                    }
+                    form.submit();
+                }
+            });
+        }
+    </script>
+    
+    <script>
+        // XỬ LÝ NÚT CÀI ĐẶT ỨNG DỤNG PWA
+        let deferredPrompt;
+        const installBtn = document.getElementById('installAppBtn');
+        const mobileInstallBtn = document.getElementById('mobileInstallAppBtn');
+        const footerInstallBtn = document.getElementById('footerInstallAppBtn');
+
+        // Helper to show all install buttons
+        const showInstallButtons = () => {
+            if(installBtn) installBtn.classList.remove('hidden');
+            if(mobileInstallBtn) mobileInstallBtn.classList.remove('hidden');
+            if(footerInstallBtn) footerInstallBtn.classList.remove('hidden');
+        };
+
+        // Helper to hide all install buttons
+        const hideInstallButtons = () => {
+            if(installBtn) installBtn.classList.add('hidden');
+            if(mobileInstallBtn) mobileInstallBtn.classList.add('hidden');
+            if(footerInstallBtn) footerInstallBtn.classList.add('hidden');
+        };
+
+        // Kiểm tra thiết bị iOS
+        const isIos = () => {
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            return /iphone|ipad|ipod/.test(userAgent);
+        };
+        
+        // Kiểm tra xem ứng dụng đã được cài đặt (chế độ standalone)
+        const isInStandaloneMode = () => ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
+
+        // --- LOGIC CÀI ĐẶT PWA ---
+        // 1. Nếu đã cài đặt rồi (chạy ở chế độ standalone) -> không làm gì cả.
+        if (isInStandaloneMode()) {
+            // Các nút đã bị ẩn theo mặc định, không cần làm gì thêm.
+        }
+        // 2. Nếu là iOS và chưa cài -> hiện nút và bảng hướng dẫn thủ công.
+        else if (isIos()) {
+            showInstallButtons();
+            const showIosInstallGuide = () => {
+                Swal.fire({
+                    title: 'Cài đặt App trên iOS',
+                    html: `
+                        <div class="text-left text-sm text-gray-700">
+                            <p class="mb-3">Hệ điều hành iOS chặn tự động cài đặt. Bạn vui lòng làm theo hướng dẫn sau trên trình duyệt Safari:</p>
+                            <ol class="list-decimal pl-5 space-y-3">
+                                <li>Nhấn vào biểu tượng <b>Chia sẻ (Share)</b> <i class="bi bi-box-arrow-up mx-1 border border-gray-300 rounded px-1 text-blue-600 bg-gray-50"></i> ở thanh công cụ dưới cùng.</li>
+                                <li>Kéo xuống và chọn dòng <b>"Thêm vào MH chính"</b> (Add to Home Screen) <i class="bi bi-plus-square mx-1 border border-gray-300 rounded px-1 text-gray-500 bg-gray-50"></i>.</li>
+                                <li>Nhấn <b>"Thêm" (Add)</b> ở góc trên bên phải để hoàn tất.</li>
+                            </ol>
+                        </div>
+                    `,
+                    icon: 'info',
+                    confirmButtonText: 'Đã hiểu',
+                    confirmButtonColor: '#2563eb'
+                });
+            };
+            [installBtn, mobileInstallBtn, footerInstallBtn].forEach(btn => {
+                if (btn) btn.addEventListener('click', showIosInstallGuide);
+            });
+        }
+        // 3. Nếu là Android/PC và chưa cài -> chờ sự kiện `beforeinstallprompt`.
+        else {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallButtons();
+            });
+
+            const handleInstallClick = () => {
+                hideInstallButtons();
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome !== 'accepted') {
+                            // Nếu người dùng bấm "Hủy", hiện lại nút để họ có thể thử lại.
+                            showInstallButtons();
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            };
+
+            [installBtn, mobileInstallBtn, footerInstallBtn].forEach(btn => {
+                if (btn) btn.addEventListener('click', handleInstallClick);
+            });
+        }
+
+        // ĐĂNG KÝ SERVICE WORKER
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker đã đăng ký thành công với scope: ', registration.scope);
+                    }, function(err) {
+                        console.log('ServiceWorker đăng ký thất bại: ', err);
+                    });
+            });
+        }
+    </script>
+
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Kiểm tra xem sinh viên đã đọc thông báo chưa (tránh hiện lại quá nhiều lần trong 1 phiên)
+            if (!sessionStorage.getItem('noticeRead')) {
+                Swal.fire({
+                    title: '<span class="text-blue-700">📢 THÔNG BÁO QUAN TRỌNG</span>',
+                    html: `
+                        <div class="text-left text-sm leading-relaxed">
+                            <p class="mb-3">Chào bạn sinh viên, để đảm bảo quyền lợi khi tham gia các hoạt động tại <b>HDU</b>, bạn cần lưu ý:</p>
+                            <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                                <li>Mọi giao dịch <b>Đăng ký</b> và <b>Điểm danh</b> thành công đều được hệ thống gửi xác nhận qua <b>Microsoft Teams</b>.</li>
+                                <li>Vui lòng kiểm tra tin nhắn Teams ngay sau khi thực hiện thao tác.</li>
+                                <li>Tin nhắn này được dùng làm <b>minh chứng đối soát</b> duy nhất trong trường hợp sai sót điểm rèn luyện.</li>
+                            </ul>
+                            <p class="mt-4 p-2 bg-yellow-50 border-l-4 border-yellow-400 italic">
+                                Hãy đảm bảo bạn đã cài đặt và đăng nhập App Microsoft Teams trên điện thoại!
+                            </p>
+                        </div>
+                    `,
+                    icon: 'info',
+                    confirmButtonText: 'Tôi đã hiểu và đồng ý',
+                    confirmButtonColor: '#1d4ed8',
+                    allowOutsideClick: false, // Bắt buộc phải bấm nút
+                    allowEscapeKey: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        sessionStorage.setItem('noticeRead', 'true');
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
