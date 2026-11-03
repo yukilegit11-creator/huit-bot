@@ -158,7 +158,7 @@ def scan_now():
 
 @app.get("/api/activities")
 def api_activities(limit: int = 100):
-    rows = database.get_crawled_activities(limit=limit)
+    rows = database.get_recent_activities(limit=limit)
     return {"status": "ok", "activities": rows}
 
 @app.get("/api/students")

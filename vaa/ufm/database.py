@@ -638,3 +638,7 @@ def get_student_stats(db_file=None) -> dict:
 
 # Khởi tạo DB tự động khi import
 init_db()
+
+
+# Alias compatibility
+get_crawled_activities = get_recent_activities
