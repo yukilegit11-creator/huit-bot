@@ -100,7 +100,7 @@ def run_bot():
             fb_cookies = config.get("fb_cookies", {})
             scraper.cookies = fb_cookies
             scanner_cfg = config.get("scanner", {})
-            max_age_hours = scanner_cfg.get("max_post_age_hours", 0.1667)
+            max_age_hours = scanner_cfg.get("max_post_age_hours", 2.0)
             check_interval = scanner_cfg.get("check_interval_seconds", 30)
             delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
         except Exception:

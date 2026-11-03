@@ -56,7 +56,7 @@
   "scanner": {
     "check_interval_seconds": 15,
     "notify_reopened_slots": false,
-    "max_post_age_hours": 0.1667,
+    "max_post_age_hours": 2.0,
     "max_post_age_minutes": 10
   },
   "supabase": {

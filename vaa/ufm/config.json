@@ -70,6 +70,7 @@
     "scan_dangky": true,
     "scan_semester_activities": true,
     "scan_custom_activities": true,
-    "auto_snipe_for_students": false
+    "auto_snipe_for_students": false,
+    "max_post_age_hours": 2.0
   }
 }

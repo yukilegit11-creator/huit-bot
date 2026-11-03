@@ -39,12 +39,28 @@ class FacebookCometScraper:
         try:
             resp = self.session.get(target_url, timeout=30, allow_redirects=True)
             if resp.status_code == 200:
+                text_low = resp.text.lower()
+                # Kiểm tra xem Cookie Facebook có bị dính Checkpoint hoặc ép đăng nhập không
+                if "checkpoint" in text_low or "/checkpoint/" in resp.url or 'id="login_top"' in text_low or "/login/" in resp.url:
+                    print(f"⚠️ Phát hiện Cookie Facebook bị Checkpoint/Hết hạn trên {target_url}. Tự động quét ẩn danh (Guest Mode)...")
+                    anon_resp = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
+                    if anon_resp.status_code == 200:
+                        return anon_resp.text
                 return resp.text
             else:
-                print(f"⚠️ Facebook trả về mã {resp.status_code} cho {target_url}")
+                print(f"⚠️ Facebook trả về mã {resp.status_code} cho {target_url}. Thử quét ẩn danh...")
+                anon_resp = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
+                if anon_resp.status_code == 200:
+                    return anon_resp.text
                 return ""
         except Exception as e:
             print(f"⚠️ Lỗi kết nối khi quét {target_url}: {e}")
+            try:
+                anon_resp = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
+                if anon_resp.status_code == 200:
+                    return anon_resp.text
+            except Exception:
+                pass
             return ""
 
     @staticmethod
@@ -138,7 +154,36 @@ class FacebookCometScraper:
             for item in obj:
                 self._extract_messages_from_json(item, posts, metadata_map, default_page_url)
 
-    def parse_posts(self, html_text: str, max_age_hours: float = 0.1667, page_url: str = "") -> list:
+    def fetch_full_post_content(self, post_url: str) -> str:
+        """Khi bài viết trên dòng thời gian chỉ hiển thị tiêu đề ngắn (ảnh/album/sự kiện), vào tận link bài viết để lấy đầy đủ mô tả chi tiết kèm link form."""
+        if not post_url or ("facebook.com" not in post_url):
+            return ""
+        try:
+            html = self.fetch_url(post_url)
+            if not html:
+                return ""
+            soup = BeautifulSoup(html, "html.parser")
+            scripts = soup.find_all("script", attrs={"type": "application/json"})
+            candidates = []
+            for s in scripts:
+                if not s.string:
+                    continue
+                matches = re.findall(r'"text":"([^"]{25,})"', s.string)
+                for m in matches:
+                    try:
+                        dec = json.loads(f'"{m}"')
+                    except Exception:
+                        dec = m
+                    if self.is_valid_post(dec) and "bình luận đã bị tắt" not in dec.lower() and "điều khoản" not in dec.lower():
+                        candidates.append(dec)
+            if candidates:
+                candidates.sort(key=len, reverse=True)
+                return candidates[0]
+        except Exception as e:
+            print(f"⚠️ Lỗi bóc tách chi tiết bài viết {post_url}: {e}")
+        return ""
+
+    def parse_posts(self, html_text: str, max_age_hours: float = 1.0, page_url: str = "") -> list:
         if not html_text:
             return []
 
@@ -213,18 +258,27 @@ class FacebookCometScraper:
             if key not in unique_dict:
                 unique_dict[key] = p
 
-        # Bộ lọc thời gian nghiêm ngặt: MẶC ĐỊNH <= 10 PHÚT (10/60 = 0.1667 giờ)
+        # Bộ lọc thời gian: Quét các bài viết trong khoảng max_age_hours
         now_ts = time.time()
         fresh_posts = []
+        max_allowed_mins = max_age_hours * 60.0
         for p in list(unique_dict.values()):
             c_time = p.get("creation_time")
             if c_time and isinstance(c_time, (int, float)):
                 if c_time > 1e11:
                     c_time = c_time / 1000.0
                 age_minutes = (now_ts - c_time) / 60.0
-                # Nếu đã trôi qua hơn 10 phút thì TUYỆT ĐỐI BỎ QUA không gửi
-                if age_minutes > 10.0 or age_minutes < -5.0:
+                if age_minutes > max_allowed_mins or age_minutes < -5.0:
                     continue
+
+                # Nếu nội dung quá ngắn (< 120 ký tự) và có link bài viết, vào link chi tiết lấy toàn văn nội dung kèm link form
+                c_txt = p.get("content", "").strip()
+                p_url = p.get("post_url", "")
+                if len(c_txt) < 120 and p_url and ("/posts/" in p_url or "/photos/" in p_url or "permalink" in p_url):
+                    full_txt = self.fetch_full_post_content(p_url)
+                    if full_txt and len(full_txt) > len(c_txt):
+                        p["content"] = full_txt
+
                 fresh_posts.append(p)
             else:
                 # Bỏ qua bài không có mốc thời gian thực sự để tuyệt đối không bắn bài cũ
