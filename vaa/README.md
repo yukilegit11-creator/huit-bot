@@ -6,7 +6,7 @@ Hệ thống bóc tách dữ liệu tự động Comet SSR Facebook 24/7 và b�
 
 ## 👤 Thông Tin Quản Trị Viên & Tác Giả
 
-- **Quản trị viên & Lead Developer:** **Trần Lê Phát**
+- **Quản trị viên & Lead Developer:** **Yuki**
 - **GitHub:** [`@yukilegit11-creator`](https://github.com/yukilegit11-creator)
 - **Hệ thống đồng bộ GitHub:** Tự động Auto-Commit & Auto-Push khi thay đổi cấu hình trên Web Dashboard.
 
@@ -14,7 +14,7 @@ Hệ thống bóc tách dữ liệu tự động Comet SSR Facebook 24/7 và b�
 
 ## 🏗️ Kiến Trúc Hệ Thống (Độc Lập 100%)
 
-- **`config.json`**: Cấu hình 11 Fanpage/Group VAA, Cookie Facebook, Nhóm Zalo (`demo`), người nhận cá nhân (`Trần Lê Phát`), bộ lọc từ khóa, thời gian $\le$ 1.0 giờ.
+- **`config.json`**: Cấu hình 11 Fanpage/Group VAA, Cookie Facebook, Nhóm Zalo (`demo`), người nhận cá nhân (`Yuki`), bộ lọc từ khóa, thời gian $\le$ 1.0 giờ.
 - **`vaabot.db`**: Cơ sở dữ liệu SQLite độc lập lưu trữ bài viết bóc tách, mốc thời gian, trạng thái bot và system logs.
 - **`scraper.py`**: Bóc tách Comet SSR Facebook, lọc bài viết $\le$ 1.0 giờ, tự động trích xuất tiêu đề và khối link Form sự kiện (`forms.gle`, `docs.google.com`, v.v.).
 - **`zalo_sender.py`**: Chuyển tiếp tin nhắn Zalo hỗ trợ đồng thời cả Nhóm (`@All`) và Cá nhân (tự động loại bỏ `@All` lịch sự).

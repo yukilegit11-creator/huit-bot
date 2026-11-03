@@ -467,10 +467,10 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
+    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
         {"id": "7456361874031804652", "name": "demo"},
-        {"id": "7662918962461429024", "name": "Trần Lê Phát"}
+        {"id": "7581087306337796515", "name": "Yuki"}
     ]
     sent_any = False
     for t in test_targets:
@@ -481,9 +481,9 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
             print(f"Lỗi gửi test tới {t['name']}: {e}")
 
     if sent_any:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
     else:
-        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Yuki!")
 
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
@@ -1094,10 +1094,10 @@ Chúc các bạn theo dõi thuận lợi!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
+    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
         {"id": "7456361874031804652", "name": "demo"},
-        {"id": "7662918962461429024", "name": "Trần Lê Phát"}
+        {"id": "7581087306337796515", "name": "Yuki"}
     ]
     sent_any = False
     for t in test_targets:
@@ -1108,9 +1108,9 @@ Chúc các bạn theo dõi thuận lợi!""",
             print(f"Lỗi gửi test Bot 2 tới {t['name']}: {e}")
 
     if sent_any:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
     else:
-        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Yuki!")
 
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
@@ -1325,11 +1325,11 @@ def api_bot3_test_zalo_alert():
     }
     test_targets = [
         {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},
-        {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
+        {"id": "7581087306337796515", "name": "Yuki", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
     if sent:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc người nhận!")
 
@@ -1418,7 +1418,7 @@ def dashboard_view():
           <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-blue-500/50 shadow-xs" alt="Admin Avatar">
           <div class="text-left">
             <div class="flex items-center gap-1.5 leading-none">
-              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="text-xs font-bold text-slate-900">Yuki</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Admin Active"></span>
             </div>
             <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-blue-600 flex items-center gap-1 font-mono leading-tight mt-1">
@@ -2982,7 +2982,7 @@ def dashboard_view_bot2():
           <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-sky-500/50 shadow-xs" alt="Admin Avatar">
           <div class="text-left">
             <div class="flex items-center gap-1.5 leading-none">
-              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="text-xs font-bold text-slate-900">Yuki</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Admin Active"></span>
             </div>
             <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-sky-600 flex items-center gap-1 font-mono leading-tight mt-1">
@@ -4606,7 +4606,7 @@ def dashboard_view_bot3():
           <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-rose-500/50 shadow-xs" alt="Admin Avatar">
           <div class="text-left">
             <div class="flex items-center gap-1.5 leading-none">
-              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="text-xs font-bold text-slate-900">Yuki</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
             <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-rose-600 flex items-center gap-1 font-mono leading-tight mt-1">
@@ -4674,7 +4674,7 @@ def dashboard_view_bot3():
         <div>
           <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tin Bắn Zalo</p>
           <h3 id="stat-total-sent" class="text-2xl font-extrabold text-emerald-600 mt-1">{stats.get('total_zalo_sent', 0)}</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">demo & Trần Lê Phát</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">demo & Yuki</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
           <i class="fa-solid fa-paper-plane"></i>
@@ -5053,7 +5053,7 @@ def dashboard_view_bot3():
     function openAddGroupModal() {{
       const gid = prompt('Nhập ID Zalo của nhóm hoặc cá nhân:');
       if (!gid) return;
-      const gname = prompt('Nhập Tên gợi nhớ (Ví dụ: demo hoặc Trần Lê Phát):', 'demo');
+      const gname = prompt('Nhập Tên gợi nhớ (Ví dụ: demo hoặc Yuki):', 'demo');
       const isUser = confirm('Đối tượng này là CÁ NHÂN? (Bấm OK nếu là Cá nhân, bấm Cancel nếu là Nhóm)');
       const fd = new FormData();
       fd.append('group_id', gid);

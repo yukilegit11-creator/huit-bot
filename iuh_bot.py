@@ -161,7 +161,7 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, cu
     return any_success
 
 
-ADMIN_ZALO_UID = "7662918962461429024"  # Trần Lê Phát
+ADMIN_ZALO_UID = "7581087306337796515"  # Yuki
 last_admin_alert_time = 0
 last_error_state = False
 
@@ -193,7 +193,7 @@ def alert_admin_iuh_error(zalo_inst, error_title: str, detail_msg: str, throttle
             zalo_inst.connect()
         if zalo_inst.client:
             zalo_inst.client.send(Message(text=warn_msg), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
-            print(f"🚨 [IUH Alert] Đã gửi cảnh báo lỗi tới Zalo Trần Lê Phát ({ADMIN_ZALO_UID})")
+            print(f"🚨 [IUH Alert] Đã gửi cảnh báo lỗi tới Zalo Yuki ({ADMIN_ZALO_UID})")
             database.log_event("WARN", f"Đã gửi cảnh báo '{error_title}' tới Admin qua Zalo.", db_file=DB_TARGET)
     except Exception as e_warn:
         print(f"❌ [IUH Alert] Không thể gửi cảnh báo Zalo tới Admin: {e_warn}")
@@ -219,7 +219,7 @@ def notify_admin_iuh_recovery(zalo_inst, activity_count: int):
             zalo_inst.connect()
         if zalo_inst.client:
             zalo_inst.client.send(Message(text=recovery_msg), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
-            print(f"✅ [IUH Recovery] Đã gửi thông báo phục hồi tới Zalo Trần Lê Phát ({ADMIN_ZALO_UID})")
+            print(f"✅ [IUH Recovery] Đã gửi thông báo phục hồi tới Zalo Yuki ({ADMIN_ZALO_UID})")
             database.log_event("SYSTEM", "Đã gửi thông báo phục hồi hệ thống tới Admin qua Zalo.", db_file=DB_TARGET)
     except Exception as e:
         print(f"❌ [IUH Recovery] Không thể gửi thông báo phục hồi: {e}")

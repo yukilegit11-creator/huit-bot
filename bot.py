@@ -42,6 +42,34 @@ def matches_filter_keywords(text: str, keywords: list) -> tuple:
 
 
 
+ADMIN_ZALO_UID = "7581087306337796515"
+last_fb_cookie_alert_time = 0
+
+def alert_admin_fb_cookie_expired(zalo_inst, bot_name="Bot 1 (HUIT)", throttle_secs=3600):
+    global last_fb_cookie_alert_time
+    now_ts = time.time()
+    if now_ts - last_fb_cookie_alert_time < throttle_secs:
+        return
+    last_fb_cookie_alert_time = now_ts
+    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+    warn_text = (
+        f"⚠️ [{bot_name} - CẢNH BÁO COOKIE FACEBOOK HẾT HẠN] ⚠️\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🚨 Trạng thái: Phiên Cookie Facebook vừa bị đăng xuất hoặc hết hạn!\n"
+        "🌐 Hệ thống: Đã tự động bật Chế độ Ẩn danh (Guest Mode) để tiếp tục quét bài công khai.\n"
+        f"⏰ Thời gian: {now_vn}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "👉 Để tối ưu, bạn vui lòng truy cập Web Dashboard (mật khẩu YUKILEGIT0) để dán Cookie mới nhé!"
+    )
+    try:
+        if zalo_inst and zalo_inst.client:
+            from zlapi.models import Message, ThreadType
+            zalo_inst.client.send(Message(text=warn_text), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
+            print(f"🚨 Đã gửi cảnh báo Cookie Facebook tới Zalo Admin ({ADMIN_ZALO_UID})")
+            database.log_event("WARN", "Đã gửi cảnh báo Cookie Facebook hết hạn tới Zalo Admin.")
+    except Exception as e:
+        print(f"⚠️ Lỗi gửi cảnh báo Zalo tới Admin: {e}")
+
 def get_initial_cycle(db_file=None):
     """Lấy số thứ tự chu kỳ quét gần nhất từ DB để chu kỳ luôn tăng dần liên tục, không bị reset về #1 khi khởi động lại."""
     try:

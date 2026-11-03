@@ -188,7 +188,7 @@ def send_zalo_ufm(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False):
     return any_success
 
 
-ADMIN_ZALO_UID = "7662918962461429024"
+ADMIN_ZALO_UID = "7581087306337796515"
 last_ufm_admin_alert_time = 0
 
 def alert_admin_ufm_error(zalo_inst, error_title: str, detail_msg: str, throttle_secs: int = 1800):
@@ -212,7 +212,7 @@ def alert_admin_ufm_error(zalo_inst, error_title: str, detail_msg: str, throttle
             zalo_inst.connect()
         if zalo_inst.client:
             zalo_inst.client.send(Message(text=warn_text), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
-            print(f"🚨 [UFM Alert] Đã gửi thông báo lỗi UFM tới Zalo Trần Lê Phát ({ADMIN_ZALO_UID})")
+            print(f"🚨 [UFM Alert] Đã gửi thông báo lỗi UFM tới Zalo Yuki ({ADMIN_ZALO_UID})")
             database.log_event("WARN", f"Đã gửi cảnh báo '{error_title}' tới Admin qua Zalo.", db_file=DB_TARGET)
     except Exception as ze:
         print(f"❌ [UFM Alert] Không thể gửi cảnh báo Zalo tới Admin: {ze}")
@@ -248,7 +248,7 @@ def run_bot():
     print("=" * 65)
     print("🚀 [YUKI 4 - UFM BOT] HỆ THỐNG CÀO CỔNG HOẠT ĐỘNG UFM 24/7 (RENDER CLOUD)")
     print("🎓 Đơn vị: Trường Đại học Tài chính - Marketing (UFM)")
-    print("👤 Quản trị viên: Trần Lê Phát (@yukilegit11-creator)")
+    print("👤 Quản trị viên: Yuki (@yukilegit11-creator)")
     print("🌐 Cổng hoạt động: https://hoatdong.ufm.edu.vn")
     print("=" * 65)
 

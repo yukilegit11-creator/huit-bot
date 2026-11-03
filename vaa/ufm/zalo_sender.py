@@ -578,10 +578,10 @@ class ZaloDispatcher:
             except Exception as e:
                 return False, f"Lỗi gửi tin: {e}"
 
-        # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Trần Lê Phát
+        # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Yuki
         test_targets = [
             {"id": "7456361874031804652", "name": "demo", "type": ThreadType.GROUP},
-            {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": ThreadType.USER}
+            {"id": "7581087306337796515", "name": "Yuki", "type": ThreadType.USER}
         ]
         any_succ = False
         for t in test_targets:
@@ -593,8 +593,8 @@ class ZaloDispatcher:
             except Exception as e:
                 print(f"Lỗi gửi test tới {t['name']}: {e}")
         if any_succ:
-            return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"
-        return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát."
+            return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"
+        return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Yuki."
 
     def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
         """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 7456361874031804652)."""

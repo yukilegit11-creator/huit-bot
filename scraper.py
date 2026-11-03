@@ -25,6 +25,7 @@ class FacebookCometScraper:
     def __init__(self, cookies: dict = None):
         self.session = requests.Session()
         self.session.headers.update(DESKTOP_HEADERS)
+        self.cookie_expired = False
         if cookies:
             self.update_cookies(cookies)
 
@@ -42,6 +43,7 @@ class FacebookCometScraper:
                 text_low = resp.text.lower()
                 # Kiểm tra xem Cookie Facebook có bị dính Checkpoint hoặc ép đăng nhập không
                 if "checkpoint" in text_low or "/checkpoint/" in resp.url or 'id="login_top"' in text_low or "/login/" in resp.url:
+                    self.cookie_expired = True
                     print(f"⚠️ Phát hiện Cookie Facebook bị Checkpoint/Hết hạn trên {target_url}. Tự động quét ẩn danh (Guest Mode)...")
                     anon_resp = requests.get(target_url, headers=DESKTOP_HEADERS, timeout=30, allow_redirects=True)
                     if anon_resp.status_code == 200:

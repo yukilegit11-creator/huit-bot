@@ -570,8 +570,8 @@ class ZaloDispatcher:
             else:
                 target_list = [{
                     "id": tid_str,
-                    "name": "Trần Lê Phát" if tid_str == "7662918962461429024" else "Mục chỉ định",
-                    "type": "USER" if tid_str == "7662918962461429024" else "GROUP"
+                    "name": "Yuki" if tid_str == "7581087306337796515" else "Mục chỉ định",
+                    "type": "USER" if tid_str == "7581087306337796515" else "GROUP"
                 }]
         else:
             configured_groups = self.zalo_cfg.get("target_groups")
