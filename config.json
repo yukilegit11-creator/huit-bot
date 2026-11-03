@@ -331,7 +331,7 @@
     "target_groups": [
       {
         "id": "1773570903700841",
-        "name": "Nhóm Messenger UFM",
+        "name": "Nhóm demo (Facebook Messenger)",
         "type": "GROUP",
         "enabled": true
       }
