@@ -135,8 +135,8 @@ class IUHPortalScraper:
             deadline = tds[4].get_text(strip=True) if len(tds) > 4 else ""
             status = tds[5].get_text(strip=True) if len(tds) > 5 else "Đang mở"
 
-            slots_match = re.search(r"\(?(\d+\s*/\s*\d+)\)?", title)
-            slots = slots_match.group(1).replace(" ", "") if slots_match else ""
+            slots_matches = re.findall(r"\((\d+\s*/\s*\d+)\)", title)
+            slots = slots_matches[-1].replace(" ", "") if slots_matches else ""
 
             details = modals.get(data_target, "")
 

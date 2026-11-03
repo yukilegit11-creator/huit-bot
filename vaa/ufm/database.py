@@ -304,7 +304,17 @@ def record_seen_activity(act: dict, is_sent: bool = True, db_file=None):
 def get_seen_activity(activity_id: str, db_file=None):
     conn = get_connection(db_file)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM seen_activities WHERE activity_id = ?", (str(activity_id),))
+    aid = str(activity_id)
+    raw = aid.replace("UFM_", "").replace("DK_", "").replace("SEM_", "").replace("CUST_", "")
+    cursor.execute('''
+        SELECT * FROM seen_activities 
+        WHERE activity_id = ? 
+           OR activity_id = ? 
+           OR activity_id = ? 
+           OR activity_id = ? 
+           OR activity_id = ?
+        LIMIT 1
+    ''', (aid, f"UFM_{raw}", f"DK_{raw}", f"SEM_{raw}", raw))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -312,15 +322,34 @@ def get_seen_activity(activity_id: str, db_file=None):
 def is_activity_seen(activity_id: str, db_file=None) -> bool:
     return get_seen_activity(activity_id, db_file) is not None
 
-def update_activity_status(activity_id: str, status: str, is_full: bool, db_file=None):
+def update_activity_status(activity_id: str, status: str, is_full: bool, is_sent: bool = None, db_file=None):
     conn = get_connection(db_file)
     cursor = conn.cursor()
     now_vn = get_vn_now_str()
-    cursor.execute("""
+    if is_sent is not None:
+        cursor.execute('''
+            UPDATE seen_activities
+            SET status = ?, is_full = ?, is_sent = ?, last_updated = ?
+            WHERE activity_id = ?
+        ''', (status, 1 if is_full else 0, 1 if is_sent else 0, now_vn, str(activity_id)))
+    else:
+        cursor.execute('''
+            UPDATE seen_activities
+            SET status = ?, is_full = ?, last_updated = ?
+            WHERE activity_id = ?
+        ''', (status, 1 if is_full else 0, now_vn, str(activity_id)))
+    conn.commit()
+    conn.close()
+
+def update_seen_is_sent(activity_id: str, is_sent: bool = True, db_file=None):
+    conn = get_connection(db_file)
+    cursor = conn.cursor()
+    now_vn = get_vn_now_str()
+    cursor.execute('''
         UPDATE seen_activities
-        SET status = ?, is_full = ?, last_updated = ?
+        SET is_sent = ?, last_updated = ?
         WHERE activity_id = ?
-    """, (status, 1 if is_full else 0, now_vn, str(activity_id)))
+    ''', (1 if is_sent else 0, now_vn, str(activity_id)))
     conn.commit()
     conn.close()
 

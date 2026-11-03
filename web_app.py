@@ -1961,7 +1961,7 @@ def dashboard_view():
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+        const timeStr = l.created_at || '';
         const botBadge = (currentLogScope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-indigo-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
 
         return `
@@ -3565,7 +3565,7 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+        const timeStr = l.created_at || '';
         const botBadge = (currentLog2Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-sky-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
 
         return `
@@ -5143,7 +5143,7 @@ def dashboard_view_bot3():
             else if (l.level === 'ZALO' || l.level === 'ACTIVITY') color = 'text-emerald-400';
             else if (l.level === 'SCAN') color = 'text-cyan-400';
 
-            const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+            const timeStr = l.created_at || '';
             const botBadge = (currentLog3Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-rose-300 border border-slate-700 shrink-0">[${{l.bot}}]</span> ` : '';
 
             return `<div class="flex items-start gap-1.5 py-0.5"><span class="text-slate-500 font-mono shrink-0">[${{timeStr}}]</span> ${{botBadge}}<span class="font-bold ${{color}} shrink-0">[${{l.level}}]</span> <span class="break-all text-slate-200">${{l.message}}</span></div>`;

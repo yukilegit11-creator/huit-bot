@@ -130,19 +130,24 @@ def format_activity_messenger_message(act: dict, is_reopened: bool = False, bot_
         f"🏢 {unit_label}: {unit}"
     ]
 
+    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+    posted_time = act.get("posted_time") or act.get("first_seen") or now_vn
+
     points_str_list = []
     if points > 0:
-        points_str_list.append(f"+{points} ĐRL")
+        points_str_list.append(f"+{points:g} ĐRL")
     if ctxh > 0:
-        points_str_list.append(f"+{ctxh} CTXH")
+        points_str_list.append(f"+{ctxh:g} CTXH")
     if semester:
         points_str_list.append(f"HK: {semester}")
 
     if points_str_list:
-        lines.append(f"🎯 Điểm: {' | '.join(points_str_list)}")
+        lines.append(f"🎯 Điểm: {' • '.join(points_str_list)}")
+
+    lines.append(f"⏰ Thời gian đăng bài: {posted_time}")
 
     if event_time and event_time != "Chưa rõ thời gian":
-        lines.append(f"⏰ Thời gian: {event_time}")
+        lines.append(f"📅 Thời gian diễn ra: {event_time}")
 
     if location and location != "Chưa rõ địa điểm":
         lines.append(f"📍 Địa điểm: {location}")

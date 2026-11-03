@@ -3220,7 +3220,7 @@ def dashboard():
           if (log.level === 'STUDENT') lvlColor = 'text-cyan-400';
           if (log.level === 'SCAN') lvlColor = 'text-teal-400';
 
-          const timeStr = log.created_at ? (log.created_at.includes(' ') ? log.created_at.split(' ')[1] : log.created_at) : '';
+          const timeStr = log.created_at || '';
           const botBadge = (currentLogUfmScope === 'ALL' && log.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-blue-300 border border-gray-700 shrink-0">[${log.bot}]</span> ` : '';
 
           html += `<div class="flex items-start gap-1.5 py-0.5"><span class="text-gray-500 shrink-0 font-mono">[${timeStr}]</span> ${botBadge}<span class="${lvlColor} shrink-0">[${log.level}]</span> <span class="break-all">${log.message}</span></div>`;

@@ -161,6 +161,35 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, cu
     return any_success
 
 
+ADMIN_ZALO_UID = "7662918962461429024"  # Trần Lê Phát
+last_admin_alert_time = 0
+
+def alert_admin_iuh_error(zalo_inst, error_title: str, detail_msg: str, throttle_secs: int = 1800):
+    global last_admin_alert_time
+    now_ts = time.time()
+    if now_ts - last_admin_alert_time < throttle_secs:
+        return
+    last_admin_alert_time = now_ts
+    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+    warn_msg = (
+        "⚠️ [IUH - CẢNH BÁO LỖI HỆ THỐNG / COOKIE] ⚠️\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"🚨 Lỗi: {error_title}\n"
+        f"📌 Chi tiết: {detail_msg}\n"
+        f"⏰ Thời gian: {now_vn}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "👉 Vui lòng vào Web Dashboard (/bot3) để cập nhật PHPSESSID / kiểm tra ngay!"
+    )
+    try:
+        if not zalo_inst.client:
+            zalo_inst.connect()
+        if zalo_inst.client:
+            zalo_inst.client.send(Message(text=warn_msg), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
+            print(f"🚨 [IUH Alert] Đã gửi cảnh báo lỗi tới Zalo Trần Lê Phát ({ADMIN_ZALO_UID})")
+            database.log_event("WARN", f"Đã gửi cảnh báo '{error_title}' tới Admin qua Zalo.", db_file=DB_TARGET)
+    except Exception as e_warn:
+        print(f"❌ [IUH Alert] Không thể gửi cảnh báo Zalo tới Admin: {e_warn}")
+
 def run_bot():
     print("=" * 60)
     print("🚀 [YUKI 3 - IUH BOT] CÀO CỔNG ĐOÀN TN & ĐIỂM RÈN LUYỆN IUH 24/7")
@@ -221,28 +250,7 @@ def run_bot():
             is_logged_in, msg, activities = scraper.fetch_activities()
             if not is_logged_in:
                 database.set_bot_status("portal_cookie_status", "expired", db_file=DB_TARGET)
-                now_ts = time.time()
-                # Cảnh báo trực tiếp cho Admin qua Zalo mỗi 2 tiếng (7200s) để không spam
-                if now_ts - last_warn_time > 7200:
-                    last_warn_time = now_ts
-                    admin_id = "7662918962461429024"  # Trần Lê Phát
-                    warn_msg = (
-                        "⚠️ [IUH - CẢNH BÁO MẤT COOKIE CỔNG ĐRL] ⚠️\n"
-                        "━━━━━━━━━━━━━━━━━━━━\n"
-                        "Cổng Đoàn TN IUH (doantn.iuh.edu.vn) báo phiên đăng nhập đã HẾT HẠN!\n"
-                        f"📌 Chi tiết: {msg}\n"
-                        "🛑 Bot IUH tạm thời KHÔNG THỂ cào và săn hoạt động mới.\n"
-                        "👉 Vui lòng vào Web Dashboard (/bot3) để cập nhật PHPSESSID mới ngay!"
-                    )
-                    try:
-                        if not zalo.client:
-                            zalo.connect()
-                        if zalo.client:
-                            zalo.client.send(Message(text=warn_msg), thread_id=admin_id, thread_type=ThreadType.USER)
-                            print(f"⚠️ [IUH Warning] Đã gửi tin cảnh báo mất Cookie tới Admin ({admin_id})")
-                            database.log_event("WARN", "Đã gửi cảnh báo mất Cookie tới Admin qua Zalo.", db_file=DB_TARGET)
-                    except Exception as e_warn:
-                        print(f"❌ [IUH Warning] Không thể gửi cảnh báo Zalo tới Admin: {e_warn}")
+                alert_admin_iuh_error(zalo, "Cổng IUH báo phiên đăng nhập hết hạn", msg)
             else:
                 database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
                 last_warn_time = 0  # Reset cảnh báo khi cookie sống lại
@@ -296,10 +304,14 @@ def run_bot():
 
                 if new_count > 0:
                     print(f"🎉 [Chu kỳ #{cycle}] Bắn Zalo thành công {new_count} hoạt động mới!")
+                
+                database.log_event("SCAN", f"🔄 [{now_str}] Chu kỳ #{cycle}: Quét xong cổng ĐRL IUH ({len(activities)} hoạt động).", db_file=DB_TARGET)
 
         except Exception as e:
-            print(f"⚠️ [Chu kỳ #{cycle}] Lỗi quét: {e}")
-            database.log_event("ERROR", f"Lỗi quét: {e}", db_file=DB_TARGET)
+            err_str = f"Lỗi quét: {e}"
+            print(f"⚠️ [Chu kỳ #{cycle}] {err_str}")
+            database.log_event("ERROR", err_str, db_file=DB_TARGET)
+            alert_admin_iuh_error(zalo, "Lỗi ngoại lệ quét IUH", err_str)
 
         database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
         time.sleep(interval)
