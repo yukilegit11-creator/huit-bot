@@ -75,6 +75,16 @@
       "name": "Đoàn - Hội Khoa Luật HUIT",
       "url": "https://www.facebook.com/doanhoikhoaluathuit",
       "enabled": true
+    },
+    {
+      "name": "Đoàn Khoa Du Lịch Và Ẩm Thực - HUIT",
+      "url": "https://www.facebook.com/doankhoadulichhufi",
+      "enabled": true
+    },
+    {
+      "name": "LCĐ Khoa Công Nghệ Hóa Học - HUIT",
+      "url": "https://www.facebook.com/cnhh.hufi",
+      "enabled": true
     }
   ],
   "fb_cookies": {
