@@ -15,7 +15,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 print("=" * 65)
 print("🚀 [YUKI 4 - UFM BOT] KHỞI CHẠY TẤT CẢ DỊCH VỤ")
 print("🎓 Đơn vị: Trường Đại học Tài chính - Marketing (UFM)")
-print("👤 Quản trị viên: Trần Lê Phát (@yukilegit11-creator)")
+print("👤 Quản trị viên: Yuki (@yukilegit11-creator)")
 print("🌐 Web Dashboard: http://localhost:5004")
 print("=" * 65)
 

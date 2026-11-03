@@ -14,7 +14,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 print("=" * 65)
 print("🚀 [YUKI 2 - VAA BOT] KHỞI CHẠY TẤT CẢ DỊCH VỤ")
-print("👤 Quản trị viên: Trần Lê Phát (@yukilegit11-creator)")
+print("👤 Quản trị viên: Yuki (@yukilegit11-creator)")
 print("🌐 Web Dashboard: http://localhost:5002")
 print("=" * 65)
 

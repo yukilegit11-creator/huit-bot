@@ -19,7 +19,7 @@ Hệ thống bot tự động cào hoạt động, sự kiện và điểm rèn 
    - Bảng `delivery_history` được khóa bằng SQLite Triggers ngăn chặn sửa/xóa vĩnh viễn, đối soát từng người nhận và từng bài viết trước khi gửi.
 
 4. **Kênh phân phối Zalo:**
-   - Gửi đồng thời tới tài khoản cá nhân Admin (**Trần Lê Phát**) và các nhóm:
+   - Gửi đồng thời tới tài khoản cá nhân Admin (**Yuki**) và các nhóm:
      - `demo` (ID: `475259879796859360`)
      - `Tbao , đky sự kiện UFM` (ID: `3790417084788199906`)
      - `Ufm và canh bạc drl` (ID: `2349841347887711204`)
