@@ -394,34 +394,7 @@ class UFMPortalScraper:
 
     def fetch_all_events(self) -> tuple:
         """
-        Gom toàn bộ hoạt động từ cả 3 nguồn:
-        1. /DangKy (Ưu tiên số 1 - Có mở đăng ký trực tiếp)
-        2. /Activity/SemesterActivities (Ưu tiên số 2 - Danh sách toàn trường mới nhất)
-        3. /CustomActivity (Ưu tiên số 3 - Hoạt động đối tác / CTXH)
+        Chỉ kiểm tra duy nhất cổng đăng ký hoạt động trực tiếp:
+        https://hoatdong.ufm.edu.vn/DangKy
         """
-        all_events = []
-        seen_raw_ids = set()
-
-        # 1. /DangKy
-        ok_dk, msg_dk, events_dk = self.fetch_dangky_activities()
-        if ok_dk:
-            for ev in events_dk:
-                seen_raw_ids.add(ev["raw_id"])
-                all_events.append(ev)
-
-        # 2. /Activity/SemesterActivities (chỉ lấy 30 bài mới nhất)
-        ok_sem, msg_sem, events_sem = self.fetch_semester_activities(limit=30)
-        if ok_sem:
-            for ev in events_sem:
-                # Nếu đã có trong /DangKy thì ưu tiên dữ liệu từ /DangKy (vì đầy đủ slot, điểm, thời gian hơn)
-                if ev["raw_id"] not in seen_raw_ids:
-                    seen_raw_ids.add(ev["raw_id"])
-                    all_events.append(ev)
-
-        # 3. /CustomActivity
-        ok_cust, msg_cust, events_cust = self.fetch_custom_activities()
-        if ok_cust:
-            for ev in events_cust:
-                all_events.append(ev)
-
-        return True, f"Tổng cộng thu thập {len(all_events)} hoạt động từ hệ thống UFM", all_events
+        return self.fetch_dangky_activities()

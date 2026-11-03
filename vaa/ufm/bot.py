@@ -180,7 +180,7 @@ def run_bot():
 
         try:
             # 2. Thu thập hoạt động từ hệ thống UFM
-            is_ok, msg, activities = scraper.fetch_all_events()
+            is_ok, msg, activities = scraper.fetch_dangky_activities()
 
             if not is_ok:
                 print(f"⚠️ [Chu kỳ #{cycle}] {msg}")

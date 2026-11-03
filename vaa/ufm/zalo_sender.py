@@ -473,19 +473,19 @@ class ZaloDispatcher:
             is_user = str(target.get("type", "GROUP")).upper() == "USER"
             t_type = ThreadType.USER if is_user else ThreadType.GROUP
 
+            clean_text = formatted_msg
+            if clean_text.startswith("@All\n"):
+                clean_text = clean_text[5:]
+            elif clean_text.startswith("@All "):
+                clean_text = clean_text[5:]
+
             if is_user:
-                clean_text = formatted_msg
-                if clean_text.startswith("@All\n"):
-                    clean_text = clean_text[5:]
-                elif clean_text.startswith("@All "):
-                    clean_text = clean_text[5:]
                 msg_obj = Message(text=clean_text)
             else:
                 if auto_tag_all and formatted_msg.startswith("@All"):
                     mention = Mention(uid="-1", length=len("@All"), offset=0)
                     msg_obj = Message(text=formatted_msg, mention=mention)
                 else:
-                    clean_text = formatted_msg[5:] if formatted_msg.startswith("@All\n") else formatted_msg
                     msg_obj = Message(text=clean_text)
 
             # Kiểm tra chống gửi trùng lặp tuyệt đối
