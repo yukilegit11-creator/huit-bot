@@ -217,6 +217,33 @@ def alert_admin_ufm_error(zalo_inst, error_title: str, detail_msg: str, throttle
     except Exception as ze:
         print(f"❌ [UFM Alert] Không thể gửi cảnh báo Zalo tới Admin: {ze}")
 
+def get_initial_cycle(db_file=None):
+    """Lấy số thứ tự chu kỳ quét gần nhất từ DB để chu kỳ luôn tăng dần liên tục, không bị reset về 0 khi khởi động lại."""
+    try:
+        st = database.get_all_bot_status(db_file=db_file).get("total_scans")
+        if st and str(st).isdigit() and int(st) > 0:
+            return int(st)
+    except Exception:
+        pass
+    try:
+        conn = database.get_connection(db_file)
+        cur = conn.cursor()
+        cur.execute("SELECT message FROM system_logs WHERE message LIKE '%Chu kỳ #%' ORDER BY id DESC LIMIT 20")
+        rows = cur.fetchall()
+        max_c = 0
+        for r in rows:
+            msg = r[0] if isinstance(r, (tuple, list)) else r["message"]
+            m = re.search(r"Chu kỳ #(\d+)", msg)
+            if m:
+                c_num = int(m.group(1))
+                if c_num > max_c:
+                    max_c = c_num
+        if max_c > 0:
+            return max_c
+    except Exception:
+        pass
+    return 0
+
 def run_bot():
     print("=" * 65)
     print("🚀 [YUKI 4 - UFM BOT] HỆ THỐNG CÀO CỔNG HOẠT ĐỘNG UFM 24/7 (RENDER CLOUD)")
@@ -254,7 +281,7 @@ def run_bot():
     database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
     database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot UFM quét tự động 24/7.", db_file=DB_TARGET)
 
-    cycle = 0
+    cycle = get_initial_cycle(DB_TARGET)
 
     while True:
         if not database.is_bot_enabled(db_file=DB_TARGET):
@@ -280,6 +307,7 @@ def run_bot():
         now_str = database.get_vn_now_str()
         database.set_bot_status("last_scan_time", now_str, db_file=DB_TARGET)
         database.set_bot_status("bot_state", "scanning", db_file=DB_TARGET)
+        database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Bắt đầu quét Cổng Hoạt động UFM...", db_file=DB_TARGET)
 
         try:
             is_ok, msg, activities = scraper.fetch_all_events()
@@ -407,7 +435,10 @@ def run_bot():
                     print(f"✅ [Chu kỳ #{cycle}] Đã xử lý {new_count} bài mới, {reopened_count} bài mở thêm slot.")
                 
                 # Ghi nhận log chu kỳ quét kèm mốc thời gian rõ ràng
-                database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Hoàn tất kiểm tra cổng ĐRL UFM ({len(activities)} hoạt động).", db_file=DB_TARGET)
+                post_stat = f"{new_count} bài mới" if new_count > 0 else "0 bài mới"
+                if reopened_count > 0:
+                    post_stat += f", {reopened_count} mở slot"
+                database.log_event("SCAN", f"✅ Chu kỳ #{cycle}: Hoàn tất kiểm tra Cổng UFM ({len(activities)} hoạt động, {post_stat}). Tạm nghỉ {interval}s trước chu kỳ #{cycle+1}.", db_file=DB_TARGET)
 
         except Exception as e:
             err_msg = f"Lỗi chu kỳ #{cycle}: {e}"

@@ -796,7 +796,7 @@ class ZaloDispatcher:
         act = custom_act
         if not act:
             try:
-                db_t = db_file or getattr(self, "db_file", None) or database.UFM_DB_FILE
+                db_t = db_file or getattr(self, "db_file", None) or getattr(database, "UFM_DB_FILE", getattr(database, "DB_FILE", None))
                 acts = database.get_crawled_activities(limit=1, db_file=db_t)
                 if acts:
                     act = dict(acts[0])
@@ -848,7 +848,7 @@ class ZaloDispatcher:
             self.client.send(msg_obj, thread_id=demo_id, thread_type=ThreadType.GROUP)
             log_str = f"[{self.bot_name}] Đã gửi thông báo thành công vào nhóm [demo] (ID: {demo_id})"
             print(f"📨 [Zalo] {log_str}")
-            db_t = db_file or getattr(self, "db_file", None) or database.UFM_DB_FILE
+            db_t = db_file or getattr(self, "db_file", None) or getattr(database, "UFM_DB_FILE", getattr(database, "DB_FILE", None))
             database.log_event("DEMO", log_str, db_file=db_t)
             database.record_delivery(
                 post_id=str(act.get("activity_id", f"DEMO_{int(time.time())}")),
@@ -871,7 +871,7 @@ class ZaloDispatcher:
             err_str = f"Lỗi gửi thông báo vào nhóm demo: {e}"
             print(f"❌ [Zalo] {err_str}")
             try:
-                db_t = db_file or getattr(self, "db_file", None) or database.UFM_DB_FILE
+                db_t = db_file or getattr(self, "db_file", None) or getattr(database, "UFM_DB_FILE", getattr(database, "DB_FILE", None))
                 database.log_event("ERROR", err_str, db_file=db_t)
             except Exception:
                 pass
@@ -897,7 +897,7 @@ class ZaloDispatcher:
                 f"🤖 Bot phát tín hiệu: {self.bot_name}\n"
                 f"🎯 Mục tiêu: {target_id} ({'Nhóm' if is_group else 'Cá nhân'})\n"
                 f"⏰ Thời gian: {now_vn}\n"
-                f"🌐 Máy chủ: VPS Cloud (180.93.125.40)\n"
+                f"🌐 Hệ thống: Cloud Server 24/7\n"
                 f"✅ Trạng thái kết nối: Hoạt động hoàn hảo 100%!\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"🎯 Hệ thống đã sẵn sàng bắn thông báo tự động ngay khi có bài viết hoặc sự kiện mới."

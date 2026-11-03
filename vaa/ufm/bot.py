@@ -61,6 +61,33 @@ def alert_admin_ufm_error(zalo_inst, error_title: str, detail_msg: str, throttle
     except Exception as ze:
         print(f"❌ [UFM Alert] Không thể gửi cảnh báo Zalo tới Admin: {ze}")
 
+def get_initial_cycle(db_file=None):
+    """Lấy số thứ tự chu kỳ quét gần nhất từ DB để chu kỳ luôn tăng dần liên tục, không bị reset về 0 khi khởi động lại."""
+    try:
+        st = database.get_all_bot_status(db_file=db_file).get("total_scans")
+        if st and str(st).isdigit() and int(st) > 0:
+            return int(st)
+    except Exception:
+        pass
+    try:
+        conn = database.get_connection(db_file)
+        cur = conn.cursor()
+        cur.execute("SELECT message FROM system_logs WHERE message LIKE '%Chu kỳ #%' ORDER BY id DESC LIMIT 20")
+        rows = cur.fetchall()
+        max_c = 0
+        for r in rows:
+            msg = r[0] if isinstance(r, (tuple, list)) else r["message"]
+            m = re.search(r"Chu kỳ #(\d+)", msg)
+            if m:
+                c_num = int(m.group(1))
+                if c_num > max_c:
+                    max_c = c_num
+        if max_c > 0:
+            return max_c
+    except Exception:
+        pass
+    return 0
+
 def run_bot():
     print("=" * 65)
     print("🚀 [YUKI 4 - UFM BOT] HỆ THỐNG CÀO CỔNG HOẠT ĐỘNG UFM 24/7")
@@ -104,7 +131,7 @@ def run_bot():
     database.set_bot_status("bot_state", "running")
     database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot UFM quét tự động 24/7.")
 
-    cycle = 0
+    cycle = get_initial_cycle(DB_TARGET)
 
     while True:
         # 1. Kiểm tra trạng thái Bật / Tắt từ Web Dashboard

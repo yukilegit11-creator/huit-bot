@@ -684,7 +684,7 @@ class ZaloDispatcher:
                 f"🤖 Bot phát tín hiệu: {self.bot_name}\n"
                 f"🎯 Mục tiêu: {target_id} ({'Nhóm' if is_group else 'Cá nhân'})\n"
                 f"⏰ Thời gian: {now_vn}\n"
-                f"🌐 Máy chủ: VPS Cloud (180.93.125.40)\n"
+                f"🌐 Hệ thống: Cloud Server 24/7\n"
                 f"✅ Trạng thái kết nối: Hoạt động hoàn hảo 100%!\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"🎯 Hệ thống đã sẵn sàng bắn thông báo tự động ngay khi có bài viết hoặc sự kiện mới."

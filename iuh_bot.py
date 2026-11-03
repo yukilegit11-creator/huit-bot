@@ -184,7 +184,7 @@ def alert_admin_iuh_error(zalo_inst, error_title: str, detail_msg: str, throttle
         "1. Đăng nhập tại: https://doantn.iuh.edu.vn/login.html\n"
         "2. Lấy cookie PHPSESSID mới\n"
         "3. Dán cập nhật tại Dashboard:\n"
-        "🔗 http://180.93.125.40:8000/bot3\n"
+        "🔗 Web Dashboard: Hệ thống Yuki IUH (/bot3)\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "(Hệ thống sẽ nhắc lại sau 30 phút nếu lỗi chưa được xử lý)"
     )

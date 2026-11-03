@@ -27,7 +27,9 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ufm_bot.db")
+# Thống nhất CSDL UFM về chung root repo ufm_bot.db
+_root_db = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "ufm_bot.db")
+DB_FILE = _root_db
 UFM_DB_FILE = DB_FILE
 
 def get_connection(db_file=None):
