@@ -41,6 +41,34 @@ def matches_filter_keywords(text: str, keywords: list) -> tuple:
     return False, ""
 
 
+
+def get_initial_cycle(db_file=None):
+    """Lấy số thứ tự chu kỳ quét gần nhất từ DB để chu kỳ luôn tăng dần liên tục, không bị reset về #1 khi khởi động lại."""
+    try:
+        st = database.get_all_bot_status(db_file=db_file).get("scan_cycle")
+        if st and str(st).isdigit() and int(st) > 0:
+            return int(st)
+    except Exception:
+        pass
+    try:
+        conn = database.get_connection(db_file)
+        cur = conn.cursor()
+        cur.execute("SELECT message FROM system_logs WHERE message LIKE '%Chu kỳ #%' ORDER BY id DESC LIMIT 20")
+        rows = cur.fetchall()
+        max_c = 0
+        for r in rows:
+            msg = r[0] if isinstance(r, (tuple, list)) else r["message"]
+            m = re.search(r"Chu kỳ #(\d+)", msg)
+            if m:
+                c_num = int(m.group(1))
+                if c_num > max_c:
+                    max_c = c_num
+        if max_c > 0:
+            return max_c
+    except Exception:
+        pass
+    return 0
+
 def run_bot():
     print("=" * 60)
     print("🚀 HỆ THỐNG TỰ ĐỘNG CÀO FACEBOOK - ĐẨY WEB & BẮN ZALO 24/7")
@@ -74,7 +102,7 @@ def run_bot():
         else:
             print("⚠️ Kết nối Facebook Messenger tạm thời chưa khả dụng.")
 
-    cycle = 0
+    cycle = get_initial_cycle()
     total_new_posts = 0
 
     database.set_bot_status("bot_state", "running")
@@ -130,7 +158,11 @@ def run_bot():
             if not page_url:
                 continue
 
-            print(f"👉 ({idx+1}/{len(targets)}) Đang quét: {page_name}")
+            curr_idx = idx + 1
+            total_targets = len(targets)
+            print(f"👉 ({curr_idx}/{total_targets}) Đang quét: {page_name}")
+            database.log_event("SCAN", f"🔍 [{curr_idx}/{total_targets}] Đang quét: {page_name}...")
+            new_found = 0
             try:
                 html = scraper.fetch_url(page_url)
                 posts = scraper.parse_posts(html, max_age_hours=max_age_hours, page_url=page_url)
@@ -141,6 +173,7 @@ def run_bot():
                     
                     # Kiểm tra xem bài đã gửi/lưu chưa
                     if not database.is_post_seen(ident, content=p["content"]):
+                        new_found += 1
                         total_new_posts += 1
                         author_name = p.get("author", "ẩn danh")
                         snippet = p.get("content", "")[:90].replace("\n", " ")
@@ -207,11 +240,14 @@ def run_bot():
 
             # Nghỉ giữa các trang để chống chặn rate limit từ Facebook
             sleep_time = random.uniform(delay_between_pages * 0.8, delay_between_pages * 1.2)
+            next_str = f"chuyển qua trang [{curr_idx+1}/{total_targets}]" if curr_idx < total_targets else "hoàn tất vòng quét"
+            post_stat = f"phát hiện {new_found} bài mới" if new_found > 0 else "0 bài mới"
+            database.log_event("SCAN", f"✅ [{curr_idx}/{total_targets}] Hoàn thành: {page_name} ({post_stat}). Nghỉ {int(sleep_time)}s -> {next_str}.")
             time.sleep(sleep_time)
 
         database.set_bot_status("bot_state", "sleeping")
         print(f"💤 Đã hoàn thành vòng #{cycle}. Tạm nghỉ {check_interval} giây trước vòng tiếp theo...")
-        database.log_event("SCAN", f"✅ Chu kỳ #{cycle}: Hoàn tất quét {len(targets)} trang. Tạm nghỉ {check_interval}s trước vòng tiếp theo.")
+        database.log_event("SCAN", f"🎉 Chu kỳ #{cycle}: Hoàn tất quét toàn bộ {len(targets)} trang. Tạm nghỉ {check_interval}s trước chu kỳ #{cycle+1}.")
         time.sleep(check_interval)
 
 if __name__ == "__main__":

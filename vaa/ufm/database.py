@@ -28,6 +28,7 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ufm_bot.db")
+UFM_DB_FILE = DB_FILE
 
 def get_connection(db_file=None):
     target = db_file or DB_FILE

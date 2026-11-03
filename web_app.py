@@ -1948,6 +1948,22 @@ def dashboard_view():
       }}
     }}
 
+    let bot1LogSortAsc = false; // Mặc định: false (Mới nhất trên cùng)
+
+    function toggleBot1LogSort() {{
+      bot1LogSortAsc = !bot1LogSortAsc;
+      const btnText = document.getElementById('bot1-sort-text');
+      const btnIcon = document.querySelector('#bot1-sort-btn i');
+      if (bot1LogSortAsc) {{
+        if (btnText) btnText.innerText = 'Cũ nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-up-short-wide text-amber-400';
+      }} else {{
+        if (btnText) btnText.innerText = 'Mới nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-down-short-wide text-cyan-400';
+      }}
+      fetchLogs();
+    }}
+
     function renderLogs(logs) {{
       const container = document.getElementById('console-stream');
       if (!logs || logs.length === 0) {{
@@ -1955,9 +1971,10 @@ def dashboard_view():
         return;
       }}
 
-      const chronologicalLogs = [...logs].reverse();
+      // Nếu bot1LogSortAsc = true (Cũ nhất trên) -> reverse; ngược lại giữ nguyên DESC (Mới nhất trên)
+      const sortedLogs = bot1LogSortAsc ? [...logs].reverse() : [...logs];
 
-      container.innerHTML = chronologicalLogs.map(l => {{
+      container.innerHTML = sortedLogs.map(l => {{
         let badgeColor = 'bg-blue-900/60 text-blue-400 border-blue-800';
         if (l.level === 'SCAN') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
         else if (l.level === 'POST') badgeColor = 'bg-emerald-950 text-emerald-400 border-emerald-800';
@@ -1968,17 +1985,22 @@ def dashboard_view():
         const timeStr = l.created_at || '';
         const botBadge = (currentLogScope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-indigo-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
 
+        // Xóa timestamp trùng lặp trong nội dung message
+        let cleanMsg = String(l.message || '');
+        cleanMsg = cleanMsg.replace(/^(\S+\s*)?\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '$1');
+        cleanMsg = cleanMsg.replace(/^\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '');
+
         return `
           <div class="flex items-start gap-2 hover:bg-slate-800/40 px-2 py-1 rounded transition">
             <span class="text-slate-500 shrink-0 text-[11px] font-mono">${{timeStr}}</span>
             ${{botBadge}}
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${{badgeColor}} shrink-0">${{l.level}}</span>
-            <span class="text-slate-200 leading-relaxed break-all">${{l.message}}</span>
+            <span class="text-slate-200 leading-relaxed break-all">${{cleanMsg}}</span>
           </div>
         `;
       }}).join('');
 
-      if (document.getElementById('console-autoscroll').checked) {{
+      if (bot1LogSortAsc && document.getElementById('console-autoscroll') && document.getElementById('console-autoscroll').checked) {{
         container.scrollTop = container.scrollHeight;
       }}
     }}
@@ -3552,6 +3574,22 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }}
     }}
 
+    let bot2LogSortAsc = false; // Mặc định: false (Mới nhất trên cùng)
+
+    function toggleBot2LogSort() {{
+      bot2LogSortAsc = !bot2LogSortAsc;
+      const btnText = document.getElementById('bot2-sort-text');
+      const btnIcon = document.querySelector('#bot2-sort-btn i');
+      if (bot2LogSortAsc) {{
+        if (btnText) btnText.innerText = 'Cũ nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-up-short-wide text-amber-400';
+      }} else {{
+        if (btnText) btnText.innerText = 'Mới nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-down-short-wide text-cyan-400';
+      }}
+      fetchLogs();
+    }}
+
     function renderLogs(logs) {{
       const container = document.getElementById('console-stream');
       if (!logs || logs.length === 0) {{
@@ -3559,9 +3597,10 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         return;
       }}
 
-      const chronologicalLogs = [...logs].reverse();
+      // Nếu bot2LogSortAsc = true (Cũ nhất trên) -> reverse; ngược lại giữ nguyên DESC (Mới nhất trên)
+      const sortedLogs = bot2LogSortAsc ? [...logs].reverse() : [...logs];
 
-      container.innerHTML = chronologicalLogs.map(l => {{
+      container.innerHTML = sortedLogs.map(l => {{
         let badgeColor = 'bg-blue-900/60 text-blue-400 border-blue-800';
         if (l.level === 'SCAN') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
         else if (l.level === 'POST') badgeColor = 'bg-emerald-950 text-emerald-400 border-emerald-800';
@@ -3572,17 +3611,22 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         const timeStr = l.created_at || '';
         const botBadge = (currentLog2Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-sky-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
 
+        // Xóa timestamp trùng lặp trong nội dung message
+        let cleanMsg = String(l.message || '');
+        cleanMsg = cleanMsg.replace(/^(\S+\s*)?\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '$1');
+        cleanMsg = cleanMsg.replace(/^\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '');
+
         return `
           <div class="flex items-start gap-2 hover:bg-slate-800/40 px-2 py-1 rounded transition">
             <span class="text-slate-500 shrink-0 text-[11px] font-mono">${{timeStr}}</span>
             ${{botBadge}}
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${{badgeColor}} shrink-0">${{l.level}}</span>
-            <span class="text-slate-200 leading-relaxed break-all">${{l.message}}</span>
+            <span class="text-slate-200 leading-relaxed break-all">${{cleanMsg}}</span>
           </div>
         `;
       }}).join('');
 
-      if (document.getElementById('console-autoscroll').checked) {{
+      if (bot2LogSortAsc && document.getElementById('console-autoscroll') && document.getElementById('console-autoscroll').checked) {{
         container.scrollTop = container.scrollHeight;
       }}
     }}

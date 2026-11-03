@@ -39,6 +39,7 @@ files_to_sync = [
     ("vaa/ufm/zalo_sender.py", "/root/huit-bot/vaa/ufm/zalo_sender.py"),
     ("vaa/ufm/config.json", "/root/huit-bot/vaa/ufm/config.json"),
     ("vaa/ufm/fb_cookies.json", "/root/huit-bot/vaa/ufm/fb_cookies.json"),
+    ("vaa/ufm/templates/index.html", "/root/huit-bot/vaa/ufm/templates/index.html"),
 ]
 
 print("Connecting to VPS via SSH/SFTP...")
