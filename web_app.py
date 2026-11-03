@@ -753,7 +753,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
         {"id": "7456361874031804652", "name": "demo"},
-        {"id": "7581087306337796515", "name": "Yuki"}
+        {"id": "7662918962461429024", "name": "Yuki"}
     ]
     sent_any = False
     for t in test_targets:
@@ -1383,7 +1383,7 @@ Chúc các bạn theo dõi thuận lợi!""",
     # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
         {"id": "7456361874031804652", "name": "demo"},
-        {"id": "7581087306337796515", "name": "Yuki"}
+        {"id": "7662918962461429024", "name": "Yuki"}
     ]
     sent_any = False
     for t in test_targets:
@@ -1613,7 +1613,7 @@ def api_bot3_test_zalo_alert():
     }
     test_targets = [
         {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},
-        {"id": "7581087306337796515", "name": "Yuki", "type": "USER"}
+        {"id": "7662918962461429024", "name": "Yuki", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
     if sent:

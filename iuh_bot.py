@@ -161,7 +161,7 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, cu
     return any_success
 
 
-ADMIN_ZALO_UID = "7581087306337796515"  # Yuki
+ADMIN_ZALO_UID = "7662918962461429024"  # Yuki
 last_admin_alert_time = 0
 last_error_state = False
 

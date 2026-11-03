@@ -18,7 +18,7 @@
     }
   },
   "zalo": {
-    "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",
+    "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
     "target_thread_id": "475259879796859360",
     "target_type": "GROUP",
     "target_group_name": "demo",
@@ -50,16 +50,19 @@
       }
     ],
     "cookies": {
-      "zpdid": "41BwdLBrfJiN5vsKLVl9F1aUdPHO_ymu",
-      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HH6Mn7vs0KLGvTOb-i8GvV0bLfGRCg25y7LtuI",
+      "zpdid": "41Bwd5pph34O49IUMlp0DnuHaf1OyCGw",
+      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HG4MH1wMySKm1IQbcYBWf74rjeMQGX4b4p8dq",
       "_zlang": "vn",
-      "zpsid": "eMKnVcAlVqAZUYmFEOO_FBK8CMicYZiuiG0hQYEKIdpBI3ujAy9ME-4_2oiQp7SXYIaG87xZ7H6f45b6VCLIIUy-1qmSq0b8_1rRH3RNNLBu72n009P4LcK",
-      "__zi": "3000.QOBlzDCV2uGerkFzm0LMrMNQv_d43HxKPzEe_ie46TPgqAxv.1",
-      "zlogtype": "EXPIRED",
-      "zpw_sek": "Qpnh.404184050.a0.juUpxhnV0b8_AeS_x76G9xPJzKplIx8MgmV1Jve8-qI4FkSUc4EWGFaTfsQCJAq5iCNDMkMfxtAqSDoi91kG9m",
-      "app.event.zalo.me": "5649720127043044590"
+      "_ga": "GA1.2.956594134.1793718596",
+      "_gid": "GA1.2.1558683245.1793718596",
+      "_ga_3EM8ZPYYN3": "GS2.2.s1793718596$o1$g0$t1793718596$j60$l0$h0",
+      "zpsid": "eMKnVcAlVqAZUYmFKw9P6jyiKKzAhbiPsYnBIqsuFHcZLayeJQ86UfnwLaDRzWDihoaAN3toLsRyUoPH9wDFVyT8I4u9c11cqtXFG3246nVPTrym0OCMOd4",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
+      "zpw_sek": "abUD.466784528.a0.5HjT6HkdWcEOqWSEgKFL5VDXi7wgUVT4xHEpKCOCW5dOCx4bnWMcNkGBud7_VkWtzKrlMDiL4XyQGiVlOIdL5G",
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
+      "app.event.zalo.me": "3236038380622178657"
     },
-    "secret_key": "1fvQhWykcIOw9U20g4l7AA=="
+    "secret_key": "QePfENOULPpd0NFsKlH7dw=="
   },
   "scanner": {
     "check_interval_seconds": 20,

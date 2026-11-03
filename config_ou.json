@@ -40,13 +40,13 @@
     "keep_alive": true,
     "keep_alive_interval_seconds": 120,
     "cookies": {
-      "XSRF-TOKEN": "eyJpdiI6Ik9nODIwUEp6eHYwT3NzSHBDV1hUUXc9PSIsInZhbHVlIjoiVWwzTGZSZXVvTDBoXC9OXC9oY3IyaEc4NnRFS3BrY1hBNXM1OHV3VGIzVDBjNUVlZ3NSSWthUWZIMVBpZkxqWjU1aTNONE9ncGlWQ210dXRsM0tIOCt4Zz09IiwibWFjIjoiM2IzNmZmNzllZDU2ZjA1ZGRhYjI0NDMyMWRlZTFkNzFkODU4YjIwYjBiMGJlOThjNzYxMDI5NjAxZjBhYTIzYiJ9",
-      "hcmcoudrl_session": "eyJpdiI6IlFaWFRtWmdzUkpRUEVNKzVyb2JRaHc9PSIsInZhbHVlIjoiTEhvR1Z5NkRjRkRFS04wb3doM3lacldodFNGV0VyajdNS25ZK3g4bkNaczEvSkZGUTZ4RkRVcEd3ck1yait5MzJibkNwTW5ObGsrMkpWcnhqaFZ1cWRvYkJFMDgyVHl0dmllbDVudkZHaGR6L1E1Sm9TdEMwYmZ0QjFkeUVUZ3kiLCJtYWMiOiJlNzc2YmU2MmFlYzQyNzU4MDg2N2IxMDNhYzIxZmRhYzZjMGE1NzczZjQ0ZDcxMTM0NzA0YzkzMmQ3NTE0ZTVkIiwidGFnIjoiIn0%3D",
-      "laravel_session": "eyJpdiI6InlKY1dQNGpPS2NrN2hkdHhjd2tib2c9PSIsInZhbHVlIjoiZ0pqSXlFVjVIcWUxYkY1VlVZR2lQdlwvc3BtcDdrZFFoaVE4MHZHWThidlwvZWRNQXNVNVF1elQxTkZydXFNWkNsUVBvRk10K3c5K2w2WGdWN1ZcL0xKeFE9PSIsIm1hYyI6IjZkMjg4YzZiNDQwNzVlZWE0MTQ2ZTIzNzJhZDZjOGNmMmM1YjlmYjEwYTQ2ZDBiM2MzNjYxYjlkZmNlNDIwYWIifQ%3D%3D"
+      "XSRF-TOKEN": "eyJpdiI6IklFTXdmN1o5cEFGVDFoY1ZienlLWWc9PSIsInZhbHVlIjoiRmxPZlllamtmZzBOZks5WmdQTmgxSG5NK1dFNW1oRUpQQnR6NXgzeE9cL2ZwTFJmRXBQanlNTHlidEk2blNScTZNNlo0T0RHRFhGYWV2VDdsb1FnUDFBPT0iLCJtYWMiOiJlZDEyNTlkYjdlOWQ2NjAyODM3YzYyNjRjZDRiZDQzZTg1NThiYjc4ODZmYzYwOTdlMzY4MTM5NDc1MjY3NWY0In0%3D",
+      "hcmcoudrl_session": "eyJpdiI6IllpdTltRXBLTHVUOXBUcXp5dk0xRlE9PSIsInZhbHVlIjoiNStJdnl5bm1WUnhWNENCYVNvc0hYajlhNDE3WTVWdXZVTExaQ0U4WWlBZkNPelF2RENaTXpJQVBqS2piY1g2SFdIY0d0ZnVMVlJ1ODV3K2VHZTV3Z0JReUhPY09NL2tvV3M4SkJTcm5WWGcwaVUwMHFYQ2xoMC9LR1NKWjIwOUYiLCJtYWMiOiIzMjBiZmMzZjA5YzY3NTU5YzdlMTU5MDc1OTg5ZTk2ZWQ2YjJjNGM0NzZlZTVhZGUwYWJhZDhmYjZjOTI1YmQ2IiwidGFnIjoiIn0%3D",
+      "laravel_session": "eyJpdiI6Ik5rTzc0RnFDSUdzUmFoYkYrc2t4eGc9PSIsInZhbHVlIjoibWpPZ0xBZkt5cUpYMWVWYXZ1Y0FxbmxrYlpxamZDZEFQMTE4d1llNEZ3UWNIZWR0SXFNbmtmbTVFYTlMUDAxYUo0OGJrZmlJc3VhRFwvTG5VMHpoSHZ3PT0iLCJtYWMiOiIzM2JiNGE1YWRiYWZlNzRlMmYyZWIyZGYzMmUwOGJkZDA5YmIxMjYyZjFmOTI2ODczMzFhOTZkZjJmZTAzYTdhIn0%3D"
     }
   },
   "zalo": {
-    "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",
+    "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
     "target_thread_id": "7456361874031804652",
     "target_type": "GROUP",
     "target_group_name": "demo",
@@ -65,24 +65,27 @@
         "enabled": true
       },
       {
-        "id": "",
+        "id": "2565765564417722339",
         "name": "Thu Phương",
         "type": "USER",
         "enabled": true,
-        "note": "Cung cấp UID Zalo hoặc SĐT để bot gửi trực tiếp"
+        "note": "Tài khoản sinh viên Phan Thị Thu Phương (2654092020)"
       }
     ],
     "cookies": {
-      "zpdid": "41BwdLBrfJiN5vsKLVl9F1aUdPHO_ymu",
-      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HH6Mn7vs0KLGvTOb-i8GvV0bLfGRCg25y7LtuI",
+      "zpdid": "41Bwd5pph34O49IUMlp0DnuHaf1OyCGw",
+      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HG4MH1wMySKm1IQbcYBWf74rjeMQGX4b4p8dq",
       "_zlang": "vn",
-      "zpsid": "eMKnVcAlVqAZUYmFEOO_FBK8CMicYZiuiG0hQYEKIdpBI3ujAy9ME-4_2oiQp7SXYIaG87xZ7H6f45b6VCLIIUy-1qmSq0b8_1rRH3RNNLBu72n009P4LcK",
-      "__zi": "3000.QOBlzDCV2uGerkFzm0LMrMNQv_d43HxKPzEe_ie46TPgqAxv.1",
-      "zlogtype": "EXPIRED",
-      "zpw_sek": "Qpnh.404184050.a0.juUpxhnV0b8_AeS_x76G9xPJzKplIx8MgmV1Jve8-qI4FkSUc4EWGFaTfsQCJAq5iCNDMkMfxtAqSDoi91kG9m",
-      "app.event.zalo.me": "5649720127043044590"
+      "_ga": "GA1.2.956594134.1793718596",
+      "_gid": "GA1.2.1558683245.1793718596",
+      "_ga_3EM8ZPYYN3": "GS2.2.s1793718596$o1$g0$t1793718596$j60$l0$h0",
+      "zpsid": "eMKnVcAlVqAZUYmFKw9P6jyiKKzAhbiPsYnBIqsuFHcZLayeJQ86UfnwLaDRzWDihoaAN3toLsRyUoPH9wDFVyT8I4u9c11cqtXFG3246nVPTrym0OCMOd4",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
+      "zpw_sek": "abUD.466784528.a0.5HjT6HkdWcEOqWSEgKFL5VDXi7wgUVT4xHEpKCOCW5dOCx4bnWMcNkGBud7_VkWtzKrlMDiL4XyQGiVlOIdL5G",
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
+      "app.event.zalo.me": "3236038380622178657"
     },
-    "secret_key": "1fvQhWykcIOw9U20g4l7AA=="
+    "secret_key": "QePfENOULPpd0NFsKlH7dw=="
   },
   "cookie_alert": {
     "enabled": true,

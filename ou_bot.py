@@ -182,8 +182,8 @@ def send_cookie_error_alert(zalo_inst: ZaloDispatcher, error_source: str, error_
             except Exception as e_demo:
                 print(f"⚠️ [OU] Lỗi gửi tin tới Nhóm demo: {e_demo}")
 
-            # 2. Gửi về Admin Yuki (7581087306337796515)
-            admin_uid = "7581087306337796515"
+            # 2. Gửi về Admin Yuki (7662918962461429024)
+            admin_uid = "7662918962461429024"
             try:
                 zalo_inst.client.send(Message(text=warn_text), thread_id=admin_uid, thread_type=ThreadType.USER)
                 print(f"🚨 [OU] Đã gửi thông báo lỗi cookie tới Admin Yuki ({admin_uid})")

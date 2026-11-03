@@ -43,7 +43,7 @@ def matches_filter_keywords(text: str, keywords: list) -> tuple:
     return False, ""
 
 
-ADMIN_ZALO_UID = "7581087306337796515"
+ADMIN_ZALO_UID = "7662918962461429024"
 last_fb_cookie_alert_time = 0
 
 def alert_admin_fb_cookie_expired(zalo_inst, bot_name="Bot 2 (VAA)", throttle_secs=3600):
