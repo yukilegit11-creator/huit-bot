@@ -82,7 +82,7 @@ def format_ou_fb_message(post: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
     return "\n".join(lines)
 
 
-def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
+def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", auto_reg_result: tuple = None, student_name: str = "Phan Thị Thu Phương") -> str:
     title = event.get("title", "Sự kiện rèn luyện")
     unit = event.get("unit", "Trường ĐH Mở TP.HCM")
     points = event.get("points", 0)
@@ -92,12 +92,28 @@ def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> 
     reg_url = event.get("register_url", "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien")
     dieu = event.get("dieu", "")
 
-    lines = [
-        "🔥 [OU - SỰ KIỆN MỞ ĐĂNG KÝ ĐRL MỚI] 🔥",
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"📌 Sự kiện: {title}",
-        f"🏢 Đơn vị tổ chức: {unit}"
-    ]
+    is_reg_ok = auto_reg_result[0] if auto_reg_result else False
+    reg_msg = auto_reg_result[1] if auto_reg_result else ""
+
+    if is_reg_ok:
+        lines = [
+            "🎉 [OU - TỰ ĐỘNG ĐĂNG KÝ THÀNH CÔNG] 🎉",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"👤 Sinh viên: {student_name} (2654092020)",
+            f"✅ Trạng thái: {reg_msg}",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"📌 Sự kiện: {title}",
+            f"🏢 Đơn vị tổ chức: {unit}"
+        ]
+    else:
+        lines = [
+            "🔥 [OU - SỰ KIỆN MỞ ĐĂNG KÝ ĐRL MỚI] 🔥",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"📌 Sự kiện: {title}",
+            f"🏢 Đơn vị tổ chức: {unit}"
+        ]
+        if reg_msg:
+            lines.append(f"ℹ️ Đăng ký tự động: {reg_msg}")
 
     if points > 0:
         lines.append(f"🎯 Điểm cộng: +{points:g} ĐRL {f'({dieu})' if dieu else ''}")
@@ -110,7 +126,7 @@ def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> 
     lines.append(f"⏰ Thời gian mở đăng ký: {reg_time}")
     lines.append(f"👥 Khóa áp dụng: {target_courses}")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append(f"👉 Vào cổng đăng ký ngay:\n{reg_url}")
+    lines.append(f"👉 Link kiểm tra trên cổng:\n{reg_url}")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     lines.append(f"🤖 {bot_name}")
 
@@ -419,11 +435,25 @@ def main():
 
                             if not database.is_activity_seen(eid, db_file=DB_FILE):
                                 new_ev_count += 1
+                                # 1. TỰ ĐỘNG ĐĂNG KÝ SỰ KIỆN CHO SINH VIÊN (Phan Thị Thu Phương)
+                                print(f"⚡ [Tự động đăng ký OU] Đang đăng ký sự kiện: {title}...")
+                                ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Chưa thể đăng ký: {msg_reg}"
+                                print(f"  -> {reg_status_log}")
+                                database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+
+                                # 2. Lưu vào DB chống lặp vĩnh viễn
                                 database.record_seen_activity(ev, is_sent=True, db_file=DB_FILE)
-                                database.add_crawled_activity(ev, action_type="NEW", is_sent=True, db_file=DB_FILE)
+                                database.add_crawled_activity(ev, action_type="AUTO_REGISTER" if ok_reg else "NEW", is_sent=True, db_file=DB_FILE)
                                 database.log_event("ACTIVITY_NEW", f"Phát hiện sự kiện ĐRL OU mới: {title[:60]}", db_file=DB_FILE)
 
-                                ev_msg = format_ou_event_message(ev, bot_name=bot_name)
+                                # 3. Gửi thông báo kết quả tới Thu Phương và các nhóm chỉ định
+                                ev_msg = format_ou_event_message(
+                                    ev, 
+                                    bot_name=bot_name, 
+                                    auto_reg_result=(ok_reg, msg_reg),
+                                    student_name=portal_scraper.student_name
+                                )
                                 dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
 
                         if new_ev_count > 0:

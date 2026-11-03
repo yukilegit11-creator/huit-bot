@@ -283,13 +283,18 @@ class OUPortalScraper:
                         dt_raw = str(q.get("DOITUONG_KHOAHOC", "") or "").strip()
                         dt_list = [x.strip() for x in dt_raw.split(",") if x.strip()] if dt_raw else ["Tất cả các khóa"]
 
+                        iddieu = q.get("IDDIEU") or q.get("iddieu") or group.get("IDDIEU") or group.get("id") or 1
                         answers = q.get("TRALOI", {})
                         ans_list = list(answers.values()) if isinstance(answers, dict) else answers
                         diem_val = 0
+                        chosen_ans_id = None
                         for a in ans_list:
-                            if isinstance(a, dict) and a.get("DIEM"):
+                            if isinstance(a, dict):
                                 try:
-                                    diem_val = max(diem_val, float(a.get("DIEM")))
+                                    pts = float(a.get("DIEM", 0))
+                                    if pts >= diem_val:
+                                        diem_val = pts
+                                        chosen_ans_id = a.get("ID") or a.get("id")
                                 except Exception:
                                     pass
 
@@ -297,6 +302,8 @@ class OUPortalScraper:
                             "activity_id": f"OU_EV_{qid}",
                             "id": f"OU_EV_{qid}",
                             "raw_id": str(qid),
+                            "iddieu": iddieu,
+                            "answer_id": chosen_ans_id,
                             "dieu": f"Điều {dieu_no}" if dieu_no else "",
                             "title": clean_title,
                             "unit": tenkhoa,
@@ -312,6 +319,82 @@ class OUPortalScraper:
             return True, events, f"Lấy thành công {len(events)} sự kiện từ Cổng ĐRL OU"
         except Exception as e:
             return False, [], f"Lỗi lấy sự kiện từ Cổng ĐRL OU: {e}"
+
+    def register_event(self, event: dict) -> tuple:
+        """
+        Tự động thực hiện đăng ký tham gia sự kiện trên cổng ĐRL OU:
+        POST https://diemrl.ou.edu.vn/test/diemrl/sv_dkthamgiask
+        """
+        import urllib.parse
+        try:
+            # 1. Đảm bảo session còn sống
+            alive, _ = self.keep_alive()
+            if not alive and self.auto_relogin:
+                self.auto_login()
+
+            s = self.session
+            # 2. Lấy version Inertia và XSRF token
+            r_get = s.get(self.EVENTS_URL, verify=False, timeout=15)
+            version = ""
+            soup = BeautifulSoup(r_get.text, "html.parser")
+            tag_app = soup.find("script", {"data-page": "app"})
+            if tag_app and tag_app.string:
+                try:
+                    d_page = json.loads(tag_app.string)
+                    version = d_page.get("version", "")
+                except Exception:
+                    pass
+
+            xsrf_token = ""
+            for cookie in s.cookies:
+                if cookie.name == "XSRF-TOKEN":
+                    xsrf_token = urllib.parse.unquote(cookie.value)
+                    if "diemrl.ou.edu.vn" in getattr(cookie, "domain", ""):
+                        break
+
+            iddieu = event.get("iddieu") or 1
+            idcauhoi = event.get("raw_id") or event.get("id")
+            idtraloi = event.get("answer_id") or 1
+            diem = event.get("points") or 0
+
+            payload = {
+                "iddieu": iddieu,
+                "idcauhoi": idcauhoi,
+                "idtraloi": idtraloi,
+                "d": diem
+            }
+
+            headers = {
+                "X-Inertia": "true",
+                "X-Inertia-Version": version,
+                "X-Requested-With": "XMLHttpRequest",
+                "Content-Type": "application/json",
+                "Accept": "text/html, application/xhtml+xml",
+                "Referer": self.EVENTS_URL
+            }
+            if xsrf_token:
+                headers["X-XSRF-TOKEN"] = xsrf_token
+
+            reg_url = f"{self.BASE_URL}/diemrl/sv_dkthamgiask"
+            r_post = s.post(reg_url, json=payload, headers=headers, verify=False, timeout=15)
+
+            if r_post.status_code in (200, 302, 303):
+                props = self._extract_page_props(r_post)
+                flash = props.get("flash", {})
+                if flash.get("error"):
+                    return False, f"Cổng phản hồi: {flash.get('error')}"
+                success_msg = flash.get("success") or "Đăng ký thành công!"
+                return True, success_msg
+            elif r_post.status_code == 419:
+                if self.auto_relogin:
+                    self.auto_login()
+                    return self.register_event(event)
+                return False, "Phiên đăng ký hết hạn (419 Page Expired)"
+            else:
+                return False, f"Mã trạng thái {r_post.status_code}: {r_post.text[:150]}"
+
+        except Exception as e:
+            return False, f"Lỗi ngoại lệ khi đăng ký sự kiện: {e}"
 
     def fetch_announcements(self) -> tuple:
         """

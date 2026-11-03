@@ -40,9 +40,9 @@
     "keep_alive": true,
     "keep_alive_interval_seconds": 120,
     "cookies": {
-      "XSRF-TOKEN": "eyJpdiI6IksyWG9Pdng1K1dZSmMxclFYeGphTVE9PSIsInZhbHVlIjoiaEhveU9zalh3M1dsMnBvTmt0ZENtQTUwUW5yeWxXWFBzUUErN2ZoYXR0c28yT1Judms4d1NhVndoRk9kdG5TRXRYRk12ZlVSSE95YStXVWZOZE5EYnc9PSIsIm1hYyI6ImU2ZDk3MDczMWE4OTNkN2NiNjFhNzI4ZDAxNjFmNGJmY2ZhYmI2NGNlZGRhMWI4M2JmOTgwMjEwMTgwNDMxYmIifQ%3D%3D",
-      "hcmcoudrl_session": "eyJpdiI6IjJYaUh5dWF6Y0JPYjU3NmZrQUx3RWc9PSIsInZhbHVlIjoiRXdDVnhmQ21aS3ZxQlQ4LzVqZXVBQTN1YnJSaHNXQkY4V2FtNGhtQ3N5TFk2d0swM0p4WFlla0pCVzRaZ05zZHhlMnU4ZWRYclA3b3NGYzlxRUNKUXd6MG1iVE05eldUdHJjeVFoUkVJam95VUtEY2ZIUllUeENVV05sazhmOWoiLCJtYWMiOiI2ZjllNTJkMTQxNDhkMjYzMWJlYjA4NDlkMGE3Mzc2NTc2OWEzMzJhNmZjMmI5ZDExZjU0MjI3ZTZhMDA1MmEyIiwidGFnIjoiIn0%3D",
-      "laravel_session": "eyJpdiI6IkRNQkNla1lnRzdBcjJwNzN3eTZyaFE9PSIsInZhbHVlIjoic1wvT20xNU5pUHNiNit1UEhhN2JXXC9GbW1OZTNveHlIVlwvSnptdDBhYlIxZE1kbEhUbGJkbHVvVWpoZytxcUhPQWIzMUZ3TUxBSkt4dkR0SXFhRUhZM0E9PSIsIm1hYyI6IjY2YzRmYmY4N2FmYjAxYjBiZjUzNDUzODA5ZDk3MTI0YzMwZWM0NzkyMGQ1NzY1ODc3MWEwMzljYTMzMDhhMzAifQ%3D%3D"
+      "XSRF-TOKEN": "eyJpdiI6Ik9nODIwUEp6eHYwT3NzSHBDV1hUUXc9PSIsInZhbHVlIjoiVWwzTGZSZXVvTDBoXC9OXC9oY3IyaEc4NnRFS3BrY1hBNXM1OHV3VGIzVDBjNUVlZ3NSSWthUWZIMVBpZkxqWjU1aTNONE9ncGlWQ210dXRsM0tIOCt4Zz09IiwibWFjIjoiM2IzNmZmNzllZDU2ZjA1ZGRhYjI0NDMyMWRlZTFkNzFkODU4YjIwYjBiMGJlOThjNzYxMDI5NjAxZjBhYTIzYiJ9",
+      "hcmcoudrl_session": "eyJpdiI6IlFaWFRtWmdzUkpRUEVNKzVyb2JRaHc9PSIsInZhbHVlIjoiTEhvR1Z5NkRjRkRFS04wb3doM3lacldodFNGV0VyajdNS25ZK3g4bkNaczEvSkZGUTZ4RkRVcEd3ck1yait5MzJibkNwTW5ObGsrMkpWcnhqaFZ1cWRvYkJFMDgyVHl0dmllbDVudkZHaGR6L1E1Sm9TdEMwYmZ0QjFkeUVUZ3kiLCJtYWMiOiJlNzc2YmU2MmFlYzQyNzU4MDg2N2IxMDNhYzIxZmRhYzZjMGE1NzczZjQ0ZDcxMTM0NzA0YzkzMmQ3NTE0ZTVkIiwidGFnIjoiIn0%3D",
+      "laravel_session": "eyJpdiI6InlKY1dQNGpPS2NrN2hkdHhjd2tib2c9PSIsInZhbHVlIjoiZ0pqSXlFVjVIcWUxYkY1VlVZR2lQdlwvc3BtcDdrZFFoaVE4MHZHWThidlwvZWRNQXNVNVF1elQxTkZydXFNWkNsUVBvRk10K3c5K2w2WGdWN1ZcL0xKeFE9PSIsIm1hYyI6IjZkMjg4YzZiNDQwNzVlZWE0MTQ2ZTIzNzJhZDZjOGNmMmM1YjlmYjEwYTQ2ZDBiM2MzNjYxYjlkZmNlNDIwYWIifQ%3D%3D"
     }
   },
   "zalo": {
@@ -59,8 +59,8 @@
         "enabled": true
       },
       {
-        "id": "7581087306337796515",
-        "name": "Yuki",
+        "id": "7662918962461429024",
+        "name": "Trần Lê Phát",
         "type": "USER",
         "enabled": true
       },
@@ -88,8 +88,9 @@
     "enabled": true,
     "target_group_id": "7456361874031804652",
     "target_group_name": "demo",
-    "admin_uid": "7581087306337796515",
-    "throttle_seconds": 1800
+    "admin_uid": "7662918962461429024",
+    "throttle_seconds": 1800,
+    "admin_name": "Trần Lê Phát"
   },
   "scanner": {
     "check_interval_seconds": 25,
