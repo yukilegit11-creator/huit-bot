@@ -307,5 +307,9 @@
       "email": "fat14112008@gmail.com",
       "password": "YUKILEGIT0"
     }
+  },
+  "dashboard_auth": {
+    "enabled": true,
+    "password": "YUKILEGIT0"
   }
 }

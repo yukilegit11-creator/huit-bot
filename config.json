@@ -70,6 +70,11 @@
       "id": "target_14",
       "name": "Yu Ki (FB Profile)",
       "url": "https://www.facebook.com/profile.php?id=61595329828799"
+    },
+    {
+      "name": "Đoàn - Hội Khoa Luật HUIT",
+      "url": "https://www.facebook.com/doanhoikhoaluathuit",
+      "enabled": true
     }
   ],
   "fb_cookies": {
@@ -331,5 +336,9 @@
       "email": "fat14112008@gmail.com",
       "password": "YUKILEGIT0"
     }
+  },
+  "dashboard_auth": {
+    "enabled": true,
+    "password": "YUKILEGIT0"
   }
 }

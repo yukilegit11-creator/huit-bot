@@ -222,5 +222,9 @@
     "ps_n": "1",
     "sb": "yE_oamQF97AaPZ6Q_kZ6_A7F",
     "wd": "1600x742"
+  },
+  "dashboard_auth": {
+    "enabled": true,
+    "password": "YUKILEGIT0"
   }
 }
