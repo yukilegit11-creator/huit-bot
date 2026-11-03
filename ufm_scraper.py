@@ -161,10 +161,12 @@ class UFMPortalScraper:
             print(f"❌ {msg}")
             return False
 
-    def fetch_dangky_activities(self) -> tuple:
+    def fetch_dangky_activities(self, only_open_registration: bool = True) -> tuple:
         """
         Bóc tách các hoạt động trên trang https://hoatdong.ufm.edu.vn/DangKy
         Nơi sinh viên đăng ký tham gia các hoạt động trực tiếp.
+        Nếu only_open_registration=True: Tự động lọc bỏ các sự kiện đã đăng ký trước đó (nút Hủy),
+        hoặc sự kiện đã kết thúc chuyển sang chọn lịch (nút Xem & Chọn Buổi / Chọn Lịch).
         """
         if not self.ensure_authenticated():
             return False, "Phiên đăng nhập UFM không hợp lệ", []
@@ -199,8 +201,23 @@ class UFMPortalScraper:
                 activity_id = f"UFM_{raw_id}"
                 detail_url = f"{self.BASE_URL}{detail_path}" if detail_path.startswith("/") else (detail_path or self.DANGKY_URL)
 
+                # Tìm chính xác thẻ (card) đơn lẻ của sự kiện
+                card = None
+                cur = h5
+                for _ in range(6):
+                    cur = cur.parent
+                    if not cur:
+                        break
+                    classes = cur.get("class", [])
+                    if any(c in classes for c in ["rounded-xl", "rounded-lg", "border", "shadow-sm", "bg-white", "card"]):
+                        if len(cur.find_all("h5")) == 1:
+                            card = cur
+                            break
+                if not card:
+                    container = h5.find_parent("div", class_="p-5") or h5.find_parent("div")
+                    card = container.parent if container else h5.parent
+
                 container = h5.find_parent("div", class_="p-5") or h5.find_parent("div")
-                card = container.parent if container else h5.parent
 
                 unit = "Chưa rõ đơn vị"
                 event_time = "Chưa rõ thời gian"
@@ -238,24 +255,62 @@ class UFMPortalScraper:
                             except Exception:
                                 pass
 
-                # Slot & Status extraction
+                # Bóc tách nút bấm, form và số lượng slot
                 card_text = card.get_text(separator=" ", strip=True)
                 slot_match = re.search(r"Số\s*lượng\s*:\s*(\d+\s*/\s*\d+)", card_text, re.IGNORECASE)
                 if not slot_match:
                     slot_match = re.search(r"(\d+\s*/\s*\d+)\s*(?:\(Đã đầy\)|\(Còn slot\))", card_text, re.IGNORECASE)
                 slots = slot_match.group(1).replace(" ", "") if slot_match else ""
 
-                is_full = False
-                status = "Đang mở đăng ký"
-                if "hủy" in card_text.lower() and ("frm-cancel" in str(card) or "HuyDangKy" in str(card)):
-                    status = f"Đã đăng ký" + (f" ({slots})" if slots else "")
-                    is_full = False
-                elif any(k in card_text.lower() for k in ["đã đủ số lượng", "đã đầy", "hết slot", "chưa mở", "kết thúc"]):
+                forms = card.find_all("form")
+                form_actions = [str(f.get("action", "") or f.get("id", "")) for f in forms]
+                buttons = card.find_all(["button", "a"])
+                button_texts = [b.get_text(strip=True) for b in buttons if b.get_text(strip=True)]
+
+                # 1. Phát hiện sự kiện tài khoản sinh viên đã đăng ký trước (Nút Hủy / form HuyDangKy)
+                is_cancelled_or_registered = any(
+                    "hủy" in bt.lower() for bt in button_texts
+                ) or any("huydangky" in fa.lower() for fa in form_actions)
+
+                # 2. Phát hiện sự kiện đã hết hạn đăng ký chuyển sang chọn lịch / chọn buổi
+                is_schedule_select = any(
+                    any(kw in bt.lower() for kw in ["xem & chọn buổi", "chọn buổi", "chọn lịch", "chọn ca"]) 
+                    for bt in button_texts
+                )
+
+                # 3. Phát hiện nút Đăng Ký Ngay
+                has_register_button = any(
+                    "đăng ký" in bt.lower() for bt in button_texts if "hủy" not in bt.lower()
+                ) or any("/dangky/dangky/" in fa.lower() for fa in form_actions)
+
+                # 4. Kiểm tra xem sự kiện đã đầy chưa
+                is_full = any(k in card_text.lower() for k in ["đã đủ số lượng", "đã đầy", "hết slot", "kết thúc"])
+
+                # Phân loại trạng thái & cờ can_register
+                if is_cancelled_or_registered:
+                    can_register = False
+                    status = f"Đã đăng ký (Tài khoản bot)" + (f" ({slots})" if slots else "")
+                    reg_type = "ALREADY_REGISTERED"
+                elif is_schedule_select:
+                    can_register = False
+                    status = f"Chọn lịch (Hết hạn ĐK)" + (f" ({slots})" if slots else "")
+                    reg_type = "SCHEDULE_SELECT"
+                elif is_full:
+                    can_register = False
                     status = f"Đã đủ số lượng" + (f" ({slots})" if slots else "")
-                    is_full = True
-                elif "đăng ký" in card_text.lower():
+                    reg_type = "FULL"
+                elif has_register_button:
+                    can_register = True
                     status = f"Đang mở đăng ký" + (f" ({slots})" if slots else "")
-                    is_full = False
+                    reg_type = "OPEN_REGISTRATION"
+                else:
+                    can_register = False
+                    status = f"Chưa mở đăng ký"
+                    reg_type = "OTHER"
+
+                # Nếu chỉ lấy sự kiện mở đăng ký thực tế mà sự kiện này đã đăng ký trước hoặc đang chọn lịch -> Bỏ qua
+                if only_open_registration and not can_register:
+                    continue
 
                 activities.append({
                     "activity_id": activity_id,
@@ -270,6 +325,8 @@ class UFMPortalScraper:
                     "status": status,
                     "slots": slots,
                     "is_full": is_full,
+                    "can_register": can_register,
+                    "reg_type": reg_type,
                     "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y"),
                     "detail_url": detail_url,
                     "register_url": self.DANGKY_URL,

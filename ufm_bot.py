@@ -444,7 +444,7 @@ def run_bot():
                 post_stat = f"{new_count} bài mới" if new_count > 0 else "0 bài mới"
                 if reopened_count > 0:
                     post_stat += f", {reopened_count} mở slot"
-                database.log_event("SCAN", f"✅ Chu kỳ #{cycle}: Hoàn tất kiểm tra Cổng Đăng Ký UFM (/DangKy) ({len(activities)} hoạt động, {post_stat}). Tạm nghỉ {interval}s trước chu kỳ #{cycle+1}.", db_file=DB_TARGET)
+                database.log_event("SCAN", f"✅ Chu kỳ #{cycle}: Hoàn tất kiểm tra Cổng Đăng Ký UFM (/DangKy) ({len(activities)} hoạt động mở ĐK, {post_stat}). Tạm nghỉ {interval}s trước chu kỳ #{cycle+1}.", db_file=DB_TARGET)
 
         except Exception as e:
             err_msg = f"Lỗi chu kỳ #{cycle}: {e}"

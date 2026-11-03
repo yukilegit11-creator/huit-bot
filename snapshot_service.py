@@ -301,20 +301,14 @@ def _capture_ou(meta: dict, out_path: str, base_dir: str = None) -> dict:
             if cookie_list:
                 context.add_cookies(cookie_list)
             page = context.new_page()
-            # Dùng wait_until='commit' để không bị nghẽn bởi WebSocket nền của Vue
-            page.goto(meta["portal_url"], timeout=30000, wait_until="commit")
+            page.goto(meta["portal_url"], timeout=30000, wait_until="load")
+            try:
+                page.wait_for_selector("div#app, body", timeout=10000)
+            except Exception:
+                pass
+            page.wait_for_timeout(4000)
             
-            # Chờ Vue 3 SPA render
-            start_t = time.time()
-            final_title = "Hệ thống Điểm rèn luyện 2026"
-            while time.time() - start_t < 20:
-                t = page.title()
-                if not t.startswith("Loading") and len(t) > 5:
-                    final_title = t
-                    break
-                page.wait_for_timeout(1000)
-                
-            page.wait_for_timeout(2000)
+            final_title = page.title() or "Hệ thống Điểm rèn luyện 2026"
             text_snippet = page.inner_text("body")[:250] if page.locator("body").count() > 0 else ""
             page.screenshot(path=out_path)
             
