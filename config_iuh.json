@@ -3,9 +3,10 @@
   "bot_name": "Yuki 3 (IUH ĐRL)",
   "portal": {
     "url": "https://doantn.iuh.edu.vn/doanvien.html",
-    "phpsessid": "vfbsgb1d91o2ainlfge5p414ep",
+    "phpsessid": "90o9ns6f2j82nh69a95o4l60cv",
     "username": "25640491",
-    "password": "phamhang1207"
+    "password": "11022007",
+    "auto_relogin": true
   },
   "zalo": {
     "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",

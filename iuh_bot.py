@@ -232,10 +232,13 @@ def run_bot():
     config = load_config()
     portal_cfg = config.get("portal", {})
     phpsessid = portal_cfg.get("phpsessid", "")
+    username = portal_cfg.get("username", "")
+    password = portal_cfg.get("password", "")
+    auto_relogin = portal_cfg.get("auto_relogin", True)
     scanner_cfg = config.get("scanner", {})
-    interval = scanner_cfg.get("check_interval_seconds", 15)
+    interval = scanner_cfg.get("check_interval_seconds", 25)
 
-    scraper = IUHPortalScraper(phpsessid)
+    scraper = IUHPortalScraper(phpsessid, username=username, password=password, config_path=CONFIG_FILE, auto_relogin=auto_relogin)
     zalo = ZaloDispatcher(CONFIG_FILE)
     messenger = MessengerDispatcher(CONFIG_FILE, db_file=DB_TARGET) if HAS_MESSENGER else None
 
@@ -282,6 +285,9 @@ def run_bot():
             curr_cookie = portal_cfg.get("phpsessid", "")
             if curr_cookie != scraper.phpsessid:
                 scraper.update_cookie(curr_cookie)
+            scraper.username = portal_cfg.get("username", "")
+            scraper.password = portal_cfg.get("password", "")
+            scraper.auto_relogin = portal_cfg.get("auto_relogin", True)
             interval = config.get("scanner", {}).get("check_interval_seconds", 25)
         except Exception:
             pass
