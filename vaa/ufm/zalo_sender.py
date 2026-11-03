@@ -259,6 +259,11 @@ class ZaloDispatcher:
         imei = self.zalo_cfg.get("imei")
         if not cookies or not imei:
             print("⚠️ Chưa có cookies hoặc imei Zalo trong config.json")
+            try:
+                database.set_bot_status("zalo_cookie_status", "missing", db_file=self.db_file)
+                database.set_bot_status("zalo_cookie_error", "Chưa có cookies hoặc IMEI trong config.json", db_file=self.db_file)
+            except Exception:
+                pass
             return False
 
         cls = self.client_class or ZaloAPI
@@ -276,9 +281,23 @@ class ZaloDispatcher:
 
             uid = self.client.uid() if callable(self.client.uid) else self.client.uid
             print(f"✅ Đăng nhập Zalo Bot UFM thành công! UID: {uid}")
+            try:
+                database.set_bot_status("zalo_cookie_status", "valid", db_file=self.db_file)
+                database.set_bot_status("zalo_cookie_error", "", db_file=self.db_file)
+                database.set_bot_status("zalo_account_uid", str(uid), db_file=self.db_file)
+                database.set_bot_status("zalo_last_connected", database.get_vn_now_str(), db_file=self.db_file)
+            except Exception:
+                pass
             return True
         except Exception as e:
-            print(f"❌ Lỗi kết nối Zalo UFM: {e}")
+            err_msg = str(e)
+            print(f"❌ Lỗi kết nối Zalo UFM: {err_msg}")
+            try:
+                database.set_bot_status("zalo_cookie_status", "expired", db_file=self.db_file)
+                database.set_bot_status("zalo_cookie_error", err_msg, db_file=self.db_file)
+                database.log_event("WARN", f"Cookie Zalo hết hạn hoặc bị hủy: {err_msg}", db_file=self.db_file)
+            except Exception:
+                pass
             self.client = None
             return False
 
@@ -376,6 +395,13 @@ class ZaloDispatcher:
                 err_str = f"Lỗi gửi tin tới {tname} ({tid}): {e}"
                 print(f"❌ [Zalo] {err_str}")
                 database.log_event("ERROR", err_str, db_file=db_file)
+                err_lower = str(e).lower()
+                if any(w in err_lower for w in ["session", "expire", "auth", "login", "cookie", "token", "unauthorized", "invalid", "1001", "1002", "logout", "logged out"]):
+                    try:
+                        database.set_bot_status("zalo_cookie_status", "expired", db_file=db_file)
+                        database.set_bot_status("zalo_cookie_error", f"Phiên Zalo hết hạn hoặc bị hủy: {e}", db_file=db_file)
+                    except Exception:
+                        pass
                 database.record_delivery(
                     post_id=act.get("activity_id", ""),
                     post_title=act.get("title", ""),
@@ -398,7 +424,7 @@ class ZaloDispatcher:
     def send_test_message(self, target_thread_id=None, db_file=None) -> tuple:
         if not self.client:
             if not self.connect():
-                return False, "Không thể kết nối tới Zalo Web"
+                return False, "Không thể kết nối tới Zalo Web (Cookie đã hết hạn hoặc bị hủy)"
 
         test_act = {
             "activity_id": f"TEST_{int(time.time())}",

@@ -20,6 +20,7 @@ if not os.path.exists(CONFIG_FILE):
 
 from scraper import FacebookCometScraper
 from zalo_sender import ZaloDispatcher
+import zalo_sender
 from supabase_client import SupabaseDispatcher
 import database
 

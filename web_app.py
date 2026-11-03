@@ -102,7 +102,74 @@ def api_github_status():
 @app.get("/api/logs")
 def api_get_logs(limit: int = 100):
     logs = database.get_recent_logs(limit=limit)
-    return {"status": "ok", "count": len(logs), "logs": logs}
+    return {"status": "ok", "count": len(logs), "server_time": database.get_vn_now_str(), "logs": logs}
+
+@app.get("/api/all-logs")
+def api_get_all_logs(limit: int = 150, bot: Optional[str] = None):
+    all_logs = []
+    
+    # 1. Bot 1 (HUIT)
+    try:
+        huit_logs = database.get_recent_logs(limit=limit, db_file=database.DB_FILE)
+        for l in huit_logs:
+            ld = dict(l)
+            ld["bot"] = "HUIT"
+            ld["bot_badge"] = "Bot 1 (HUIT)"
+            ld["bot_color"] = "text-blue-400 bg-blue-950/80 border-blue-800"
+            all_logs.append(ld)
+    except Exception:
+        pass
+
+    # 2. Bot 2 (VAA)
+    try:
+        vaa_logs = database.get_recent_logs(limit=limit, db_file=database.BOT2_DB_FILE)
+        for l in vaa_logs:
+            ld = dict(l)
+            ld["bot"] = "VAA"
+            ld["bot_badge"] = "Bot 2 (VAA)"
+            ld["bot_color"] = "text-sky-400 bg-sky-950/80 border-sky-800"
+            all_logs.append(ld)
+    except Exception:
+        pass
+
+    # 3. Bot 3 (IUH)
+    try:
+        iuh_logs = database.get_recent_logs(limit=limit, db_file=database.IUH_DB_FILE)
+        for l in iuh_logs:
+            ld = dict(l)
+            ld["bot"] = "IUH"
+            ld["bot_badge"] = "Bot 3 (IUH)"
+            ld["bot_color"] = "text-rose-400 bg-rose-950/80 border-rose-800"
+            all_logs.append(ld)
+    except Exception:
+        pass
+
+    # 4. Bot 4 (UFM)
+    try:
+        ufm_db_path = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
+        if not os.path.exists(ufm_db_path):
+            ufm_db_path = database.UFM_DB_FILE
+        ufm_logs = database.get_recent_logs(limit=limit, db_file=ufm_db_path)
+        for l in ufm_logs:
+            ld = dict(l)
+            ld["bot"] = "UFM"
+            ld["bot_badge"] = "Bot 4 (UFM)"
+            ld["bot_color"] = "text-emerald-400 bg-emerald-950/80 border-emerald-800"
+            all_logs.append(ld)
+    except Exception:
+        pass
+
+    if bot and bot.upper() != "ALL":
+        b_clean = bot.strip().upper()
+        all_logs = [l for l in all_logs if l.get("bot") == b_clean]
+
+    all_logs.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+    return {
+        "status": "ok", 
+        "count": len(all_logs), 
+        "server_time": database.get_vn_now_str(), 
+        "logs": all_logs[:limit]
+    }
 
 @app.get("/api/posts")
 def api_get_posts(limit: int = 50, page_name: Optional[str] = None, search: Optional[str] = None):
@@ -447,7 +514,7 @@ def api_bot2_get_stats():
 @app.get("/api/bot2/logs")
 def api_bot2_get_logs(limit: int = 100):
     logs = database.get_recent_logs(limit=limit, db_file=database.BOT2_DB_FILE)
-    return {"status": "ok", "count": len(logs), "logs": logs}
+    return {"status": "ok", "count": len(logs), "server_time": database.get_vn_now_str(), "logs": logs}
 
 @app.get("/api/bot2/history")
 @app.get("/api/bot2/delivery_history")
@@ -672,7 +739,7 @@ def api_bot3_get_stats():
 @app.get("/api/bot3/logs")
 def api_bot3_get_logs(limit: int = 100):
     logs = database.get_recent_logs(limit=limit, db_file=database.IUH_DB_FILE)
-    return {"status": "ok", "count": len(logs), "logs": logs}
+    return {"status": "ok", "count": len(logs), "server_time": database.get_vn_now_str(), "logs": logs}
 
 @app.post("/api/bot3/toggle")
 def api_bot3_toggle():
@@ -1040,31 +1107,42 @@ def dashboard_view():
     <!-- TAB 2: LIVE CONSOLE LOG -->
     <div id="tab-console" class="hidden space-y-4">
       <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
-        <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center space-x-2">
             <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
             <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
             <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-            <span class="ml-2 text-xs font-mono text-slate-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-terminal text-blue-400"></i> HUIT Bot Live Output Stream (Tự động cập nhật 2.5s)
+            <span class="ml-2 text-xs font-mono text-slate-300 flex items-center gap-2">
+              <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                LIVE 1s
+              </span>
+              <span id="liveClockBot1" class="font-mono text-xs font-bold text-emerald-400">--:--:--</span>
             </span>
           </div>
+
+          <!-- Scope Switcher -->
+          <div class="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px] font-bold">
+            <button onclick="setLogBotScope('HUIT')" id="btnLogScopeHuit" class="px-2.5 py-1 rounded bg-blue-600 text-white shadow-xs">HUIT Bot</button>
+            <button onclick="setLogBotScope('ALL')" id="btnLogScopeAll" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">🌐 Hợp Nhất 4 Bot</button>
+          </div>
+
           <div class="flex items-center space-x-3">
             <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer select-none">
               <input type="checkbox" id="console-autoscroll" checked class="rounded text-blue-500 bg-slate-800 border-slate-700">
               Auto Scroll
             </label>
             <button onclick="clearConsoleView()" class="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md transition">
-              <i class="fa-solid fa-broom"></i> Xóa Màn Hình
+              <i class="fa-solid fa-broom"></i> Xóa
             </button>
             <button onclick="fetchLogs()" class="px-2.5 py-1 text-xs text-blue-400 hover:text-blue-300 bg-blue-950/60 border border-blue-800/60 rounded-md transition">
-              <i class="fa-solid fa-rotate"></i> Làm mới
+              <i class="fa-solid fa-rotate"></i>
             </button>
           </div>
         </div>
 
-        <div id="console-stream" class="p-4 font-mono text-xs text-slate-300 h-[520px] overflow-y-auto space-y-2 bg-[#0b0f19]">
-          <div class="text-slate-500 italic">Đang tải luồng nhật ký từ hệ thống bot...</div>
+        <div id="console-stream" class="p-4 font-mono text-xs text-slate-300 h-[520px] overflow-y-auto space-y-1.5 bg-[#0b0f19]">
+          <div class="text-slate-500 italic">Đang kết nối luồng nhật ký thời gian thực...</div>
         </div>
       </div>
     </div>
@@ -1335,10 +1413,39 @@ def dashboard_view():
       }}
     }}
 
-    // ================= LIVE CONSOLE LOGS =================
+    // ================= LIVE CONSOLE LOGS & CLOCK =================
+    let currentLogScope = 'HUIT';
+
+    function tickClockBot1() {{
+      const el = document.getElementById('liveClockBot1');
+      if (el) {{
+        const now = new Date();
+        el.innerText = now.toTimeString().split(' ')[0];
+      }}
+    }}
+    setInterval(tickClockBot1, 1000);
+    tickClockBot1();
+
+    function setLogBotScope(scope) {{
+      currentLogScope = scope;
+      const btnHuit = document.getElementById('btnLogScopeHuit');
+      const btnAll = document.getElementById('btnLogScopeAll');
+      if (btnHuit && btnAll) {{
+        if (scope === 'HUIT') {{
+          btnHuit.className = 'px-2.5 py-1 rounded bg-blue-600 text-white shadow-xs';
+          btnAll.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+        }} else {{
+          btnAll.className = 'px-2.5 py-1 rounded bg-blue-600 text-white shadow-xs';
+          btnHuit.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+        }}
+      }}
+      fetchLogs();
+    }}
+
     async function fetchLogs() {{
       try {{
-        const res = await fetch('/api/logs?limit=80');
+        const url = (currentLogScope === 'ALL') ? '/api/all-logs?limit=80' : '/api/logs?limit=80';
+        const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'ok') {{
           renderLogs(data.logs || []);
@@ -1365,11 +1472,13 @@ def dashboard_view():
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const timeStr = l.created_at ? l.created_at.split(' ')[1] || l.created_at : '';
+        const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+        const botBadge = (currentLogScope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-indigo-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
 
         return `
-          <div class="flex items-start gap-2.5 hover:bg-slate-800/40 px-2 py-1 rounded transition">
-            <span class="text-slate-500 shrink-0 text-[11px]">${{timeStr}}</span>
+          <div class="flex items-start gap-2 hover:bg-slate-800/40 px-2 py-1 rounded transition">
+            <span class="text-slate-500 shrink-0 text-[11px] font-mono">${{timeStr}}</span>
+            ${{botBadge}}
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${{badgeColor}} shrink-0">${{l.level}}</span>
             <span class="text-slate-200 leading-relaxed break-all">${{l.message}}</span>
           </div>
@@ -1876,7 +1985,7 @@ def dashboard_view():
     renderTargetGroups(allTargetGroups);
     fetchLogs();
 
-    setInterval(fetchLogs, 2500);
+    setInterval(fetchLogs, 1000);
     setInterval(fetchLatestData, 15000);
   </script>
 </body>
@@ -2089,25 +2198,36 @@ def dashboard_view_bot2():
     <!-- TAB 2: LIVE CONSOLE LOG -->
     <div id="tab-console" class="hidden space-y-4">
       <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
-        <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center space-x-2">
             <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
             <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
             <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-            <span class="ml-2 text-xs font-mono text-slate-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-terminal text-sky-400"></i> VAA Bot Live Output Stream (Tự động cập nhật 2.5s)
+            <span class="ml-2 text-xs font-mono text-slate-300 flex items-center gap-2">
+              <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+                LIVE 1s
+              </span>
+              <span id="liveClockBot2" class="font-mono text-xs font-bold text-sky-400">--:--:--</span>
             </span>
           </div>
+
+          <!-- Scope Switcher -->
+          <div class="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px] font-bold">
+            <button onclick="setLogBot2Scope('VAA')" id="btnLogScopeVaa" class="px-2.5 py-1 rounded bg-sky-600 text-white shadow-xs">VAA Bot</button>
+            <button onclick="setLogBot2Scope('ALL')" id="btnLogScopeVaaAll" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">🌐 Hợp Nhất 4 Bot</button>
+          </div>
+
           <div class="flex items-center space-x-3">
             <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer select-none">
               <input type="checkbox" id="console-autoscroll" checked class="rounded text-sky-500 bg-slate-800 border-slate-700">
               Auto Scroll
             </label>
             <button onclick="clearConsoleView()" class="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md transition">
-              <i class="fa-solid fa-broom"></i> Xóa Màn Hình
+              <i class="fa-solid fa-broom"></i> Xóa
             </button>
             <button onclick="fetchLogs()" class="px-2.5 py-1 text-xs text-sky-400 hover:text-sky-300 bg-sky-950/60 border border-sky-800/60 rounded-md transition">
-              <i class="fa-solid fa-rotate"></i> Làm mới
+              <i class="fa-solid fa-rotate"></i>
             </button>
           </div>
         </div>
@@ -2420,10 +2540,39 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }}
     }}
 
-    // ================= LIVE CONSOLE LOGS =================
+    // ================= LIVE CONSOLE LOGS & CLOCK =================
+    let currentLog2Scope = 'VAA';
+
+    function tickClockBot2() {{
+      const el = document.getElementById('liveClockBot2');
+      if (el) {{
+        const now = new Date();
+        el.innerText = now.toTimeString().split(' ')[0];
+      }}
+    }}
+    setInterval(tickClockBot2, 1000);
+    tickClockBot2();
+
+    function setLogBot2Scope(scope) {{
+      currentLog2Scope = scope;
+      const btnVaa = document.getElementById('btnLogScopeVaa');
+      const btnAll = document.getElementById('btnLogScopeVaaAll');
+      if (btnVaa && btnAll) {{
+        if (scope === 'VAA') {{
+          btnVaa.className = 'px-2.5 py-1 rounded bg-sky-600 text-white shadow-xs';
+          btnAll.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+        }} else {{
+          btnAll.className = 'px-2.5 py-1 rounded bg-sky-600 text-white shadow-xs';
+          btnVaa.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+        }}
+      }}
+      fetchLogs();
+    }}
+
     async function fetchLogs() {{
       try {{
-        const res = await fetch(API_BASE + '/logs?limit=80');
+        const url = (currentLog2Scope === 'ALL') ? '/api/all-logs?limit=80' : (API_BASE + '/logs?limit=80');
+        const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'ok') {{
           renderLogs(data.logs || []);
@@ -2450,11 +2599,13 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const timeStr = l.created_at ? l.created_at.split(' ')[1] || l.created_at : '';
+        const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+        const botBadge = (currentLog2Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-sky-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
 
         return `
-          <div class="flex items-start gap-2.5 hover:bg-slate-800/40 px-2 py-1 rounded transition">
-            <span class="text-slate-500 shrink-0 text-[11px]">${{timeStr}}</span>
+          <div class="flex items-start gap-2 hover:bg-slate-800/40 px-2 py-1 rounded transition">
+            <span class="text-slate-500 shrink-0 text-[11px] font-mono">${{timeStr}}</span>
+            ${{botBadge}}
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${{badgeColor}} shrink-0">${{l.level}}</span>
             <span class="text-slate-200 leading-relaxed break-all">${{l.message}}</span>
           </div>
@@ -2979,7 +3130,7 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
     renderTargetGroups(allTargetGroups);
     fetchLogs();
 
-    setInterval(fetchLogs, 2500);
+    setInterval(fetchLogs, 1000);
     setInterval(fetchLatestData, 15000);
   </script>
 </body>
@@ -3096,6 +3247,25 @@ def dashboard_view_bot3():
 
   <!-- MAIN CONTAINER -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- BANNER CẢNH BÁO COOKIE HẾT HẠN -->
+    <div id="iuh-cookie-alert-banner" class="{'hidden' if cookie_status == 'valid' else ''} bg-gradient-to-r from-rose-600 to-red-600 rounded-2xl p-4 text-white shadow-lg shadow-rose-600/30 flex flex-wrap items-center justify-between gap-4 animate-pulse">
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h4 class="font-extrabold text-sm tracking-wide">⚠️ CẢNH BÁO: COOKIE CỔNG ĐOÀN TN IUH ĐÃ HẾT HẠN!</h4>
+          <p class="text-xs text-rose-100 mt-0.5">Phiên PHPSESSID đã hết hạn. Bot IUH tạm thời ngừng cào hoạt động mới cho đến khi nạp cookie mới!</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="text" id="quick-banner-cookie" placeholder="Dán PHPSESSID mới vào đây..." class="px-3 py-1.5 text-xs text-slate-800 rounded-lg focus:outline-none font-mono w-60">
+        <button onclick="saveCookieFromBanner()" class="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-lg transition whitespace-nowrap">
+          Lưu & Sửa Ngay
+        </button>
+      </div>
+    </div>
 
     <!-- KPI STATS CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -3235,15 +3405,28 @@ def dashboard_view_bot3():
         </div>
 
         <!-- Console System Logs Card -->
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-md p-5 flex flex-col h-[380px]">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-2">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-md p-5 flex flex-col h-[400px]">
+          <div class="flex flex-wrap items-center justify-between pb-3 border-b border-slate-800 mb-2 gap-2">
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <h3 class="font-bold text-xs text-slate-200 font-mono tracking-wider uppercase">System Console Logs</h3>
+              <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                LIVE 1s
+              </span>
+              <span id="liveClockBot3" class="font-mono text-xs font-bold text-rose-400">--:--:--</span>
             </div>
-            <button onclick="fetchLogs()" class="text-[11px] text-slate-400 hover:text-white transition font-mono">
-              <i class="fa-solid fa-rotate-right"></i>
-            </button>
+            <!-- Scope Switcher -->
+            <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px] font-bold">
+              <button onclick="setLogBot3Scope('IUH')" id="btnLogScopeIuh" class="px-2 py-0.5 rounded bg-rose-600 text-white shadow-xs">IUH Bot</button>
+              <button onclick="setLogBot3Scope('ALL')" id="btnLogScopeIuhAll" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">🌐 Hợp Nhất 4 Bot</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="clearConsoleViewBot3()" class="text-[11px] text-slate-400 hover:text-white transition font-mono px-1.5 py-0.5 rounded bg-slate-800" title="Xóa màn hình">
+                <i class="fa-solid fa-broom"></i>
+              </button>
+              <button onclick="fetchLogs()" class="text-[11px] text-slate-400 hover:text-white transition font-mono p-1 rounded bg-slate-800" title="Làm mới">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
           </div>
           <div id="console-stream" class="flex-1 overflow-y-auto space-y-1.5 text-[11px] font-mono text-slate-300 pr-1">
             <!-- Stream logs -->
@@ -3519,9 +3702,44 @@ def dashboard_view_bot3():
       renderActivities(filtered);
     }}
 
+    // ================= LIVE CONSOLE LOGS & CLOCK =================
+    let currentLog3Scope = 'IUH';
+
+    function tickClockBot3() {{
+      const el = document.getElementById('liveClockBot3');
+      if (el) {{
+        const now = new Date();
+        el.innerText = now.toTimeString().split(' ')[0];
+      }}
+    }}
+    setInterval(tickClockBot3, 1000);
+    tickClockBot3();
+
+    function setLogBot3Scope(scope) {{
+      currentLog3Scope = scope;
+      const btnIuh = document.getElementById('btnLogScopeIuh');
+      const btnAll = document.getElementById('btnLogScopeIuhAll');
+      if (btnIuh && btnAll) {{
+        if (scope === 'IUH') {{
+          btnIuh.className = 'px-2 py-0.5 rounded bg-rose-600 text-white shadow-xs';
+          btnAll.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+        }} else {{
+          btnAll.className = 'px-2 py-0.5 rounded bg-rose-600 text-white shadow-xs';
+          btnIuh.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+        }}
+      }}
+      fetchLogs();
+    }}
+
+    function clearConsoleViewBot3() {{
+      const container = document.getElementById('console-stream');
+      if (container) container.innerHTML = '<div class="text-slate-500">Màn hình đã xóa. Đang chờ log tiếp theo...</div>';
+    }}
+
     async function fetchLogs() {{
       try {{
-        const res = await fetch('/api/bot3/logs?limit=40');
+        const url = (currentLog3Scope === 'ALL') ? '/api/all-logs?limit=80' : '/api/bot3/logs?limit=40';
+        const res = await fetch(url);
         const data = await res.json();
         const container = document.getElementById('console-stream');
         if (data.logs) {{
@@ -3530,7 +3748,12 @@ def dashboard_view_bot3():
             if (l.level === 'WARN') color = 'text-amber-400';
             else if (l.level === 'ERROR') color = 'text-rose-400';
             else if (l.level === 'ZALO' || l.level === 'ACTIVITY') color = 'text-emerald-400';
-            return `<div><span class="text-slate-500 font-mono">[${{l.created_at.split(' ')[1] || l.created_at}}]</span> <span class="font-bold ${{color}}">[${{l.level}}]</span> ${{l.message}}</div>`;
+            else if (l.level === 'SCAN') color = 'text-cyan-400';
+
+            const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+            const botBadge = (currentLog3Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-rose-300 border border-slate-700 shrink-0">[${{l.bot}}]</span> ` : '';
+
+            return `<div class="flex items-start gap-1.5 py-0.5"><span class="text-slate-500 font-mono shrink-0">[${{timeStr}}]</span> ${{botBadge}}<span class="font-bold ${{color}} shrink-0">[${{l.level}}]</span> <span class="break-all text-slate-200">${{l.message}}</span></div>`;
           }}).join('');
         }}
       }} catch (e) {{}}
@@ -3550,10 +3773,13 @@ def dashboard_view_bot3():
         document.getElementById('stat-cycle-count').innerText = 'Chu kỳ: #' + (s.total_scans || 0);
 
         const cookieBadge = document.getElementById('stat-cookie-badge');
+        const cookieBanner = document.getElementById('iuh-cookie-alert-banner');
         if (s.cookie_status === 'valid') {{
           cookieBadge.innerHTML = '<span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 Cookie Hoạt Động</span>';
+          if (cookieBanner) cookieBanner.classList.add('hidden');
         }} else {{
           cookieBadge.innerHTML = '<span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">🔴 Cookie Hết Hạn / Chưa Đăng Nhập</span>';
+          if (cookieBanner) cookieBanner.classList.remove('hidden');
         }}
 
         if (a.data) {{
@@ -3562,6 +3788,17 @@ def dashboard_view_bot3():
         }}
         await fetchHistory();
       }} catch (e) {{}}
+    }}
+
+    async function saveCookieFromBanner() {{
+      const cookieVal = document.getElementById('quick-banner-cookie').value.trim();
+      if (!cookieVal) return alert('Vui lòng dán cookie PHPSESSID!');
+      const fd = new FormData();
+      fd.append('cookie', cookieVal);
+      const res = await fetch('/api/bot3/cookie', {{ method: 'POST', body: fd }});
+      const data = await res.json();
+      alert(data.message);
+      fetchLatestData();
     }}
 
     function renderHistory(list) {{
@@ -3686,7 +3923,7 @@ def dashboard_view_bot3():
     renderTargetGroups(allTargetGroups);
     renderHistory(allHistory);
     fetchLogs();
-    setInterval(fetchLogs, 2500);
+    setInterval(fetchLogs, 1000);
     setInterval(fetchLatestData, 10000);
     setInterval(fetchHistory, 10000);
   </script>

@@ -75,6 +75,10 @@ def api_status():
         "total_scans": bot_status.get("total_scans", "0"),
         "last_scan_time": bot_status.get("last_scan_time", "Chưa quét"),
         "portal_cookie_status": bot_status.get("portal_cookie_status", "valid"),
+        "zalo_cookie_status": bot_status.get("zalo_cookie_status", "valid"),
+        "zalo_cookie_error": bot_status.get("zalo_cookie_error", ""),
+        "zalo_account_uid": bot_status.get("zalo_account_uid", ""),
+        "zalo_last_connected": bot_status.get("zalo_last_connected", ""),
         "stats": stats,
         "student_stats": st_stats,
         "bot_name": cfg.get("bot_name", "Yuki 4 (UFM)"),
@@ -139,7 +143,87 @@ def test_zalo(target_id: Optional[str] = None):
 @app.get("/api/logs")
 def get_logs(limit: int = 150):
     logs = database.get_recent_logs(limit)
-    return {"logs": logs}
+    return {"logs": logs, "count": len(logs), "server_time": database.get_vn_now_str()}
+
+@app.get("/api/all-logs")
+def get_all_logs(limit: int = 150, bot: Optional[str] = None):
+    all_logs = []
+    root_huit_dir = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+    
+    # 1. HUIT
+    huit_db = os.path.join(root_huit_dir, "huit_bot.db")
+    if os.path.exists(huit_db):
+        try:
+            conn = sqlite3.connect(huit_db)
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            for r in rows:
+                ld = dict(r)
+                ld["bot"] = "HUIT"
+                ld["bot_badge"] = "Bot 1 (HUIT)"
+                ld["bot_color"] = "text-blue-400 bg-blue-950/80 border-blue-800"
+                all_logs.append(ld)
+            conn.close()
+        except Exception:
+            pass
+
+    # 2. VAA
+    vaa_db = os.path.join(root_huit_dir, "bot2.db")
+    if os.path.exists(vaa_db):
+        try:
+            conn = sqlite3.connect(vaa_db)
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            for r in rows:
+                ld = dict(r)
+                ld["bot"] = "VAA"
+                ld["bot_badge"] = "Bot 2 (VAA)"
+                ld["bot_color"] = "text-sky-400 bg-sky-950/80 border-sky-800"
+                all_logs.append(ld)
+            conn.close()
+        except Exception:
+            pass
+
+    # 3. IUH
+    iuh_db = os.path.join(root_huit_dir, "iuh_bot.db")
+    if os.path.exists(iuh_db):
+        try:
+            conn = sqlite3.connect(iuh_db)
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("SELECT * FROM system_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            for r in rows:
+                ld = dict(r)
+                ld["bot"] = "IUH"
+                ld["bot_badge"] = "Bot 3 (IUH)"
+                ld["bot_color"] = "text-rose-400 bg-rose-950/80 border-rose-800"
+                all_logs.append(ld)
+            conn.close()
+        except Exception:
+            pass
+
+    # 4. UFM
+    try:
+        ufm_logs = database.get_recent_logs(limit)
+        for l in ufm_logs:
+            ld = dict(l)
+            ld["bot"] = "UFM"
+            ld["bot_badge"] = "Bot 4 (UFM)"
+            ld["bot_color"] = "text-emerald-400 bg-emerald-950/80 border-emerald-800"
+            all_logs.append(ld)
+    except Exception:
+        pass
+
+    if bot and bot.upper() != "ALL":
+        b_clean = bot.strip().upper()
+        all_logs = [l for l in all_logs if l.get("bot") == b_clean]
+
+    all_logs.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+    return {
+        "status": "ok",
+        "count": len(all_logs),
+        "server_time": database.get_vn_now_str(),
+        "logs": all_logs[:limit]
+    }
 
 @app.get("/api/activities")
 def get_activities(limit: int = 100):
@@ -195,6 +279,102 @@ def api_fetch_zalo_groups():
         return {"success": True, "groups": group_list}
     except Exception as e:
         return {"success": False, "message": str(e), "groups": []}
+
+@app.post("/api/zalo/check-status")
+def api_zalo_check_status():
+    zalo = ZaloDispatcher(CONFIG_FILE)
+    ok = zalo.connect()
+    b_status = database.get_all_bot_status()
+    if ok:
+        uid = zalo.client.uid() if callable(zalo.client.uid) else zalo.client.uid
+        return {
+            "success": True,
+            "status": "valid",
+            "uid": str(uid),
+            "message": f"Cookie Zalo đang hoạt động rất tốt (UID: {uid})!"
+        }
+    else:
+        err = b_status.get("zalo_cookie_error") or "Không thể kết nối tới Zalo Web (Cookie đã hết hạn hoặc bị hủy)"
+        return {
+            "success": False,
+            "status": "expired",
+            "message": f"Phiên Zalo đã bị hủy hoặc hết hạn: {err}"
+        }
+
+@app.post("/api/zalo/update-cookies")
+def api_zalo_update_cookies(data: dict):
+    raw_cookie = data.get("cookies")
+    if not raw_cookie:
+        return {"success": False, "message": "Vui lòng dán chuỗi JSON hoặc mảng Cookie Zalo!"}
+    
+    cookie_dict = {}
+    if isinstance(raw_cookie, str):
+        raw_cookie = raw_cookie.strip()
+        try:
+            parsed = json.loads(raw_cookie)
+        except Exception as e:
+            return {"success": False, "message": f"Dữ liệu dán vào không phải JSON hợp lệ: {e}"}
+    else:
+        parsed = raw_cookie
+    
+    if isinstance(parsed, list):
+        for item in parsed:
+            if isinstance(item, dict) and "name" in item and "value" in item:
+                cookie_dict[item["name"]] = item["value"]
+    elif isinstance(parsed, dict):
+        cookie_dict = parsed
+    else:
+        return {"success": False, "message": "Định dạng Cookie không đúng (phải là mảng hoặc JSON object)!"}
+    
+    if not cookie_dict.get("zpw_sek") and not cookie_dict.get("zpsid"):
+        return {"success": False, "message": "Thiếu token 'zpw_sek' hoặc 'zpsid' trong danh sách Cookie!"}
+    
+    cfg = get_config()
+    zalo_cfg = cfg.get("zalo", {})
+    imei = zalo_cfg.get("imei") or "285b1ace-34e5-4df3-98af-ca447e3d9e9d-5d0dd425008d7328cff9cce489fb55f7"
+    
+    try:
+        from zlapi import ZaloAPI
+        try:
+            test_client = ZaloAPI(phone="", password="", imei=imei, cookies=cookie_dict)
+        except TypeError:
+            test_client = ZaloAPI(phone="", password="", imei=imei, session_cookies=cookie_dict)
+        
+        test_uid = test_client.uid() if callable(test_client.uid) else test_client.uid
+        if not test_uid:
+            raise Exception("Không trích xuất được UID Zalo sau khi đăng nhập.")
+    except Exception as e:
+        return {"success": False, "message": f"Kiểm tra thất bại! Cookie không hợp lệ hoặc đã bị hủy: {e}"}
+    
+    if "zalo" not in cfg:
+        cfg["zalo"] = {}
+    cfg["zalo"]["cookies"] = cookie_dict
+    save_config(cfg)
+    
+    # Đồng bộ sang config_ufm.json ở root nếu có
+    root_cfg_ufm = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "config_ufm.json"))
+    if os.path.exists(root_cfg_ufm):
+        try:
+            with open(root_cfg_ufm, "r", encoding="utf-8") as f:
+                rcfg = json.load(f)
+            if "zalo" in rcfg:
+                rcfg["zalo"]["cookies"] = cookie_dict
+                with open(root_cfg_ufm, "w", encoding="utf-8") as f:
+                    json.dump(rcfg, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+            
+    database.set_bot_status("zalo_cookie_status", "valid")
+    database.set_bot_status("zalo_cookie_error", "")
+    database.set_bot_status("zalo_account_uid", str(test_uid))
+    database.set_bot_status("zalo_last_connected", database.get_vn_now_str())
+    database.log_event("AUTH", f"✅ Đã cập nhật Cookie Zalo thành công qua Web UI (UID: {test_uid})")
+    
+    return {
+        "success": True, 
+        "message": f"Tuyệt vời! Đã cập nhật và xác thực thành công tài khoản Zalo (UID: {test_uid})!",
+        "uid": str(test_uid)
+    }
 
 # ========================================================
 # CÁC API DÀNH RIÊNG CHO QUẢN LÝ 100 TÀI KHOẢN SINH VIÊN
@@ -610,6 +790,12 @@ def dashboard():
       </div>
 
       <div class="flex items-center gap-3">
+        <!-- Zalo Session Pill -->
+        <div id="zaloStatusPill" onclick="openZaloCookieModal()" class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition hover:scale-105" title="Bấm để kiểm tra hoặc cập nhật Cookie Zalo">
+          <i class="bi bi-chat-dots-fill text-xs"></i>
+          <span id="zaloStatusText">Zalo: Đang kết nối</span>
+        </div>
+
         <!-- Live Status Pill -->
         <div id="statusPill" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -639,6 +825,32 @@ def dashboard():
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto w-full px-6 py-6 space-y-6 flex-1">
+
+    <!-- ZALO COOKIE EXPIRED / KICKED ALERT BANNER -->
+    <div id="zaloCookieAlertBanner" class="hidden bg-gradient-to-r from-rose-950/95 via-red-900/90 to-rose-950/95 border-2 border-rose-500 rounded-2xl p-4.5 shadow-2xl shadow-rose-950/60 flex flex-wrap items-center justify-between gap-4 animate-pulse">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-2xl flex-shrink-0">
+          <i class="bi bi-shield-slash-fill"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h4 class="text-sm font-extrabold text-white tracking-wide">⚠️ CẢNH BÁO: COOKIE ZALO ĐÃ BỊ HỦY HOẶC HẾT HẠN!</h4>
+            <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-rose-500 text-white uppercase tracking-wider">Cần Sửa Ngay</span>
+          </div>
+          <p id="zaloCookieAlertMsg" class="text-xs text-rose-200 mt-1 font-medium">Phiên Zalo của Bot đã bị đăng xuất / đá ra. Bot UFM tạm thời KHÔNG THỂ gửi tin nhắn thông báo vào nhóm Zalo!</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="checkZaloSessionNow()" class="px-3.5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="bi bi-arrow-clockwise"></i>
+          <span>Kiểm tra lại</span>
+        </button>
+        <button onclick="openZaloCookieModal()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/50 flex items-center gap-1.5 transition">
+          <i class="bi bi-key-fill text-sm"></i>
+          <span>Sửa Cookie Zalo Ngay</span>
+        </button>
+      </div>
+    </div>
 
     <!-- Overview Stats Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -964,22 +1176,68 @@ def dashboard():
             Lưu danh sách nhóm Zalo
           </button>
         </div>
+
+        <!-- Zalo Cookie Management Card -->
+        <div class="space-y-4 p-4 rounded-xl bg-gray-900/60 border border-gray-800 md:col-span-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+              <i class="bi bi-key-fill"></i>
+              <span>Cấu Hình & Quản Lý Phiên Cookie Zalo Bot</span>
+            </h3>
+            <span id="cfgZaloStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">HỢP LỆ</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div class="p-3 rounded-lg bg-gray-800/60 border border-gray-700/60">
+              <div class="text-gray-400">UID Tài Khoản Zalo:</div>
+              <div id="cfgZaloUid" class="font-bold text-white font-mono mt-0.5">Chưa xác định</div>
+            </div>
+            <div class="p-3 rounded-lg bg-gray-800/60 border border-gray-700/60">
+              <div class="text-gray-400">Kết Nối Gần Nhất:</div>
+              <div id="cfgZaloLastTime" class="font-bold text-gray-200 mt-0.5">Vừa xong</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="checkZaloSessionNow()" class="w-full py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Kiểm tra phiên</span>
+              </button>
+              <button onclick="openZaloCookieModal()" class="w-full py-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-rose-600/30">
+                <i class="bi bi-pencil-square"></i>
+                <span>Sửa Cookie</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Live System Console Logs -->
     <div class="glass-card rounded-2xl p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Nhật Ký Tiến Trình Hệ Thống (Live Console)</h3>
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            LIVE 1s
+          </span>
+          <span id="liveClockBot4" class="font-mono text-xs font-bold text-emerald-400">--:--:--</span>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300 ml-1">Nhật Ký Tiến Trình Hệ Thống</h3>
         </div>
-        <button onclick="fetchLogs()" class="text-xs text-gray-400 hover:text-white flex items-center gap-1">
-          <i class="bi bi-arrow-repeat"></i> Làm mới
-        </button>
+
+        <div class="flex items-center gap-2">
+          <!-- Scope Switcher -->
+          <div class="flex items-center bg-gray-900 p-0.5 rounded-lg border border-gray-800 text-[11px] font-bold">
+            <button onclick="setLogUfmScope('UFM')" id="btnLogScopeUfm" class="px-2.5 py-1 rounded bg-blue-600 text-white shadow-xs">UFM Bot</button>
+            <button onclick="setLogUfmScope('ALL')" id="btnLogScopeUfmAll" class="px-2.5 py-1 rounded text-gray-400 hover:text-white transition">🌐 Hợp Nhất 4 Bot</button>
+          </div>
+          <button onclick="clearTerminalViewUFM()" class="text-xs text-gray-400 hover:text-white p-1.5 rounded-lg bg-gray-800 border border-gray-700 transition" title="Xóa màn hình">
+            <i class="bi bi-trash"></i>
+          </button>
+          <button onclick="fetchLogs()" class="text-xs text-gray-400 hover:text-white p-1.5 rounded-lg bg-gray-800 border border-gray-700 transition" title="Làm mới">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+        </div>
       </div>
-      <div id="terminalLog" class="p-3 rounded-xl bg-black/80 font-mono text-[11px] text-gray-300 h-44 overflow-y-auto custom-scroll space-y-1 border border-gray-800">
-        <div class="text-gray-500">Đang kết nối luồng nhật ký...</div>
+      <div id="terminalLog" class="p-3 rounded-xl bg-black/80 font-mono text-[11px] text-gray-300 h-52 overflow-y-auto custom-scroll space-y-1 border border-gray-800">
+        <div class="text-gray-500">Đang kết nối luồng nhật ký thời gian thực...</div>
       </div>
     </div>
 
@@ -1061,9 +1319,124 @@ def dashboard():
           btn.className = "px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-emerald-600/30";
           btnText.innerText = "BẬT BOT";
         }
+
+        // Xử lý cảnh báo Cookie Zalo bị hủy / hết hạn
+        const zaloAlertBanner = document.getElementById('zaloCookieAlertBanner');
+        const zaloStatusPill = document.getElementById('zaloStatusPill');
+        const zaloStatusText = document.getElementById('zaloStatusText');
+        const isZaloExpired = (data.zalo_cookie_status === 'expired' || data.zalo_cookie_status === 'missing');
+
+        if (isZaloExpired) {
+          if (zaloAlertBanner) {
+            zaloAlertBanner.classList.remove('hidden');
+            if (data.zalo_cookie_error) {
+              document.getElementById('zaloCookieAlertMsg').innerText = "Chi tiết lỗi: " + data.zalo_cookie_error;
+            }
+          }
+          if (zaloStatusPill) {
+            zaloStatusPill.className = "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-pulse transition hover:scale-105";
+            zaloStatusText.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500 animate-ping mr-0.5"></span><span>Zalo: BỊ HỦY COOKIE!</span>';
+          }
+        } else {
+          if (zaloAlertBanner) {
+            zaloAlertBanner.classList.add('hidden');
+          }
+          if (zaloStatusPill) {
+            zaloStatusPill.className = "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition hover:scale-105";
+            zaloStatusText.innerText = "Zalo: Sẵn sàng" + (data.zalo_account_uid ? ` (${data.zalo_account_uid})` : '');
+          }
+        }
+
+        // Cập nhật thẻ cấu hình trong Tab 4
+        const cfgBadge = document.getElementById('cfgZaloStatusBadge');
+        if (cfgBadge) {
+          if (isZaloExpired) {
+            cfgBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse";
+            cfgBadge.innerText = "HẾT HẠN / BỊ ĐÁ";
+          } else {
+            cfgBadge.className = "px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+            cfgBadge.innerText = "HỢP LỆ";
+          }
+        }
+        if (document.getElementById('cfgZaloUid')) {
+          document.getElementById('cfgZaloUid').innerText = data.zalo_account_uid || 'Chưa xác định';
+        }
+        if (document.getElementById('cfgZaloLastTime')) {
+          document.getElementById('cfgZaloLastTime').innerText = data.zalo_last_connected || 'Vừa xong';
+        }
+
       } catch (e) {
         console.error(e);
       }
+    }
+
+    async function checkZaloSessionNow() {
+      Swal.fire({
+        title: 'Đang kiểm tra phiên Zalo...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+      try {
+        const res = await fetch('/api/zalo/check-status', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire('Hoàn Hảo!', data.message, 'success');
+        } else {
+          Swal.fire('Cảnh Báo!', data.message, 'error');
+        }
+        fetchStatus();
+      } catch (e) {
+        Swal.fire('Lỗi', 'Không thể kết nối API: ' + e, 'error');
+      }
+    }
+
+    function openZaloCookieModal() {
+      Swal.fire({
+        title: '🔑 Cập Nhật Cookie Zalo Mới',
+        html: `
+          <div class="text-left text-xs space-y-3 text-gray-300">
+            <p class="text-gray-400">Dán mảng JSON cookie (từ tiện ích Cookie-Editor / EditThisCookie) vào ô bên dưới:</p>
+            <textarea id="swalZaloCookieInput" rows="7" class="w-full p-2.5 rounded-xl bg-gray-900 border border-gray-700 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-blue-500 custom-scroll" placeholder='[&#10;  { "name": "zpw_sek", "value": "..." },&#10;  { "name": "zpsid", "value": "..." }&#10;]'></textarea>
+            <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px]">
+              💡 <b>Lưu ý vàng:</b> Sau khi copy cookie từ trình duyệt xong, hãy <b>ĐÓNG HẲN tab chat.zalo.me</b> trên trình duyệt để tránh bị Zalo đá phiên!
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-circle-fill"></i> Kiểm Tra & Lưu Ngay',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#374151',
+        focusConfirm: false,
+        preConfirm: async () => {
+          const val = document.getElementById('swalZaloCookieInput').value.trim();
+          if (!val) {
+            Swal.showValidationMessage('Vui lòng dán Cookie Zalo vào ô!');
+            return false;
+          }
+          try {
+            const res = await fetch('/api/zalo/update-cookies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cookies: val })
+            });
+            const data = await res.json();
+            if (!data.success) {
+              Swal.showValidationMessage(data.message || 'Lỗi cập nhật cookie');
+              return false;
+            }
+            return data;
+          } catch (err) {
+            Swal.showValidationMessage('Lỗi kết nối máy chủ: ' + err);
+            return false;
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          Swal.fire('Thành Công!', result.value.message, 'success');
+          fetchStatus();
+        }
+      });
     }
 
     async function toggleBot() {
@@ -1745,9 +2118,44 @@ def dashboard():
       renderTargetGroupsEditor(existingGroups);
     }
 
+    // ================= LIVE CONSOLE LOGS & CLOCK =================
+    let currentLogUfmScope = 'UFM';
+
+    function tickClockBot4() {
+      const el = document.getElementById('liveClockBot4');
+      if (el) {
+        const now = new Date();
+        el.innerText = now.toTimeString().split(' ')[0];
+      }
+    }
+    setInterval(tickClockBot4, 1000);
+    tickClockBot4();
+
+    function setLogUfmScope(scope) {
+      currentLogUfmScope = scope;
+      const btnUfm = document.getElementById('btnLogScopeUfm');
+      const btnAll = document.getElementById('btnLogScopeUfmAll');
+      if (btnUfm && btnAll) {
+        if (scope === 'UFM') {
+          btnUfm.className = 'px-2.5 py-1 rounded bg-blue-600 text-white shadow-xs';
+          btnAll.className = 'px-2.5 py-1 rounded text-gray-400 hover:text-white transition';
+        } else {
+          btnAll.className = 'px-2.5 py-1 rounded bg-blue-600 text-white shadow-xs';
+          btnUfm.className = 'px-2.5 py-1 rounded text-gray-400 hover:text-white transition';
+        }
+      }
+      fetchLogs();
+    }
+
+    function clearTerminalViewUFM() {
+      const term = document.getElementById('terminalLog');
+      if (term) term.innerHTML = '<div class="text-gray-500">Màn hình đã xóa. Đang chờ log tiếp theo...</div>';
+    }
+
     async function fetchLogs() {
       try {
-        const res = await fetch('/api/logs?limit=80');
+        const url = (currentLogUfmScope === 'ALL') ? '/api/all-logs?limit=80' : '/api/logs?limit=80';
+        const res = await fetch(url);
         const data = await res.json();
         const term = document.getElementById('terminalLog');
         if (!data.logs || data.logs.length === 0) {
@@ -1764,8 +2172,12 @@ def dashboard():
           if (log.level === 'ACTIVITY') lvlColor = 'text-indigo-400';
           if (log.level === 'SNIPER') lvlColor = 'text-red-400 font-bold';
           if (log.level === 'STUDENT') lvlColor = 'text-cyan-400';
+          if (log.level === 'SCAN') lvlColor = 'text-teal-400';
 
-          html += `<div><span class="text-gray-500">[${log.created_at}]</span> <span class="${lvlColor}">[${log.level}]</span> <span>${log.message}</span></div>`;
+          const timeStr = log.created_at ? (log.created_at.includes(' ') ? log.created_at.split(' ')[1] : log.created_at) : '';
+          const botBadge = (currentLogUfmScope === 'ALL' && log.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-blue-300 border border-gray-700 shrink-0">[${log.bot}]</span> ` : '';
+
+          html += `<div class="flex items-start gap-1.5 py-0.5"><span class="text-gray-500 shrink-0 font-mono">[${timeStr}]</span> ${botBadge}<span class="${lvlColor} shrink-0">[${log.level}]</span> <span class="break-all">${log.message}</span></div>`;
         }
         term.innerHTML = html;
       } catch (e) {
@@ -1780,7 +2192,7 @@ def dashboard():
     fetchLogs();
 
     setInterval(fetchStatus, 3000);
-    setInterval(fetchLogs, 2500);
+    setInterval(fetchLogs, 1000);
   </script>
 </body>
 </html>

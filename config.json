@@ -65,11 +65,6 @@
       "id": "target_13",
       "name": "TT Đổi mới Sáng tạo & Khởi nghiệp HUIT",
       "url": "https://www.facebook.com/hotrosinhvienssc.huit"
-    },
-    {
-      "id": "target_14",
-      "name": "Group Sinh Viên HUIT (Mới nhất)",
-      "url": "https://www.facebook.com/groups/sinhvienhuit/?sorting_setting=CHRONOLOGICAL"
     }
   ],
   "fb_cookies": {
@@ -126,16 +121,16 @@
       "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
       "_ga": "GA1.2.1518733191.1793162405",
       "_zlang": "vn",
-      "_ga_3EM8ZPYYN3": "GS2.2.s1793645139$o4$g1$t1793645454$j60$l0$h0",
+      "_ga_3EM8ZPYYN3": "GS2.2.s1793666006",
       "_gid": "GA1.2.1204234086.1793641271",
-      "zpw_sek": "o5-c.466784528.a0.SwtmTR6uA7mopQqH0rn_2bb-6c40PbqbHJaBKdeqJI4KCJrBIGOySnGP3qTZOK8eNrB5Ht61Sbr2NOJHoZP_2W",
+      "zpw_sek": "0SCx.466784528.a0.eMZBHG1XcQM351p8ieNEq-YdgxYnl-ogzU6Cd_ZNXAhxjvQ6tEQFugh3dg7IkFFnxejqdi1OmuJpX3ZuUk_Eqm",
       "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNJLo3TvdegZGq.1",
-      "_ga_YS1V643LGV": "GS2.1.s1793602424$o18$g0$t1793602424$j60$l0$h0",
-      "_ga_YT9TMXZYV9": "GS2.1.s1793602423$o7$g0$t1793602423$j60$l0$h0",
+      "_ga_YS1V643LGV": "GS2.1.s1793602424",
+      "_ga_YT9TMXZYV9": "GS2.1.s1793665657",
       "app.event.zalo.me": "3236038380622178657",
       "zoaw_sek": "0X11.1070774772.3.n_VJv4eu5tA-WSLDIZWNSaeu5t9AE1ToIrUSbo0u5t8",
       "zoaw_type": "0",
-      "zpsid": "6Trj.466784528.4.7qTQLdaU95HfZ_PFTHuaL0njLc1FA1DiJIiMR7UaQGUa4tCqUEN_l1CU95G"
+      "zpsid": "abHv.466784528.7.0T7lLZd0P8efKRQHDS1aYaop5huFzbEo3VLMiZTwATdapJFgE3PFOrF0P8e"
     }
   },
   "supabase": {

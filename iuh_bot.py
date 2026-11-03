@@ -203,10 +203,32 @@ def run_bot():
         try:
             is_logged_in, msg, activities = scraper.fetch_activities()
             if not is_logged_in:
-                # Chỉ ghi log vào hệ thống và Web Dashboard, tuyệt đối không tự động gửi tin rác vào Zalo
                 database.set_bot_status("portal_cookie_status", "expired", db_file=DB_TARGET)
+                now_ts = time.time()
+                # Cảnh báo trực tiếp cho Admin qua Zalo mỗi 2 tiếng (7200s) để không spam
+                if now_ts - last_warn_time > 7200:
+                    last_warn_time = now_ts
+                    admin_id = "7662918962461429024"  # Trần Lê Phát
+                    warn_msg = (
+                        "⚠️ [IUH - CẢNH BÁO MẤT COOKIE CỔNG ĐRL] ⚠️\n"
+                        "━━━━━━━━━━━━━━━━━━━━\n"
+                        "Cổng Đoàn TN IUH (doantn.iuh.edu.vn) báo phiên đăng nhập đã HẾT HẠN!\n"
+                        f"📌 Chi tiết: {msg}\n"
+                        "🛑 Bot IUH tạm thời KHÔNG THỂ cào và săn hoạt động mới.\n"
+                        "👉 Vui lòng vào Web Dashboard (/bot3) để cập nhật PHPSESSID mới ngay!"
+                    )
+                    try:
+                        if not zalo.client:
+                            zalo.connect()
+                        if zalo.client:
+                            zalo.client.send(Message(text=warn_msg), thread_id=admin_id, thread_type=ThreadType.USER)
+                            print(f"⚠️ [IUH Warning] Đã gửi tin cảnh báo mất Cookie tới Admin ({admin_id})")
+                            database.log_event("WARN", "Đã gửi cảnh báo mất Cookie tới Admin qua Zalo.", db_file=DB_TARGET)
+                    except Exception as e_warn:
+                        print(f"❌ [IUH Warning] Không thể gửi cảnh báo Zalo tới Admin: {e_warn}")
             else:
                 database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
+                last_warn_time = 0  # Reset cảnh báo khi cookie sống lại
                 new_count = 0
 
                 # CHẾ ĐỘ BASELINE: Lần quét hợp lệ đầu tiên (DB chưa có hoạt động nào)

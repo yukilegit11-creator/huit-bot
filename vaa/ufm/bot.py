@@ -75,6 +75,11 @@ def run_bot():
         except Exception:
             pass
 
+        # Tự động thử kết nối lại Zalo nếu đang mất kết nối / cookie vừa được cập nhật
+        if not zalo.client and cycle % 5 == 0:
+            if zalo.connect():
+                zalo.start_listener()
+
         cycle += 1
         database.set_bot_status("total_scans", str(cycle))
         now_str = database.get_vn_now_str()

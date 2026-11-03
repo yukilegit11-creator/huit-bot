@@ -427,6 +427,16 @@ class ZaloDispatcher:
 
         if not self.client:
             if not self.connect():
+                bot_label = getattr(self, "bot_name", "Yuki Bot")
+                err_msg = f"❌ [{bot_label}] Kết nối Zalo thất bại (Cookie hết hạn hoặc phiên bị hủy). Bỏ qua gửi tin!"
+                print(err_msg)
+                try:
+                    import database
+                    cfg_lower = str(self.config_file).lower()
+                    db_target = database.BOT2_DB_FILE if ("bot2" in cfg_lower or "vaa" in cfg_lower) else (database.IUH_DB_FILE if "iuh" in cfg_lower else database.DB_FILE)
+                    database.log_event("ERROR", err_msg, db_file=db_target)
+                except Exception:
+                    pass
                 return False
 
         self.load_config()
@@ -444,7 +454,15 @@ class ZaloDispatcher:
                 ]
                 if not enabled_groups:
                     bot_label = getattr(self, "bot_name", "Yuki Bot")
-                    print(f"⏸️ [{bot_label}] Tất cả các nhóm Zalo đều đang ở trạng thái TẮT (Disabled). Bỏ qua gửi tin bài này.")
+                    warn_msg = f"⏸️ [{bot_label}] Tất cả các nhóm Zalo đều đang ở trạng thái TẮT. Bỏ qua gửi tin."
+                    print(warn_msg)
+                    try:
+                        import database
+                        cfg_lower = str(self.config_file).lower()
+                        db_target = database.BOT2_DB_FILE if ("bot2" in cfg_lower or "vaa" in cfg_lower) else (database.IUH_DB_FILE if "iuh" in cfg_lower else database.DB_FILE)
+                        database.log_event("FILTER", warn_msg, db_file=db_target)
+                    except Exception:
+                        pass
                     return False
                 target_list = enabled_groups
             else:
