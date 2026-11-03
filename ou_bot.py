@@ -498,9 +498,11 @@ def main():
                 is_alive, k_msg = portal_scraper.keep_alive()
                 if not is_alive:
                     print(f"⚠️ [OU Portal] {k_msg}")
+                    database.log_event("HEARTBEAT_ERR", f"⚠️ Mất kết nối Cổng ĐRL OU: {k_msg}", db_file=DB_FILE)
                     send_cookie_error_alert(zalo_disp, "Cổng ĐRL OU", k_msg)
                 else:
                     print(f"💓 [OU Portal Heartbeat] {k_msg}")
+                    database.log_event("HEARTBEAT", f"💓 Duy trì phiên Cổng ĐRL OU: {k_msg}", db_file=DB_FILE)
 
             # --- 2. QUÉT BÀI VIẾT FACEBOOK (Điểm rèn luyện OU) ---
             # --- 2. QUÉT BÀI VIẾT FACEBOOK (Tùy chọn, mặc định TẮT khi chỉ quét dangkysukien) ---
@@ -546,6 +548,7 @@ def main():
 
                     if new_fb_count > 0:
                         print(f"🎉 [FB OU] Đã xử lý và gửi {new_fb_count} bài viết mới!")
+                    database.log_event("FACEBOOK", f"🔎 [FB OU] Đã quét Fanpage: {len(posts)} bài viết hợp lệ ({new_fb_count} bài mới).", db_file=DB_FILE)
                 else:
                     print("⚠️ [FB OU] Không tải được nội dung HTML của Fanpage.")
 
@@ -641,8 +644,23 @@ def main():
 
                         if new_ev_count > 0:
                             print(f"🎉 [Cổng ĐRL OU] Đã phát hiện và gửi {new_ev_count} sự kiện mới!")
+                    
+                    ev_count = len(events)
+                    database.log_event("PORTAL", f"🔎 [Cổng ĐRL OU] Đã quét trang đăng ký: {ev_count} sự kiện tìm thấy.", db_file=DB_FILE)
                 else:
                     print(f"⚠️ [Cổng ĐRL OU] {msg_ev}")
+                    database.log_event("PORTAL_WARN", f"⚠️ Cổng ĐRL OU phản hồi: {msg_ev}", db_file=DB_FILE)
+
+            # Cập nhật trạng thái và ghi log chu kỳ quét chi tiết cho Bot 5 (OU)
+            now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+            database.set_bot_status("scan_cycle", str(scan_cycle), db_file=DB_FILE)
+            database.set_bot_status("last_scan", now_vn, db_file=DB_FILE)
+            database.set_bot_status("total_scans", str(scan_cycle), db_file=DB_FILE)
+
+            ev_str = f"{len(events)} sự kiện" if "events" in locals() else "0 sự kiện"
+            fb_str = f"{len(posts)} bài FB" if "posts" in locals() and posts else "0 bài FB"
+            detail_msg = f"✅ Chu kỳ #{scan_cycle}: Hoàn tất kiểm tra Cổng ĐRL OU ({ev_str}) & Fanpage ({fb_str}). Tạm nghỉ {interval}s."
+            database.log_event("SCAN", detail_msg, db_file=DB_FILE)
 
             # Nghỉ ngơi giữa các chu kỳ quét
             time.sleep(interval)

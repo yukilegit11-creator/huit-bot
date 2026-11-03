@@ -82,7 +82,7 @@ flowchart TD
 | **Trường** | ĐH Công Thương TP.HCM | Học viện Hàng Không VN | ĐH Công Nghiệp TP.HCM | ĐH Tài chính - Marketing | ĐH Mở TP.HCM |
 | **File thực thi** | `bot.py` | `vaabot.py` | `iuh_bot.py` | `ufm_bot.py` (và `vaa/ufm/bot.py`) | `ou_bot.py` |
 | **File cấu hình** | `config.json` | `config_bot2.json`, `vaabot.json`, `vaa/config.json` | `config_iuh.json` | `config_ufm.json`, `vaa/ufm/config.json` | `config_ou.json` |
-| **Nguồn cào** | 16 Fanpages/Groups HUIT | 11 Fanpages/Groups VAA | `doantn.iuh.edu.vn/doanvien.html` | `hoatdong.ufm.edu.vn/DangKy` | FB `diemrenluyenou` & Cổng `diemrl.ou.edu.vn` |
+| **Nguồn cào** | 16 Fanpages/Groups HUIT | 11 Fanpages/Groups VAA | `doantn.iuh.edu.vn/doanvien.html` | Duy nhất: `hoatdong.ufm.edu.vn/DangKy` | FB `diemrenluyenou` & Cổng `diemrl.ou.edu.vn` |
 | **Cơ chế xác thực** | Cookie Facebook Desktop | Cookie Facebook Desktop | Session Cookie + OCR Captcha (`ddddocr`) | Form Auth + Session Cookie (`focusoncareer2111`) | Cookie FB + SSO Captcha AI (`2654092020`) |
 | **Database** | `seen_posts.db` | `seen_posts.db` (`bot2_posts`) | `seen_posts.db` (`iuh_posts`) | `ufm_bot.db` | `ou_bot.db` |
 | **Chu kỳ quét** | 60 giây | 60 giây | 120 giây | 180 giây | 25 - 30 giây |

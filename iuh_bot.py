@@ -338,8 +338,33 @@ def run_bot():
 
                     seen_act = database.get_seen_activity(aid, db_file=DB_TARGET)
                     if seen_act is not None:
-                        # Đã có trong DB -> Chỉ cập nhật thông tin, không gửi lại
+                        old_is_sent = bool(seen_act.get("is_sent", 0))
+                        old_status = str(seen_act.get("status", "") or "").lower()
+                        new_status = str(act.get("status", "") or "").lower()
+                        old_slots = str(seen_act.get("slots", "") or "")
+                        new_slots = str(act.get("slots", "") or "")
+                        
                         database.update_activity_status(aid, act.get("status", ""), act.get("slots", ""), db_file=DB_TARGET)
+                        
+                        # A. Phát hiện mở thêm slot (Trước đó đã đủ chỗ nhưng giờ mở thêm slot)
+                        is_reopened = ("đủ" in old_status and "đủ" not in new_status) or (old_slots != new_slots and "đủ" not in new_status and new_slots != "")
+                        if is_reopened:
+                            database.log_event("ACTIVITY", f"⚡ Phát hiện hoạt động IUH MỞ THÊM SLOT: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
+                            ok = send_zalo_iuh(zalo, act, is_reopened=True)
+                            if ok:
+                                database.update_seen_is_sent(aid, is_sent=True, db_file=DB_TARGET)
+                                database.add_crawled_activity(act, action_type="REOPENED", is_sent=True, db_file=DB_TARGET)
+                            continue
+
+                        # B. Hoạt động chưa từng được gửi thông báo thành công
+                        if not old_is_sent:
+                            database.log_event("ACTIVITY", f"🎉 Phát hiện hoạt động IUH CHƯA GỬI THÔNG BÁO: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
+                            ok = send_zalo_iuh(zalo, act, is_reopened=False)
+                            if ok:
+                                database.update_seen_is_sent(aid, is_sent=True, db_file=DB_TARGET)
+                                database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=DB_TARGET)
+                            continue
+
                         continue
 
                     # Hoạt động MỚI 100% (vừa xuất hiện trong chu kỳ này, <= 1 chu kỳ quét ~ vài giây)
