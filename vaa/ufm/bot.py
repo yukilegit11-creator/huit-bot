@@ -280,7 +280,7 @@ def run_bot():
                 if new_count > 0 or reopened_count > 0:
                     print(f"✅ [Chu kỳ #{cycle}] Đã xử lý {new_count} bài mới, {reopened_count} bài mở thêm slot.")
                 
-                database.log_event("SCAN", f"🔄 [{now_str}] Chu kỳ #{cycle}: Hoàn tất kiểm tra cổng ĐRL UFM ({len(activities)} hoạt động).")
+                database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Hoàn tất kiểm tra cổng ĐRL UFM ({len(activities)} hoạt động).")
 
         except Exception as e:
             err_msg = f"Lỗi chu kỳ #{cycle}: {e}"

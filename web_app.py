@@ -1564,8 +1564,12 @@ def dashboard_view():
           </div>
 
           <div class="flex items-center space-x-3">
+            <button onclick="toggleBot1LogSort()" id="bot1-sort-btn" class="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md transition flex items-center gap-1.5" title="Đổi thứ tự log: Mới nhất trên cùng hoặc cũ nhất trên cùng">
+              <i class="fa-solid fa-arrow-down-short-wide text-cyan-400"></i>
+              <span id="bot1-sort-text">Mới nhất trên</span>
+            </button>
             <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer select-none">
-              <input type="checkbox" id="console-autoscroll" checked class="rounded text-blue-500 bg-slate-800 border-slate-700">
+              <input type="checkbox" id="console-autoscroll" class="rounded text-blue-500 bg-slate-800 border-slate-700">
               Auto Scroll
             </label>
             <button onclick="clearConsoleView()" class="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md transition">

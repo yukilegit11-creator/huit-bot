@@ -407,7 +407,7 @@ def run_bot():
                     print(f"✅ [Chu kỳ #{cycle}] Đã xử lý {new_count} bài mới, {reopened_count} bài mở thêm slot.")
                 
                 # Ghi nhận log chu kỳ quét kèm mốc thời gian rõ ràng
-                database.log_event("SCAN", f"🔄 [{now_str}] Chu kỳ #{cycle}: Hoàn tất kiểm tra cổng ĐRL UFM ({len(activities)} hoạt động).", db_file=DB_TARGET)
+                database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Hoàn tất kiểm tra cổng ĐRL UFM ({len(activities)} hoạt động).", db_file=DB_TARGET)
 
         except Exception as e:
             err_msg = f"Lỗi chu kỳ #{cycle}: {e}"

@@ -140,7 +140,7 @@ def run_bot():
         database.set_bot_status("scan_cycle", str(cycle), db_file=DB_TARGET)
         database.set_bot_status("bot_state", "scanning", db_file=DB_TARGET)
 
-        database.log_event("SCAN", f"🔄 [{database.get_vn_now_str()}] Chu kỳ #{cycle}: Bắt đầu quét {len(targets)} trang mục tiêu.", db_file=DB_TARGET)
+        database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Bắt đầu quét {len(targets)} trang mục tiêu.", db_file=DB_TARGET)
 
         for idx, target in enumerate(targets):
             if not database.is_bot_enabled(db_file=DB_TARGET):
@@ -232,7 +232,7 @@ def run_bot():
 
         database.set_bot_status("bot_state", "sleeping", db_file=DB_TARGET)
         print(f"💤 Bot 2 hoàn thành vòng #{cycle}. Tạm nghỉ {check_interval} giây trước vòng tiếp theo...")
-        database.log_event("SCAN", f"✅ [{database.get_vn_now_str()}] Chu kỳ #{cycle}: Hoàn tất quét {len(targets)} trang mục tiêu. Tạm nghỉ {check_interval}s trước vòng tiếp theo.", db_file=DB_TARGET)
+        database.log_event("SCAN", f"✅ Chu kỳ #{cycle}: Hoàn tất quét {len(targets)} trang mục tiêu. Tạm nghỉ {check_interval}s trước vòng tiếp theo.", db_file=DB_TARGET)
         time.sleep(check_interval)
 
 if __name__ == "__main__":

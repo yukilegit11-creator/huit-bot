@@ -116,7 +116,7 @@ def run_bot():
         except Exception:
             pass
 
-        database.log_event("SCAN", f"🔄 [{database.get_vn_now_str()}] Chu kỳ #{cycle}: Bắt đầu quét {len(targets)} trang mục tiêu.")
+        database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Bắt đầu quét {len(targets)} trang mục tiêu.")
 
         for idx, target in enumerate(targets):
             # Kiểm tra lại bot có bị ngắt ngang xương giữa vòng quét không
@@ -211,7 +211,7 @@ def run_bot():
 
         database.set_bot_status("bot_state", "sleeping")
         print(f"💤 Đã hoàn thành vòng #{cycle}. Tạm nghỉ {check_interval} giây trước vòng tiếp theo...")
-        database.log_event("SCAN", f"✅ [{database.get_vn_now_str()}] Chu kỳ #{cycle}: Hoàn tất quét {len(targets)} trang. Tạm nghỉ {check_interval}s trước vòng tiếp theo.")
+        database.log_event("SCAN", f"✅ Chu kỳ #{cycle}: Hoàn tất quét {len(targets)} trang. Tạm nghỉ {check_interval}s trước vòng tiếp theo.")
         time.sleep(check_interval)
 
 if __name__ == "__main__":

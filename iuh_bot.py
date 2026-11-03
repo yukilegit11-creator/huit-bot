@@ -359,7 +359,7 @@ def run_bot():
                 if new_count > 0:
                     print(f"🎉 [Chu kỳ #{cycle}] Bắn Zalo thành công {new_count} hoạt động mới!")
                 
-                database.log_event("SCAN", f"🔄 [{now_str}] Chu kỳ #{cycle}: Quét xong cổng ĐRL IUH ({len(activities)} hoạt động).", db_file=DB_TARGET)
+                database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Quét xong cổng ĐRL IUH ({len(activities)} hoạt động).", db_file=DB_TARGET)
 
         except Exception as e:
             err_str = f"Lỗi quét: {e}"
