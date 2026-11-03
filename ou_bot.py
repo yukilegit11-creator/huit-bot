@@ -39,6 +39,16 @@ def extract_form_links(text: str) -> list:
     return found
 
 
+
+def extract_reg_time_from_text(text: str) -> str:
+    if not text:
+        return ""
+    pat = r'(?:thời gian|tgian|thời điểm|cổng|link|form)\s*(?:mở|bắt đầu|cho phép|đăng ký|đky|thực hiện)?\s*(?:đăng ký|đky|sẽ mở|mở)?[\s:]*([^\n\r]{5,65})'
+    m = re.search(pat, text, re.IGNORECASE)
+    if m:
+        return m.group(0).strip().rstrip('.,;:)')
+    return ""
+
 def extract_post_title(text: str, max_len: int = 150) -> str:
     if not text:
         return "Thông báo mới"
@@ -91,6 +101,11 @@ def format_ou_fb_message(post: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
         f"🏢 Đơn vị: {author}",
         f"⏰ Đăng lúc: {posted_time}"
     ]
+
+    reg_time_hint = extract_reg_time_from_text(content)
+    if reg_time_hint:
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        lines.append(f"⏰ THỜI GIAN CHO PHÉP ĐĂNG KÝ:\n👉 {reg_time_hint}")
 
     if has_form:
         lines.append("━━━━━━━━━━━━━━━━━━━━")
@@ -167,6 +182,75 @@ def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", aut
 
     return "\n".join(lines)
 
+
+
+def format_ou_upcoming_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", student_name: str = "Phan Thị Thu Phương") -> str:
+    title = event.get("title", "Sự kiện rèn luyện")
+    unit = event.get("unit", "Trường ĐH Mở TP.HCM")
+    points = event.get("points", 0)
+    event_time = event.get("event_time", "")
+    reg_start_str = event.get("reg_start_str") or "Theo thông báo trên cổng"
+    reg_end_str = event.get("reg_end_str") or ""
+    target_courses = event.get("target_courses", "Tất cả các khóa")
+    reg_url = event.get("register_url", "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien")
+    dieu = event.get("dieu", "")
+
+    lines = [
+        "⏳ [OU - SỰ KIỆN MỚI: SẮP MỞ ĐĂNG KÝ] ⏳",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"📌 Sự kiện: {title}",
+        f"🏢 Đơn vị tổ chức: {unit}"
+    ]
+    if points > 0:
+        lines.append(f"🎯 Điểm cộng: +{points:g} ĐRL {f'({dieu})' if dieu else ''}")
+    elif dieu:
+        lines.append(f"📊 Tiêu chí: {dieu}")
+
+    if event_time and event_time != "None → None":
+        lines.append(f"📅 Thời gian diễn ra: {event_time}")
+
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append("⏰ THỜI GIAN CHO PHÉP ĐĂNG KÝ:")
+    lines.append(f"👉 BẮT ĐẦU: {reg_start_str}")
+    if reg_end_str:
+        lines.append(f"👉 KẾT THÚC: {reg_end_str}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"👥 Khóa áp dụng: {target_courses}")
+    lines.append(f"🤖 Bot Yuki đã ghi nhận và sẽ TỰ ĐỘNG ĐĂNG KÝ cho bạn {student_name} (2654092020) ngay khi cổng mở!")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"👉 Link cổng: {reg_url}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"🤖 {bot_name}")
+    return "\n".join(lines)
+
+
+def format_ou_registered_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", reg_msg: str = "", student_name: str = "Phan Thị Thu Phương", is_success: bool = True) -> str:
+    title = event.get("title", "Sự kiện rèn luyện")
+    unit = event.get("unit", "Trường ĐH Mở TP.HCM")
+    points = event.get("points", 0)
+    event_time = event.get("event_time", "")
+    reg_url = event.get("register_url", "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien")
+    dieu = event.get("dieu", "")
+
+    header = "🎉 [OU - TỰ ĐỘNG ĐĂNG KÝ THÀNH CÔNG] 🎉" if is_success else "⚠️ [OU - KẾT QUẢ TỰ ĐỘNG ĐĂNG KÝ] ⚠️"
+    lines = [
+        header,
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"👤 Sinh viên: {student_name} (2654092020)",
+        f"✅ Trạng thái: {reg_msg or ('Đã đăng ký thành công!' if is_success else 'Chưa đăng ký được')}",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"📌 Sự kiện: {title}",
+        f"🏢 Đơn vị tổ chức: {unit}"
+    ]
+    if points > 0:
+        lines.append(f"🎯 Điểm cộng: +{points:g} ĐRL {f'({dieu})' if dieu else ''}")
+    if event_time and event_time != "None → None":
+        lines.append(f"📅 Thời gian diễn ra: {event_time}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"👉 Kiểm tra trên cổng:\n{reg_url}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"🤖 {bot_name}")
+    return "\n".join(lines)
 
 def format_ou_announcement_message(ann: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
     cat = ann.get("category", "Thông báo")
@@ -478,29 +562,82 @@ def main():
                         for ev in events:
                             eid = ev.get("activity_id") or ev.get("id")
                             title = ev.get("title", "Sự kiện")
+                            is_upcoming = ev.get("is_upcoming", False)
+                            is_open = ev.get("is_open", True)
+                            reg_start_str = ev.get("reg_start_str", "")
 
-                            if not database.is_activity_seen(eid, db_file=DB_FILE):
-                                new_ev_count += 1
-                                # 1. TỰ ĐỘNG ĐĂNG KÝ SỰ KIỆN CHO SINH VIÊN (Phan Thị Thu Phương)
-                                print(f"⚡ [Tự động đăng ký OU] Đang đăng ký sự kiện: {title}...")
-                                ok_reg, msg_reg = portal_scraper.register_event(ev)
-                                reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Chưa thể đăng ký: {msg_reg}"
-                                print(f"  -> {reg_status_log}")
-                                database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+                            seen_act = database.get_seen_activity(eid, db_file=DB_FILE)
 
-                                # 2. Lưu vào DB chống lặp vĩnh viễn
-                                database.record_seen_activity(ev, is_sent=True, db_file=DB_FILE)
-                                database.add_crawled_activity(ev, action_type="AUTO_REGISTER" if ok_reg else "NEW", is_sent=True, db_file=DB_FILE)
-                                database.log_event("ACTIVITY_NEW", f"Phát hiện sự kiện ĐRL OU mới: {title[:60]}", db_file=DB_FILE)
+                            if seen_act is None:
+                                # Sự kiện mới xuất hiện trên cổng lần đầu
+                                if is_upcoming:
+                                    # TRƯỜNG HỢP 1: BÀI HIỆN TRƯỚC TRÊN WEB NHƯNG CHƯA MỞ ĐĂNG KÝ
+                                    print(f"⏳ [OU Sắp mở ĐK] Sự kiện mới: {title} | Giờ mở: {reg_start_str}")
+                                    database.log_event("EVENT_UPCOMING", f"Sự kiện sắp mở ĐK: {title[:50]} (Mở lúc: {reg_start_str})", db_file=DB_FILE)
 
-                                # 3. Gửi thông báo kết quả tới Thu Phương và các nhóm chỉ định
-                                ev_msg = format_ou_event_message(
-                                    ev, 
-                                    bot_name=bot_name, 
-                                    auto_reg_result=(ok_reg, msg_reg),
-                                    student_name=portal_scraper.student_name
-                                )
-                                dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
+                                    # Gửi thông báo công bố thời gian đăng ký về Zalo cho Thu Phương và các nhóm
+                                    upcoming_msg = format_ou_upcoming_event_message(
+                                        ev,
+                                        bot_name=bot_name,
+                                        student_name=portal_scraper.student_name
+                                    )
+                                    dispatch_zalo_message(zalo_disp, upcoming_msg, item_id=f"{eid}_UPCOMING")
+
+                                    # Ghi nhận vào DB với trạng thái UPCOMING_NOTIFIED (Chưa đăng ký)
+                                    ev_rec = dict(ev)
+                                    ev_rec["status"] = "UPCOMING_NOTIFIED"
+                                    database.record_seen_activity(ev_rec, is_sent=True, db_file=DB_FILE)
+                                    database.add_crawled_activity(ev_rec, action_type="UPCOMING", is_sent=True, db_file=DB_FILE)
+
+                                elif is_open:
+                                    # TRƯỜNG HỢP 2: SỰ KIỆN ĐÃ MỞ ĐĂNG KÝ NGAY KHI PHÁT HIỆN
+                                    print(f"⚡ [Tự động đăng ký OU] Sự kiện đang mở đăng ký: {title}...")
+                                    ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                    reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
+                                    print(f"  -> {reg_status_log}")
+                                    database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+
+                                    # Ghi nhận vào DB
+                                    ev_rec = dict(ev)
+                                    ev_rec["status"] = "REGISTERED" if ok_reg else "OPEN_NOTIFIED"
+                                    database.record_seen_activity(ev_rec, is_sent=True, db_file=DB_FILE)
+                                    database.add_crawled_activity(ev_rec, action_type="AUTO_REGISTER" if ok_reg else "OPEN", is_sent=True, db_file=DB_FILE)
+
+                                    # Gửi thông báo kết quả đăng ký về Zalo
+                                    ev_msg = format_ou_event_message(
+                                        ev, 
+                                        bot_name=bot_name, 
+                                        auto_reg_result=(ok_reg, msg_reg),
+                                        student_name=portal_scraper.student_name
+                                    )
+                                    dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
+
+                            else:
+                                # Sự kiện đã từng được thấy trước đó
+                                cur_status = str(seen_act.get("status") or "").upper()
+                                # Nếu sự kiện trước đó ở trạng thái UPCOMING_NOTIFIED (chờ giờ mở đăng ký)
+                                # và hiện tại đã đến giờ mở đăng ký (is_open == True):
+                                if cur_status == "UPCOMING_NOTIFIED" and is_open:
+                                    print(f"🔔 [Đến giờ mở ĐK OU] Kích hoạt tự động đăng ký cho {portal_scraper.student_name}: {title}...")
+                                    ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                    reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
+                                    print(f"  -> {reg_status_log}")
+                                    database.log_event("AUTO_REGISTER", f"Đến giờ mở ĐK '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+
+                                    if ok_reg:
+                                        database.update_activity_status(eid, status="REGISTERED", is_sent=True, db_file=DB_FILE)
+                                    else:
+                                        print(f"  -> Đăng ký chưa hoàn tất: {msg_reg}. Sẽ thử lại chu kỳ sau nếu cổng còn mở.")
+
+                                    # Gửi thông báo kết quả đăng ký chính thức về Zalo Thu Phương
+                                    reg_msg_zalo = format_ou_registered_message(
+                                        ev,
+                                        bot_name=bot_name,
+                                        reg_msg=msg_reg,
+                                        student_name=portal_scraper.student_name,
+                                        is_success=ok_reg
+                                    )
+                                    dispatch_zalo_message(zalo_disp, reg_msg_zalo, item_id=f"{eid}_REGISTERED")
 
                         if new_ev_count > 0:
                             print(f"🎉 [Cổng ĐRL OU] Đã phát hiện và gửi {new_ev_count} sự kiện mới!")

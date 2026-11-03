@@ -36,6 +36,27 @@ DESKTOP_HEADERS = {
 }
 
 
+
+def parse_ou_timestamp(val):
+    if not val:
+        return None
+    if isinstance(val, (int, float)):
+        return val / 1000.0 if val > 1e11 else float(val)
+    if isinstance(val, str):
+        val = val.strip()
+        try:
+            num = float(val)
+            return num / 1000.0 if num > 1e11 else num
+        except ValueError:
+            pass
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M", "%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(val, fmt).replace(tzinfo=VN_TZ)
+                return dt.timestamp()
+            except ValueError:
+                pass
+    return None
+
 class OUPortalScraper:
     BASE_URL = "https://diemrl.ou.edu.vn/test"
     LOGIN_URL = "https://diemrl.ou.edu.vn/test/auth/ousso/login"
@@ -273,10 +294,23 @@ class OUPortalScraper:
                         ngaykt = q.get("NGAYKTSK") or ""
                         thoigianbd = q.get("THOIGIANBD", "")
 
+                        current_ts = float(props.get("current_timestamp") or time.time())
                         t_bddky = q.get("THOIGIANBDDKY")
                         t_ktdky = q.get("THOIGIANKTDKY")
-                        str_bddky = datetime.fromtimestamp(t_bddky, tz=VN_TZ).strftime("%d/%m/%Y %H:%M") if t_bddky else ""
-                        str_ktdky = datetime.fromtimestamp(t_ktdky, tz=VN_TZ).strftime("%d/%m/%Y %H:%M") if t_ktdky else ""
+                        reg_start_ts = parse_ou_timestamp(t_bddky)
+                        reg_end_ts = parse_ou_timestamp(t_ktdky)
+
+                        str_bddky = datetime.fromtimestamp(reg_start_ts, tz=VN_TZ).strftime("%H:%M ngày %d/%m/%Y") if reg_start_ts else ""
+                        str_ktdky = datetime.fromtimestamp(reg_end_ts, tz=VN_TZ).strftime("%H:%M ngày %d/%m/%Y") if reg_end_ts else ""
+
+                        if reg_start_ts:
+                            is_upcoming = (current_ts < reg_start_ts)
+                            is_closed = bool(reg_end_ts and current_ts > reg_end_ts)
+                            is_open = (not is_upcoming) and (not is_closed)
+                        else:
+                            is_upcoming = False
+                            is_open = True
+                            is_closed = False
 
                         makhoa = q.get("MAKHOA", "")
                         tenkhoa = q.get("PB_TEN") or q.get("pb_ten") or (f"Khoa {makhoa}" if makhoa else "Toàn trường")
@@ -312,6 +346,13 @@ class OUPortalScraper:
                             "event_time": f"{ngaybd} → {ngaykt}" + (f" ({thoigianbd})" if thoigianbd else ""),
                             "reg_time": f"{str_bddky} → {str_ktdky}" if str_bddky else "Xem chi tiết trên cổng",
                             "target_courses": ", ".join(dt_list),
+                            "reg_start_ts": reg_start_ts,
+                            "reg_end_ts": reg_end_ts,
+                            "reg_start_str": str_bddky,
+                            "reg_end_str": str_ktdky,
+                            "is_open": is_open,
+                            "is_upcoming": is_upcoming,
+                            "is_closed": is_closed,
                             "register_url": self.EVENTS_URL,
                             "first_seen": datetime.now(VN_TZ).strftime("%H:%M:%S %d/%m/%Y")
                         })
