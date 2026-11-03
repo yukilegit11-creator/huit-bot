@@ -110,6 +110,7 @@ class UFMPortalScraper:
             return False, "Thiếu thông tin tài khoản hoặc mật khẩu UFM"
 
         try:
+            self.session.cookies.clear()
             r1 = self.session.get(self.SIGNIN_URL, verify=False, timeout=15)
             if r1.status_code != 200:
                 return False, f"Không thể tải trang đăng nhập (HTTP {r1.status_code})"
@@ -122,13 +123,14 @@ class UFMPortalScraper:
             token = token_tag.get("value", "")
             data = {
                 "__RequestVerificationToken": token,
-                "returnUrl": "/",
+                "returnUrl": "/DangKy",
                 "txtuser": u,
                 "txtpass": p
             }
 
             r2 = self.session.post(self.SIGNIN_URL, data=data, verify=False, timeout=20, allow_redirects=True)
-            if "SignOut" in r2.text or "Đăng xuất" in r2.text:
+            has_auth = any(c.name == ".AspNetCore.Cookies" for c in self.session.cookies)
+            if has_auth or "SignOut" in r2.text or "Đăng xuất" in r2.text or r2.url.endswith("/DangKy"):
                 self.save_current_cookies_to_config()
                 return True, "Đăng nhập UFM thành công!"
 
@@ -145,7 +147,7 @@ class UFMPortalScraper:
         """Kiểm tra tính hợp lệ của phiên đăng nhập; nếu hết hạn thì tự động relogin."""
         try:
             r = self.session.get(self.DANGKY_URL, verify=False, timeout=15, allow_redirects=False)
-            if r.status_code == 200 and ("Đăng xuất" in r.text or "SignOut" in r.text):
+            if r.status_code == 200 and "Account/SignIn" not in r.text:
                 return True
         except Exception:
             pass
@@ -175,28 +177,31 @@ class UFMPortalScraper:
             soup = BeautifulSoup(r.text, "html.parser")
             activities = []
 
-            # Tìm tất cả thẻ tiêu đề h5 chứa link chi tiết
             for h5 in soup.find_all("h5"):
-                a_tag = h5.find("a")
-                if not a_tag:
+                full_title = h5.get_text(separator=" ", strip=True)
+                if not full_title:
                     continue
 
-                full_title = a_tag.get_text(strip=True)
-                detail_path = a_tag.get("href", "")
-                detail_url = f"{self.BASE_URL}{detail_path}" if detail_path.startswith("/") else detail_path
+                id_m = re.search(r"\[ID\s*(\d+)\]", full_title, re.IGNORECASE)
+                a_tag = h5.find("a")
+                detail_path = a_tag.get("href", "") if a_tag else ""
 
-                # Trích xuất activity_id từ [ID 16454]
-                id_match = re.search(r"\[ID\s*(\d+)\]", full_title, re.IGNORECASE)
-                if id_match:
-                    activity_id = id_match.group(1).strip()
+                if id_m:
+                    raw_id = id_m.group(1).strip()
                     clean_title = re.sub(r"\[ID\s*\d+\]\s*", "", full_title).strip()
-                else:
-                    id_match2 = re.search(r"Details/([a-zA-Z0-9_-]+)", detail_path)
-                    activity_id = id_match2.group(1) if id_match2 else full_title[:30]
+                elif "Details/" in detail_path:
+                    m2 = re.search(r"Details/([a-zA-Z0-9_-]+)", detail_path)
+                    raw_id = m2.group(1) if m2 else full_title[:20]
                     clean_title = full_title
+                else:
+                    continue
 
-                # Tìm thẻ container chứa các thông tin chi tiết
+                activity_id = f"UFM_{raw_id}"
+                detail_url = f"{self.BASE_URL}{detail_path}" if detail_path.startswith("/") else (detail_path or self.DANGKY_URL)
+
                 container = h5.find_parent("div", class_="p-5") or h5.find_parent("div")
+                card = container.parent if container else h5.parent
+
                 unit = "Chưa rõ đơn vị"
                 event_time = "Chưa rõ thời gian"
                 location = "Chưa rõ địa điểm"
@@ -206,51 +211,55 @@ class UFMPortalScraper:
 
                 if container:
                     for p in container.find_all("p"):
-                        txt = p.get_text(strip=True)
-                        txt_lower = txt.lower()
-                        if "đơn vị:" in txt_lower:
-                            unit = txt.split(":", 1)[1].strip()
-                        elif "thời gian:" in txt_lower:
-                            event_time = txt.split(":", 1)[1].strip()
-                        elif "địa điểm:" in txt_lower:
-                            location = txt.split(":", 1)[1].strip()
-                        elif "nhóm:" in txt_lower:
-                            group_criteria = txt.split(":", 1)[1].strip()
-                            # Trích xuất điểm ĐRL
-                            pt_match = re.search(r"([\d\.]+)\s*(?:đrl|điểm)", txt, re.IGNORECASE)
-                            if pt_match:
-                                try:
-                                    points = float(pt_match.group(1))
-                                except Exception:
-                                    pass
-                            # Trích xuất điểm CTXH
-                            ctxh_match = re.search(r"(\d+)\s*ctxh", txt, re.IGNORECASE)
-                            if ctxh_match:
-                                try:
-                                    ctxh = float(ctxh_match.group(1))
-                                except Exception:
-                                    pass
+                        txt = p.get_text(separator=" ", strip=True)
+                        parts = txt.split("|") if "|" in txt else [txt]
+                        for part in parts:
+                            part_clean = part.strip()
+                            part_lower = part_clean.lower()
+                            if "đơn vị:" in part_lower:
+                                unit = part_clean.split(":", 1)[1].strip()
+                            elif "thời gian:" in part_lower:
+                                event_time = part_clean.split(":", 1)[1].strip()
+                            elif "địa điểm:" in part_lower:
+                                location = part_clean.split(":", 1)[1].strip()
+                            elif "nhóm:" in part_lower:
+                                group_criteria = part_clean.split(":", 1)[1].strip()
+                        
+                        pt_match = re.search(r"([\d\.]+)\s*(?:đrl|điểm)", txt, re.IGNORECASE)
+                        if pt_match:
+                            try:
+                                points = float(pt_match.group(1))
+                            except Exception:
+                                pass
+                        ctxh_match = re.search(r"(\d+)\s*ctxh", txt, re.IGNORECASE)
+                        if ctxh_match:
+                            try:
+                                ctxh = float(ctxh_match.group(1))
+                            except Exception:
+                                pass
 
-                # Trạng thái đăng ký và Slot
-                status = "Đang mở đăng ký"
+                # Slot & Status extraction
+                card_text = card.get_text(separator=" ", strip=True)
+                slot_match = re.search(r"Số\s*lượng\s*:\s*(\d+\s*/\s*\d+)", card_text, re.IGNORECASE)
+                if not slot_match:
+                    slot_match = re.search(r"(\d+\s*/\s*\d+)\s*(?:\(Đã đầy\)|\(Còn slot\))", card_text, re.IGNORECASE)
+                slots = slot_match.group(1).replace(" ", "") if slot_match else ""
+
                 is_full = False
-                card_root = container.parent if container else h5.parent
-                if card_root:
-                    btns = card_root.find_all(["button", "a"])
-                    for b in btns:
-                        if b.name == "a" and b.get("href") == detail_path:
-                            continue
-                        btn_txt = b.get_text(strip=True)
-                        if any(k in btn_txt.lower() for k in ["đầy", "đủ số lượng", "hết", "chưa mở", "kết thúc", "hết slot"]):
-                            status = btn_txt
-                            is_full = True
-                        elif "đăng ký" in btn_txt.lower() and not b.has_attr("disabled"):
-                            status = "Đang mở đăng ký (Còn slot)"
-                            is_full = False
+                status = "Đang mở đăng ký"
+                if "hủy" in card_text.lower() and ("frm-cancel" in str(card) or "HuyDangKy" in str(card)):
+                    status = f"Đã đăng ký" + (f" ({slots})" if slots else "")
+                    is_full = False
+                elif any(k in card_text.lower() for k in ["đã đủ số lượng", "đã đầy", "hết slot", "chưa mở", "kết thúc"]):
+                    status = f"Đã đủ số lượng" + (f" ({slots})" if slots else "")
+                    is_full = True
+                elif "đăng ký" in card_text.lower():
+                    status = f"Đang mở đăng ký" + (f" ({slots})" if slots else "")
+                    is_full = False
 
                 activities.append({
-                    "activity_id": f"DK_{activity_id}",
-                    "raw_id": activity_id,
+                    "activity_id": activity_id,
+                    "raw_id": raw_id,
                     "title": clean_title,
                     "unit": unit,
                     "event_time": event_time,
@@ -259,7 +268,9 @@ class UFMPortalScraper:
                     "points": points,
                     "ctxh": ctxh,
                     "status": status,
+                    "slots": slots,
                     "is_full": is_full,
+                    "posted_time": datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y"),
                     "detail_url": detail_url,
                     "register_url": self.DANGKY_URL,
                     "source": "Trang Mở Đăng Ký UFM (/DangKy)"
@@ -312,7 +323,7 @@ class UFMPortalScraper:
                         pass
 
                 activities.append({
-                    "activity_id": f"SEM_{raw_id_str}",
+                    "activity_id": f"UFM_{raw_id_str}",
                     "raw_id": raw_id_str,
                     "title": title,
                     "unit": unit,

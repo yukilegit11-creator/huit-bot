@@ -34,6 +34,7 @@ DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "huit_bot.db"
 BOT2_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot2.db")
 IUH_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "iuh_bot.db")
 UFM_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ufm_bot.db")
+OU_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ou_bot.db")
 
 
 def get_connection(db_file=None):
@@ -534,7 +535,17 @@ def get_seen_activity(activity_id: str, db_file=None):
     target = db_file or IUH_DB_FILE
     conn = get_connection(target)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM seen_activities WHERE activity_id = ?", (str(activity_id),))
+    aid = str(activity_id)
+    raw = aid.replace("UFM_", "").replace("DK_", "").replace("SEM_", "").replace("CUST_", "")
+    cursor.execute("""
+        SELECT * FROM seen_activities 
+        WHERE activity_id = ? 
+           OR activity_id = ? 
+           OR activity_id = ? 
+           OR activity_id = ? 
+           OR activity_id = ?
+        LIMIT 1
+    """, (aid, f"UFM_{raw}", f"DK_{raw}", f"SEM_{raw}", raw))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -595,16 +606,47 @@ def is_activity_already_sent_zalo(activity_id: str, title: str = None, target_id
     conn.close()
     return False
 
-def update_activity_status(activity_id: str, status: str, slots: str = "", db_file=None):
+def update_activity_status(activity_id: str, status: str, slots_or_full=None, is_sent: bool = None, db_file=None):
     target = db_file or IUH_DB_FILE
     conn = get_connection(target)
     cursor = conn.cursor()
     now_vn = get_vn_now_str()
+    cursor.execute("PRAGMA table_info(seen_activities)")
+    cols = [c[1] for c in cursor.fetchall()]
+    
+    updates = ["status = ?", "last_updated = ?"]
+    params = [status, now_vn]
+    
+    if "is_full" in cols:
+        is_full_val = 1 if (isinstance(slots_or_full, bool) and slots_or_full) or (isinstance(slots_or_full, (int, str)) and str(slots_or_full) in ('1', 'True', 'true')) else 0
+        updates.append("is_full = ?")
+        params.append(is_full_val)
+    if "slots" in cols:
+        slots_val = str(slots_or_full) if slots_or_full is not None else ""
+        updates.append("slots = ?")
+        params.append(slots_val)
+    if is_sent is not None and "is_sent" in cols:
+        updates.append("is_sent = ?")
+        params.append(1 if is_sent else 0)
+        
+    raw = str(activity_id).replace("UFM_", "").replace("DK_", "").replace("SEM_", "").replace("CUST_", "")
+    update_str = ", ".join(updates)
+    query = f"UPDATE seen_activities SET {update_str} WHERE activity_id = ? OR activity_id = ? OR activity_id = ? OR activity_id = ?"
+    cursor.execute(query, tuple(params) + (str(activity_id), f"UFM_{raw}", f"DK_{raw}", f"SEM_{raw}"))
+    conn.commit()
+    conn.close()
+
+def update_seen_is_sent(activity_id: str, is_sent: bool = True, db_file=None):
+    target = db_file or IUH_DB_FILE
+    conn = get_connection(target)
+    cursor = conn.cursor()
+    now_vn = get_vn_now_str()
+    raw = str(activity_id).replace("UFM_", "").replace("DK_", "").replace("SEM_", "").replace("CUST_", "")
     cursor.execute("""
-        UPDATE seen_activities 
-        SET status = ?, slots = ?, last_updated = ? 
-        WHERE activity_id = ?
-    """, (status, slots, now_vn, str(activity_id)))
+        UPDATE seen_activities
+        SET is_sent = ?, last_updated = ?
+        WHERE activity_id = ? OR activity_id = ? OR activity_id = ? OR activity_id = ?
+    """, (1 if is_sent else 0, now_vn, str(activity_id), f"UFM_{raw}", f"DK_{raw}", f"SEM_{raw}"))
     conn.commit()
     conn.close()
 

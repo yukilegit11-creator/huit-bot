@@ -70,20 +70,34 @@
       "id": "target_14",
       "name": "Yu Ki (FB Profile)",
       "url": "https://www.facebook.com/profile.php?id=61595329828799"
+    },
+    {
+      "name": "Đoàn - Hội Khoa Luật HUIT",
+      "url": "https://www.facebook.com/doanhoikhoaluathuit",
+      "enabled": true
+    },
+    {
+      "name": "Đoàn Khoa Du Lịch Và Ẩm Thực - HUIT",
+      "url": "https://www.facebook.com/doankhoadulichhufi",
+      "enabled": true
+    },
+    {
+      "name": "LCĐ Khoa Công Nghệ Hóa Học - HUIT",
+      "url": "https://www.facebook.com/cnhh.hufi",
+      "enabled": true
     }
   ],
   "fb_cookies": {
     "ps_l": "1",
-    "datr": "yE_oaikA_BpQ9ptfhYVdVcJr",
-    "fr": "1KicnKIphdBicOGvp.AWenQGaxDP2tU2Q9x_XcF5k2rrvXNDKKixAsz1RARGvb3PW90HQ.Bq6ZRU..AAA.0.0.Bq6ZRU.AWcuJ3L6qfuDEakhVTqTVNiBr5E",
-    "xs": "43%3AS2vZd3sAq5XXrg%3A2%3A1793692750%3A-1%3A-1%3A%3AAc3LJnzUc1vqymcab_Cprs7gkwddTC0-SNhOCn7TTg",
-    "locale": "vi_VN",
-    "c_user": "61574475721537",
-    "presence": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793692760303%2C%22v%22%3A1%7D",
-    "dpr": "1.2000000476837158",
+    "datr": "ztfDaj_5NKGnBN3r1C3aKdB-",
+    "fr": "19qyuaBvhTKYmFUxD.AWcgza68PFuukqYw0XXbgXYa86SkJDUDku7n4kP1IXAXuKIsQmo.Bq6dLt..AAA.0.0.Bq6dLt.AWcu4n02_Z4gPRPdyUO2MVQUNAM",
+    "xs": "13%3A5QhZm5V7iIIwyQ%3A2%3A1793565487%3A-1%3A-1%3A%3AAc2hX_buRyqH5pHLTJC_-JGDtyYweC9vwCIEJ-amwg",
+    "c_user": "61592903259792",
+    "presence": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708783275%2C%22v%22%3A1%7D",
+    "dpr": "1.3499999046325684",
     "ps_n": "1",
-    "sb": "yE_oamQF97AaPZ6Q_kZ6_A7F",
-    "wd": "1600x742"
+    "sb": "ztfDagnfYuiIXElW1JBf_Lsy",
+    "wd": "1424x644"
   },
   "zalo": {
     "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",
@@ -111,32 +125,38 @@
         "enabled": true
       },
       {
+        "id": "3613862296069900465",
+        "name": "Thông báo ‼️",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
         "id": "6270243835909820050",
         "name": "Huit _CTV BOT tbao Zalo",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "8647983209102501525",
         "name": "TSTD Huit 2027",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "3098651132176283286",
         "name": "Thông báo P. CTSV HUIT 2",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "3777114335248827133",
         "name": "Marketing K26 - HUIT",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
-        "id": "7662918962461429024",
-        "name": "Trần Lê Phát",
+        "id": "7581087306337796515",
+        "name": "Yuki",
         "type": "USER",
         "enabled": true
       }
@@ -168,7 +188,10 @@
     "điểm rèn luyện",
     "diem ren luyen",
     "đrl",
-    "drl"
+    "drl",
+    "chuyên đề",
+    "chuyen de",
+    "Chuyên đề"
   ],
   "scanner": {
     "max_post_age_hours": 2,
@@ -187,7 +210,7 @@
     "cookies": [
       {
         "domain": ".facebook.com",
-        "expirationDate": 1828244071.081721,
+        "expirationDate": 1828253638.676091,
         "hostOnly": false,
         "httpOnly": true,
         "name": "ps_l",
@@ -200,7 +223,7 @@
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1828169673.421974,
+        "expirationDate": 1828253437.025433,
         "hostOnly": false,
         "httpOnly": true,
         "name": "datr",
@@ -209,11 +232,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "yE_oaikA_BpQ9ptfhYVdVcJr"
+        "value": "-pbpavf2opPl_hPBKlMxbUIH"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1801468758.435018,
+        "expirationDate": 1801484875.10707,
         "hostOnly": false,
         "httpOnly": true,
         "name": "fr",
@@ -222,11 +245,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "1KicnKIphdBicOGvp.AWenQGaxDP2tU2Q9x_XcF5k2rrvXNDKKixAsz1RARGvb3PW90HQ.Bq6ZRU..AAA.0.0.Bq6ZRU.AWcuJ3L6qfuDEakhVTqTVNiBr5E"
+        "value": "1APj3j657FwOoV8e5.AWeEWApea_wBQ2fknEnrDy7G9FzSnfmbta_x7_tjtVBAipEuJI0.Bq6dNI..AAA.0.0.Bq6dNI.AWdT7XY8no0S8IXko7OLjPfr2Tg"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1825228758.435071,
+        "expirationDate": 1825244875.107142,
         "hostOnly": false,
         "httpOnly": true,
         "name": "xs",
@@ -235,24 +258,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "43%3AS2vZd3sAq5XXrg%3A2%3A1793692750%3A-1%3A-1%3A%3AAc3LJnzUc1vqymcab_Cprs7gkwddTC0-SNhOCn7TTg"
+        "value": "14%3AHcgpFYhcu3gPiw%3A2%3A1793705121%3A-1%3A-1%3A%3AAc0s2zC6XC4Y5OGGM3a1_elKwvJLPwVhemfjQMbVVw"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1794215534.793657,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "locale",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "vi_VN"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1825228758.434924,
+        "expirationDate": 1825244875.106991,
         "hostOnly": false,
         "httpOnly": false,
         "name": "c_user",
@@ -261,7 +271,7 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "61574475721537"
+        "value": "61595329828799"
       },
       {
         "domain": ".facebook.com",
@@ -273,11 +283,11 @@
         "secure": true,
         "session": true,
         "storeId": null,
-        "value": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793692760303%2C%22v%22%3A1%7D"
+        "value": "C%7B%22lm3%22%3A%22g.1620250146795363%22%2C%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708880523%2C%22v%22%3A1%7D"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1794297560,
+        "expirationDate": 1794302633,
         "hostOnly": false,
         "httpOnly": false,
         "name": "dpr",
@@ -286,11 +296,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "1.2000000476837158"
+        "value": "0.75"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1828244071.081817,
+        "expirationDate": 1828253638.676286,
         "hostOnly": false,
         "httpOnly": true,
         "name": "ps_n",
@@ -303,7 +313,7 @@
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1828252756.407321,
+        "expirationDate": 1828265125.311024,
         "hostOnly": false,
         "httpOnly": true,
         "name": "sb",
@@ -312,11 +322,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "yE_oamQF97AaPZ6Q_kZ6_A7F"
+        "value": "-5bpaiCSb5HDa411EdNDilYJ"
       },
       {
         "domain": ".facebook.com",
-        "expirationDate": 1794297560,
+        "expirationDate": 1794313676,
         "hostOnly": false,
         "httpOnly": false,
         "name": "wd",
@@ -325,7 +335,7 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "1600x742"
+        "value": "1853x893"
       }
     ],
     "target_groups": [
@@ -335,6 +345,15 @@
         "type": "GROUP",
         "enabled": true
       }
-    ]
+    ],
+    "target_thread_id": "1773570903700841",
+    "account": {
+      "email": "fat14112008@gmail.com",
+      "password": "YUKILEGIT0"
+    }
+  },
+  "dashboard_auth": {
+    "enabled": true,
+    "password": "YUKILEGIT0"
   }
 }

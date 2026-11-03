@@ -1,0 +1,104 @@
+{
+  "instance_name": "Bot OU (Kênh 5 - Đại học Mở TP.HCM - Điểm rèn luyện)",
+  "bot_name": "Yuki 5 (OU ĐRL)",
+  "admin": {
+    "name": "Yuki",
+    "github": "yukilegit11-creator",
+    "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
+    "role": "Admin & Lead Developer",
+    "zalo_uid": "7581087306337796515"
+  },
+  "facebook": {
+    "enabled": true,
+    "target_page": "https://www.facebook.com/diemrenluyenou",
+    "page_name": "Điểm rèn luyện OU",
+    "filter_keywords": false,
+    "max_post_age_hours": 3.0
+  },
+  "fb_cookies": {
+    "ps_l": "1",
+    "datr": "QbjDap5S3XtDDPF8wUPLvuRU",
+    "fr": "1ta0PV5JoJsf44xQK.AWderoxfXNEFNdxNUlBb_GtLQH09ggN87ZKdwSVkNaAF1RANthI.Bq6dMY..AAA.0.0.Bq6dMk.AWdMelIuWNSitUe6sXZsAiM0nR4",
+    "xs": "20%3ADnGCXmH-2sB1vQ%3A2%3A1792852867%3A-1%3A-1%3A%3AAc1nZYFh651VvgtztzzypXdd9SquwcSHghqJk_0BRV8",
+    "c_user": "100087432870248",
+    "presence": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708842074%2C%22v%22%3A1%7D",
+    "dpr": "1.5",
+    "ps_n": "1",
+    "sb": "QbjDantBe3VGruYaEe2PSt3i",
+    "wd": "1280x593"
+  },
+  "ou_portal": {
+    "enabled": true,
+    "base_url": "https://diemrl.ou.edu.vn/test",
+    "login_url": "https://diemrl.ou.edu.vn/test/auth/ousso/login",
+    "events_url": "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien",
+    "thongbao_url": "https://diemrl.ou.edu.vn/test/diemrl/thongbao",
+    "username": "2654092020",
+    "password": "079308035034",
+    "student_name": "Phan Thị Thu Phương",
+    "auto_relogin": true,
+    "keep_alive": true,
+    "keep_alive_interval_seconds": 120,
+    "cookies": {
+      "XSRF-TOKEN": "eyJpdiI6IlwvZjVvTjA3TkdXMWlIS21Cc2FuSDRBPT0iLCJ2YWx1ZSI6IkNPdFpBSE1QUXNMMFo2M05CWnV4dTFCTzdhbm50eHFWUlM2UmdFTDh1a0FmQ3cyOGtEdHRiTDdheHY0SVR2RWpxTG1JVVJrMG56c1I0RG12dUZjcFpBPT0iLCJtYWMiOiJkZjM5NTQyMjNjOWRmNDRmZTI2NTNkMzk3Y2M3ZWQwMWZhMWE2NjlmM2RiNDJlNDFlNDY2OWY0YTlkZTBlOTg1In0%3D",
+      "hcmcoudrl_session": "eyJpdiI6IldodXEyZFVqRXZBOGJQWTBlQTZiQWc9PSIsInZhbHVlIjoiYWg3ak5XMGxOSHQzV0EraVJML0NQY0tLMTN4ZTRMekhtNk5ZL1BjL1JFc0d0NTJPL3liSTlPNGswazU2enVxYUZld05rRmxndEZRVDRGUFdZMHhkZitjQzJXUnp2R1BBWmhYQnorZ05hNDFzQjFjREplbzNZYVloTDZFS2dxeG0iLCJtYWMiOiJkOTEwNTIxZTYxYzRlM2FhZjA3YWM5MTY5OTQxNTMwZGRhMGRlMzUxMzM0YzY0YTMxY2FiYjUzZWUzYzBiZGQ4IiwidGFnIjoiIn0%3D",
+      "laravel_session": "eyJpdiI6IjBMeHg0ek9jSElrK01aOWhlcVE5Wnc9PSIsInZhbHVlIjoiV3lEd1JjbklrWFwvUit5S3ZEc3RKbnFWZUFkYTY3am5vRWpmUmxjWW00WGhYeXBrRXdSd1QySVwveDU2RVBUY3FUd0VHZUZ5bU43cE5ibGNuanBkYnJIUT09IiwibWFjIjoiNTljYThhZDExYjdjNmQzZDA0ZTFmMTJiYzA4Nzg5MzAzYTUzZmZhNTRiZTU4MGY2ODI2YmNkYmQxZDNjZjIyNyJ9"
+    }
+  },
+  "zalo": {
+    "imei": "833054fc-3958-4d51-86bd-776466514bcb-a69b52f9d7f760edf3fd052bcda2542f",
+    "target_thread_id": "7456361874031804652",
+    "target_type": "GROUP",
+    "target_group_name": "demo",
+    "auto_tag_all": true,
+    "target_groups": [
+      {
+        "id": "7456361874031804652",
+        "name": "demo",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
+        "id": "7581087306337796515",
+        "name": "Yuki",
+        "type": "USER",
+        "enabled": true
+      },
+      {
+        "id": "",
+        "name": "Thu Phương",
+        "type": "USER",
+        "enabled": true,
+        "note": "Cung cấp UID Zalo hoặc SĐT để bot gửi trực tiếp"
+      }
+    ],
+    "cookies": {
+      "zpdid": "41BwdLBrfJiN5vsKLVl9F1aUdPHO_ymu",
+      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HH6Mn7vs0KLGvTOb-i8GvV0bLfGRCg25y7LtuI",
+      "_zlang": "vn",
+      "zpsid": "eMKnVcAlVqAZUYmFEOO_FBK8CMicYZiuiG0hQYEKIdpBI3ujAy9ME-4_2oiQp7SXYIaG87xZ7H6f45b6VCLIIUy-1qmSq0b8_1rRH3RNNLBu72n009P4LcK",
+      "__zi": "3000.QOBlzDCV2uGerkFzm0LMrMNQv_d43HxKPzEe_ie46TPgqAxv.1",
+      "zlogtype": "EXPIRED",
+      "zpw_sek": "Qpnh.404184050.a0.juUpxhnV0b8_AeS_x76G9xPJzKplIx8MgmV1Jve8-qI4FkSUc4EWGFaTfsQCJAq5iCNDMkMfxtAqSDoi91kG9m",
+      "app.event.zalo.me": "5649720127043044590"
+    },
+    "secret_key": "1fvQhWykcIOw9U20g4l7AA=="
+  },
+  "cookie_alert": {
+    "enabled": true,
+    "target_group_id": "7456361874031804652",
+    "target_group_name": "demo",
+    "admin_uid": "7581087306337796515",
+    "throttle_seconds": 1800
+  },
+  "scanner": {
+    "check_interval_seconds": 25,
+    "scan_facebook": true,
+    "scan_portal": true,
+    "max_post_age_hours": 3.0
+  },
+  "dashboard_auth": {
+    "enabled": true,
+    "password": "YUKILEGIT0"
+  }
+}

@@ -44,6 +44,14 @@ try:
 except Exception as _e:
     print(f"⚠️ [Web App] Chưa mount được UFM subapp: {_e}")
 
+# Tích hợp Bot 5: OU (Trường ĐH Mở TP.HCM)
+try:
+    import web_app_bot5
+    app.include_router(web_app_bot5.router)
+    print("✅ [Web App] Đã tích hợp thành công Bot 5 (OU ĐRL) router!")
+except Exception as _e:
+    print(f"⚠️ [Web App] Chưa tích hợp được Bot 5 router: {_e}")
+
 @app.get("/bot4")
 def bot4_redirect():
     from fastapi.responses import RedirectResponse
@@ -55,12 +63,287 @@ def submit_cookie_redirect():
     return RedirectResponse(url="/ufm/submit-cookie")
 
 
+# ==================== DASHBOARD AUTHENTICATION GUARD ====================
+import hmac
+import hashlib
+from urllib.parse import quote
+from fastapi.responses import RedirectResponse
+
+AUTH_SECRET = os.environ.get("DASHBOARD_SECRET_KEY", "yuki_cloud_dashboard_secret_key_2026")
+DEFAULT_ADMIN_PASSWORD = "YUKILEGIT0"
+
+def get_admin_password() -> str:
+    try:
+        cfg = get_config()
+        return cfg.get("dashboard_auth", {}).get("password", DEFAULT_ADMIN_PASSWORD)
+    except Exception:
+        return DEFAULT_ADMIN_PASSWORD
+
+def is_auth_enabled() -> bool:
+    try:
+        cfg = get_config()
+        return cfg.get("dashboard_auth", {}).get("enabled", True)
+    except Exception:
+        return True
+
+def generate_session_token(password: str = None) -> str:
+    pwd = password or get_admin_password()
+    return hmac.new(AUTH_SECRET.encode(), f"admin_authenticated_{pwd}".encode(), hashlib.sha256).hexdigest()
+
+def is_valid_session(token: str) -> bool:
+    if not token:
+        return False
+    expected = generate_session_token()
+    return hmac.compare_digest(str(token), str(expected))
+
+def get_login_page_html() -> str:
+    return """<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập Quản trị viên • Yuki Multi-Bot</title>
+  <link rel="icon" type="image/x-icon" href="https://img.icons8.com/color/48/shield.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+  <div class="absolute -top-32 -left-32 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="w-full max-w-md relative z-10">
+    <div class="glass-card rounded-3xl p-8 sm:p-10 text-slate-800">
+      <div class="text-center mb-7">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-2xl mx-auto mb-4 shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Yuki Multi-Bot</h1>
+        <p class="text-xs text-slate-500 font-medium mt-1">Hệ thống Giám sát & Quản trị 4 Trường Đại học</p>
+        
+        <div class="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+          <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[11px] font-bold border border-indigo-100">🎓 HUIT</span>
+          <span class="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg text-[11px] font-bold border border-sky-100">✈️ VAA</span>
+          <span class="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg text-[11px] font-bold border border-rose-100">🔥 IUH</span>
+          <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-100">🏛️ UFM</span>
+        </div>
+      </div>
+
+      <div id="login-error" class="hidden mb-5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+        <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
+        <span id="login-error-msg">Mật khẩu quản trị không chính xác!</span>
+      </div>
+
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            Mật khẩu Quản trị viên
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+              <i class="fa-solid fa-lock text-sm"></i>
+            </span>
+            <input 
+              type="password" 
+              id="admin-password" 
+              required
+              autofocus
+              placeholder="Nhập mật khẩu truy cập..." 
+              class="w-full pl-10 pr-12 py-3 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-indigo-500 rounded-2xl text-sm font-semibold transition outline-none shadow-xs"
+            >
+            <button 
+              type="button" 
+              onclick="togglePassVisibility()" 
+              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition"
+              tabindex="-1"
+            >
+              <i id="eye-icon" class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs">
+          <label class="flex items-center gap-2 cursor-pointer select-none text-slate-600 font-medium">
+            <input type="checkbox" id="remember-me" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+            Duy trì đăng nhập 30 ngày
+          </label>
+          <span class="text-slate-400 text-[11px] font-mono">Cloud 24/7</span>
+        </div>
+
+        <button 
+          type="submit" 
+          id="btn-submit"
+          class="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2 group cursor-pointer"
+        >
+          <span>Đăng Nhập Quản Trị</span>
+          <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </button>
+      </form>
+
+      <div class="mt-8 pt-5 border-t border-slate-100 text-center">
+        <p class="text-[11px] text-slate-400 font-medium flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-fingerprint text-indigo-500"></i>
+          Hệ thống bảo vệ bởi Yuki Multi-Bot Auth Guard
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePassVisibility() {
+      const inp = document.getElementById('admin-password');
+      const icon = document.getElementById('eye-icon');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        inp.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const pass = document.getElementById('admin-password').value.trim();
+      const remember = document.getElementById('remember-me').checked;
+      const btn = document.getElementById('btn-submit');
+      const errBox = document.getElementById('login-error');
+      const errMsg = document.getElementById('login-error-msg');
+
+      if (!pass) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xác thực...';
+      errBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass, remember: remember })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          const params = new URLSearchParams(window.location.search);
+          const nextUrl = params.get('next') || '/';
+          window.location.href = nextUrl;
+        } else {
+          errBox.classList.remove('hidden');
+          errMsg.textContent = data.message || 'Mật khẩu quản trị viên không chính xác!';
+          document.getElementById('admin-password').select();
+          btn.disabled = false;
+          btn.innerHTML = '<span>Đăng Nhập Quản Trị</span> <i class="fa-solid fa-arrow-right text-xs"></i>';
+        }
+      } catch (err) {
+        errBox.classList.remove('hidden');
+        errMsg.textContent = 'Lỗi kết nối tới máy chủ. Vui lòng thử lại!';
+        btn.disabled = false;
+        btn.innerHTML = '<span>Đăng Nhập Quản Trị</span> <i class="fa-solid fa-arrow-right text-xs"></i>';
+      }
+    }
+  </script>
+</body>
+</html>"""
+
 @app.middleware("http")
-async def handle_head_and_monitor_requests(request: Request, call_next):
-    # Trả về 200 OK ngay lập tức cho các yêu cầu kiểm tra trạng thái sống (HEAD method từ UptimeRobot / BetterStack / Render)
+async def auth_guard_middleware(request: Request, call_next):
+    # 1. Trả về 200 OK ngay lập tức cho các yêu cầu kiểm tra trạng thái sống (HEAD method từ UptimeRobot / BetterStack / Render)
     if request.method == "HEAD":
         return Response(status_code=200, headers={"Content-Type": "text/html; charset=utf-8"})
+
+    path = request.url.path
+
+    # 2. Bỏ qua các endpoint không yêu cầu xác thực
+    unprotected = ["/health", "/ping", "/login", "/logout", "/favicon.ico"]
+    if any(path == p or path.startswith(p + "/") for p in unprotected) or path.startswith("/static/"):
+        return await call_next(request)
+
+    # 3. Kiểm tra xác thực nếu Auth được bật
+    if is_auth_enabled():
+        session_token = request.cookies.get("yuki_auth_session")
+        auth_header = request.headers.get("Authorization", "")
+        
+        is_authed = False
+        if session_token and is_valid_session(session_token):
+            is_authed = True
+        elif auth_header:
+            parts = auth_header.split(" ")
+            if len(parts) == 2 and parts[0].lower() == "bearer" and parts[1] == get_admin_password():
+                is_authed = True
+
+        if not is_authed:
+            # Nếu là API request: trả về 401 JSON
+            if path.startswith("/api/") or "/api/" in path:
+                return JSONResponse(
+                    {"status": "error", "message": "Yêu cầu đăng nhập mật khẩu quản trị viên.", "code": "UNAUTHORIZED"},
+                    status_code=401
+                )
+            # Nếu là duyệt web (HTML page): chuyển hướng sang trang /login
+            next_param = quote(path) if path and path != "/" else ""
+            redirect_url = f"/login?next={next_param}" if next_param else "/login"
+            return RedirectResponse(url=redirect_url)
+
     return await call_next(request)
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    if is_auth_enabled():
+        session_token = request.cookies.get("yuki_auth_session")
+        if session_token and is_valid_session(session_token):
+            return RedirectResponse(url="/")
+    return HTMLResponse(content=get_login_page_html())
+
+@app.post("/login")
+async def process_login(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    password = str(data.get("password", "")).strip()
+    remember = bool(data.get("remember", True))
+    
+    expected_pwd = get_admin_password()
+    if password == expected_pwd:
+        token = generate_session_token(password)
+        max_age = 30 * 86400 if remember else 86400
+        resp = JSONResponse({
+            "status": "ok", 
+            "message": "Đăng nhập thành công!",
+            "redirect": "/"
+        })
+        resp.set_cookie(
+            key="yuki_auth_session",
+            value=token,
+            max_age=max_age,
+            expires=max_age,
+            path="/",
+            httponly=True,
+            samesite="lax"
+        )
+        return resp
+    else:
+        return JSONResponse({
+            "status": "error",
+            "message": "Mật khẩu quản trị viên không chính xác!"
+        }, status_code=400)
+
+@app.api_route("/logout", methods=["GET", "POST"])
+def logout():
+    resp = RedirectResponse(url="/login")
+    resp.delete_cookie(key="yuki_auth_session", path="/")
+    return resp
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
@@ -467,10 +750,10 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
+    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
         {"id": "7456361874031804652", "name": "demo"},
-        {"id": "7662918962461429024", "name": "Trần Lê Phát"}
+        {"id": "7581087306337796515", "name": "Yuki"}
     ]
     sent_any = False
     for t in test_targets:
@@ -481,9 +764,9 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
             print(f"Lỗi gửi test tới {t['name']}: {e}")
 
     if sent_any:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
     else:
-        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Yuki!")
 
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
@@ -549,6 +832,7 @@ def api_quad_target_groups():
         {"bot_id": "bot2", "name": "Bot 2 - VAA (Yuki 2)", "cfg_path": os.path.join(SCRIPT_DIR, "vaabot.json")},
         {"bot_id": "bot3", "name": "Bot 3 - IUH (Yuki 3 ĐRL)", "cfg_path": os.path.join(SCRIPT_DIR, "config_iuh.json")},
         {"bot_id": "bot4", "name": "Bot 4 - UFM (Yuki 4 ĐRL)", "cfg_path": os.path.join(SCRIPT_DIR, "config_ufm.json")},
+        {"bot_id": "bot5", "name": "Bot 5 - OU (Yuki 5 ĐRL)", "cfg_path": os.path.join(SCRIPT_DIR, "config_ou.json")},
     ]
     result = []
     for b in bots_cfg:
@@ -591,6 +875,7 @@ async def api_send_test_target(req: Request):
         "bot2": {"name": "Bot 2 - VAA (Yuki 2)", "cfg": os.path.join(SCRIPT_DIR, "vaabot.json"), "db": database.BOT2_DB_FILE},
         "bot3": {"name": "Bot 3 - IUH (Yuki 3 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_iuh.json"), "db": database.IUH_DB_FILE},
         "bot4": {"name": "Bot 4 - UFM (Yuki 4 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_ufm.json"), "db": database.UFM_DB_FILE},
+        "bot5": {"name": "Bot 5 - OU (Yuki 5 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_ou.json"), "db": database.OU_DB_FILE},
     }
 
     bot_info = bot_map.get(bot_id, bot_map["bot1"])
@@ -630,6 +915,7 @@ async def api_send_test_all_groups(req: Request):
         "bot2": {"name": "Bot 2 - VAA (Yuki 2)", "cfg": os.path.join(SCRIPT_DIR, "vaabot.json"), "db": database.BOT2_DB_FILE},
         "bot3": {"name": "Bot 3 - IUH (Yuki 3 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_iuh.json"), "db": database.IUH_DB_FILE},
         "bot4": {"name": "Bot 4 - UFM (Yuki 4 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_ufm.json"), "db": database.UFM_DB_FILE},
+        "bot5": {"name": "Bot 5 - OU (Yuki 5 ĐRL)", "cfg": os.path.join(SCRIPT_DIR, "config_ou.json"), "db": database.OU_DB_FILE},
     }
 
     bot_info = bot_map.get(bot_id, bot_map["bot1"])
@@ -1094,10 +1380,10 @@ Chúc các bạn theo dõi thuận lợi!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Trần Lê Phát' (KHÔNG gửi cho tất cả các nhóm)
+    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
     test_targets = [
         {"id": "7456361874031804652", "name": "demo"},
-        {"id": "7662918962461429024", "name": "Trần Lê Phát"}
+        {"id": "7581087306337796515", "name": "Yuki"}
     ]
     sent_any = False
     for t in test_targets:
@@ -1108,9 +1394,9 @@ Chúc các bạn theo dõi thuận lợi!""",
             print(f"Lỗi gửi test Bot 2 tới {t['name']}: {e}")
 
     if sent_any:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
     else:
-        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát!")
+        raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Yuki!")
 
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
@@ -1313,23 +1599,25 @@ def api_bot3_delete_target_group(group_id: str):
 def api_bot3_test_zalo_alert():
     from iuh_bot import send_zalo_iuh
     zalo = ZaloDispatcher(CONFIG_IUH_FILE)
+    ts = int(time.time())
+    now_vn = datetime.now(timezone(timedelta(hours=7)))
     test_act = {
-        "activity_id": "test_9999",
-        "title": "Hoạt động thử nghiệm kiểm tra kết nối Bot IUH & Bắn Zalo",
+        "activity_id": f"test_{ts}",
+        "title": f"Hoạt động thử nghiệm kiểm tra kết nối Bot IUH & Bắn Zalo (#{ts})",
         "semester": "1/2026 - 2027",
         "points": 3.0,
-        "deadline": datetime.now(timezone(timedelta(hours=7))).strftime("%d-%m-%Y"),
+        "deadline": now_vn.strftime("%d-%m-%Y"),
         "status": "Đang mở",
         "slots": "150/150",
-        "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
+        "details": f"Thời gian: {now_vn.strftime('%H:%M:%S %d/%m/%Y')}\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tín hiệu thử nghiệm hoạt động hoàn hảo 100%."
     }
     test_targets = [
         {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},
-        {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
+        {"id": "7581087306337796515", "name": "Yuki", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
     if sent:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc người nhận!")
 
@@ -1409,6 +1697,13 @@ def dashboard_view():
           <a href="/ufm" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 transition">
             🏛️ Bot 4: UFM (Yuki 4)
           </a>
+          <a href="/bot5" class="px-3 py-1.5 rounded-lg text-blue-700 hover:text-blue-900 transition">
+            🔵 Bot 5: OU (Yuki 5)
+          </a>
+          <a href="/logout" class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition flex items-center gap-1 font-bold" title="Đăng xuất khỏi hệ thống">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="hidden sm:inline">Thoát</span>
+          </a>
         </div>
       </div>
 
@@ -1418,7 +1713,7 @@ def dashboard_view():
           <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-blue-500/50 shadow-xs" alt="Admin Avatar">
           <div class="text-left">
             <div class="flex items-center gap-1.5 leading-none">
-              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="text-xs font-bold text-slate-900">Yuki</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Admin Active"></span>
             </div>
             <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-blue-600 flex items-center gap-1 font-mono leading-tight mt-1">
@@ -1564,8 +1859,12 @@ def dashboard_view():
           </div>
 
           <div class="flex items-center space-x-3">
+            <button onclick="toggleBot1LogSort()" id="bot1-sort-btn" class="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md transition flex items-center gap-1.5" title="Đổi thứ tự log: Mới nhất trên cùng hoặc cũ nhất trên cùng">
+              <i class="fa-solid fa-arrow-down-short-wide text-cyan-400"></i>
+              <span id="bot1-sort-text">Mới nhất trên</span>
+            </button>
             <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer select-none">
-              <input type="checkbox" id="console-autoscroll" checked class="rounded text-blue-500 bg-slate-800 border-slate-700">
+              <input type="checkbox" id="console-autoscroll" class="rounded text-blue-500 bg-slate-800 border-slate-700">
               Auto Scroll
             </label>
             <button onclick="clearConsoleView()" class="px-2.5 py-1 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md transition">
@@ -1944,6 +2243,22 @@ def dashboard_view():
       }}
     }}
 
+    let bot1LogSortAsc = false; // Mặc định: false (Mới nhất trên cùng)
+
+    function toggleBot1LogSort() {{
+      bot1LogSortAsc = !bot1LogSortAsc;
+      const btnText = document.getElementById('bot1-sort-text');
+      const btnIcon = document.querySelector('#bot1-sort-btn i');
+      if (bot1LogSortAsc) {{
+        if (btnText) btnText.innerText = 'Cũ nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-up-short-wide text-amber-400';
+      }} else {{
+        if (btnText) btnText.innerText = 'Mới nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-down-short-wide text-cyan-400';
+      }}
+      fetchLogs();
+    }}
+
     function renderLogs(logs) {{
       const container = document.getElementById('console-stream');
       if (!logs || logs.length === 0) {{
@@ -1951,9 +2266,10 @@ def dashboard_view():
         return;
       }}
 
-      const chronologicalLogs = [...logs].reverse();
+      // Nếu bot1LogSortAsc = true (Cũ nhất trên) -> reverse; ngược lại giữ nguyên DESC (Mới nhất trên)
+      const sortedLogs = bot1LogSortAsc ? [...logs].reverse() : [...logs];
 
-      container.innerHTML = chronologicalLogs.map(l => {{
+      container.innerHTML = sortedLogs.map(l => {{
         let badgeColor = 'bg-blue-900/60 text-blue-400 border-blue-800';
         if (l.level === 'SCAN') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
         else if (l.level === 'POST') badgeColor = 'bg-emerald-950 text-emerald-400 border-emerald-800';
@@ -1961,20 +2277,25 @@ def dashboard_view():
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+        const timeStr = l.created_at || '';
         const botBadge = (currentLogScope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-indigo-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
+
+        // Xóa timestamp trùng lặp trong nội dung message
+        let cleanMsg = String(l.message || '');
+        cleanMsg = cleanMsg.replace(/^(\S+\s*)?\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '$1');
+        cleanMsg = cleanMsg.replace(/^\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '');
 
         return `
           <div class="flex items-start gap-2 hover:bg-slate-800/40 px-2 py-1 rounded transition">
             <span class="text-slate-500 shrink-0 text-[11px] font-mono">${{timeStr}}</span>
             ${{botBadge}}
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${{badgeColor}} shrink-0">${{l.level}}</span>
-            <span class="text-slate-200 leading-relaxed break-all">${{l.message}}</span>
+            <span class="text-slate-200 leading-relaxed break-all">${{cleanMsg}}</span>
           </div>
         `;
       }}).join('');
 
-      if (document.getElementById('console-autoscroll').checked) {{
+      if (bot1LogSortAsc && document.getElementById('console-autoscroll') && document.getElementById('console-autoscroll').checked) {{
         container.scrollTop = container.scrollHeight;
       }}
     }}
@@ -2973,6 +3294,13 @@ def dashboard_view_bot2():
           <a href="/ufm" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 transition">
             🏛️ Bot 4: UFM (Yuki 4)
           </a>
+          <a href="/bot5" class="px-3 py-1.5 rounded-lg text-blue-700 hover:text-blue-900 transition">
+            🔵 Bot 5: OU (Yuki 5)
+          </a>
+          <a href="/logout" class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition flex items-center gap-1 font-bold" title="Đăng xuất khỏi hệ thống">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="hidden sm:inline">Thoát</span>
+          </a>
         </div>
       </div>
 
@@ -2982,7 +3310,7 @@ def dashboard_view_bot2():
           <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-sky-500/50 shadow-xs" alt="Admin Avatar">
           <div class="text-left">
             <div class="flex items-center gap-1.5 leading-none">
-              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="text-xs font-bold text-slate-900">Yuki</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Admin Active"></span>
             </div>
             <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-sky-600 flex items-center gap-1 font-mono leading-tight mt-1">
@@ -3548,6 +3876,22 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }}
     }}
 
+    let bot2LogSortAsc = false; // Mặc định: false (Mới nhất trên cùng)
+
+    function toggleBot2LogSort() {{
+      bot2LogSortAsc = !bot2LogSortAsc;
+      const btnText = document.getElementById('bot2-sort-text');
+      const btnIcon = document.querySelector('#bot2-sort-btn i');
+      if (bot2LogSortAsc) {{
+        if (btnText) btnText.innerText = 'Cũ nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-up-short-wide text-amber-400';
+      }} else {{
+        if (btnText) btnText.innerText = 'Mới nhất trên';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-arrow-down-short-wide text-cyan-400';
+      }}
+      fetchLogs();
+    }}
+
     function renderLogs(logs) {{
       const container = document.getElementById('console-stream');
       if (!logs || logs.length === 0) {{
@@ -3555,9 +3899,10 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         return;
       }}
 
-      const chronologicalLogs = [...logs].reverse();
+      // Nếu bot2LogSortAsc = true (Cũ nhất trên) -> reverse; ngược lại giữ nguyên DESC (Mới nhất trên)
+      const sortedLogs = bot2LogSortAsc ? [...logs].reverse() : [...logs];
 
-      container.innerHTML = chronologicalLogs.map(l => {{
+      container.innerHTML = sortedLogs.map(l => {{
         let badgeColor = 'bg-blue-900/60 text-blue-400 border-blue-800';
         if (l.level === 'SCAN') badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
         else if (l.level === 'POST') badgeColor = 'bg-emerald-950 text-emerald-400 border-emerald-800';
@@ -3565,20 +3910,25 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
         else if (l.level === 'ZALO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
         else if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+        const timeStr = l.created_at || '';
         const botBadge = (currentLog2Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-sky-300 border border-slate-700 shrink-0">[${{l.bot}}]</span>` : '';
+
+        // Xóa timestamp trùng lặp trong nội dung message
+        let cleanMsg = String(l.message || '');
+        cleanMsg = cleanMsg.replace(/^(\S+\s*)?\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '$1');
+        cleanMsg = cleanMsg.replace(/^\[\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}\]\s*/, '');
 
         return `
           <div class="flex items-start gap-2 hover:bg-slate-800/40 px-2 py-1 rounded transition">
             <span class="text-slate-500 shrink-0 text-[11px] font-mono">${{timeStr}}</span>
             ${{botBadge}}
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${{badgeColor}} shrink-0">${{l.level}}</span>
-            <span class="text-slate-200 leading-relaxed break-all">${{l.message}}</span>
+            <span class="text-slate-200 leading-relaxed break-all">${{cleanMsg}}</span>
           </div>
         `;
       }}).join('');
 
-      if (document.getElementById('console-autoscroll').checked) {{
+      if (bot2LogSortAsc && document.getElementById('console-autoscroll') && document.getElementById('console-autoscroll').checked) {{
         container.scrollTop = container.scrollHeight;
       }}
     }}
@@ -4597,6 +4947,13 @@ def dashboard_view_bot3():
           <a href="/ufm" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-900 transition">
             🏛️ Bot 4: UFM (Yuki 4)
           </a>
+          <a href="/bot5" class="px-3 py-1.5 rounded-lg text-blue-700 hover:text-blue-900 transition">
+            🔵 Bot 5: OU (Yuki 5)
+          </a>
+          <a href="/logout" class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition flex items-center gap-1 font-bold" title="Đăng xuất khỏi hệ thống">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="hidden sm:inline">Thoát</span>
+          </a>
         </div>
       </div>
 
@@ -4606,7 +4963,7 @@ def dashboard_view_bot3():
           <img src="https://avatars.githubusercontent.com/u/349174043?v=4" class="w-8 h-8 rounded-xl object-cover ring-2 ring-rose-500/50 shadow-xs" alt="Admin Avatar">
           <div class="text-left">
             <div class="flex items-center gap-1.5 leading-none">
-              <span class="text-xs font-bold text-slate-900">Trần Lê Phát</span>
+              <span class="text-xs font-bold text-slate-900">Yuki</span>
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
             <a href="https://github.com/yukilegit11-creator" target="_blank" class="text-[10px] text-slate-500 hover:text-rose-600 flex items-center gap-1 font-mono leading-tight mt-1">
@@ -4674,7 +5031,7 @@ def dashboard_view_bot3():
         <div>
           <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tin Bắn Zalo</p>
           <h3 id="stat-total-sent" class="text-2xl font-extrabold text-emerald-600 mt-1">{stats.get('total_zalo_sent', 0)}</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">demo & Trần Lê Phát</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">demo & Yuki</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
           <i class="fa-solid fa-paper-plane"></i>
@@ -5053,7 +5410,7 @@ def dashboard_view_bot3():
     function openAddGroupModal() {{
       const gid = prompt('Nhập ID Zalo của nhóm hoặc cá nhân:');
       if (!gid) return;
-      const gname = prompt('Nhập Tên gợi nhớ (Ví dụ: demo hoặc Trần Lê Phát):', 'demo');
+      const gname = prompt('Nhập Tên gợi nhớ (Ví dụ: demo hoặc Yuki):', 'demo');
       const isUser = confirm('Đối tượng này là CÁ NHÂN? (Bấm OK nếu là Cá nhân, bấm Cancel nếu là Nhóm)');
       const fd = new FormData();
       fd.append('group_id', gid);
@@ -5143,7 +5500,7 @@ def dashboard_view_bot3():
             else if (l.level === 'ZALO' || l.level === 'ACTIVITY') color = 'text-emerald-400';
             else if (l.level === 'SCAN') color = 'text-cyan-400';
 
-            const timeStr = l.created_at ? (l.created_at.includes(' ') ? l.created_at.split(' ')[1] : l.created_at) : '';
+            const timeStr = l.created_at || '';
             const botBadge = (currentLog3Scope === 'ALL' && l.bot) ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-rose-300 border border-slate-700 shrink-0">[${{l.bot}}]</span> ` : '';
 
             return `<div class="flex items-start gap-1.5 py-0.5"><span class="text-slate-500 font-mono shrink-0">[${{timeStr}}]</span> ${{botBadge}}<span class="font-bold ${{color}} shrink-0">[${{l.level}}]</span> <span class="break-all text-slate-200">${{l.message}}</span></div>`;

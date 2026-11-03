@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
-huit_bot.db
+*.db
+*.sqlite
 *.log
 .env
 .venv
+*.png
+github_token.txt

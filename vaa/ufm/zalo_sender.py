@@ -40,17 +40,22 @@ def format_ufm_message(act: dict, is_reopened: bool = False, auto_tag_all: bool 
         f"🏢 Đơn vị tổ chức: {unit}"
     ]
 
+    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+    posted_time = act.get("posted_time") or act.get("first_seen") or now_vn
+
     points_str_list = []
     if points > 0:
-        points_str_list.append(f"+{points} ĐRL")
+        points_str_list.append(f"+{points:g} ĐRL")
     if ctxh > 0:
-        points_str_list.append(f"+{ctxh} CTXH")
+        points_str_list.append(f"+{ctxh:g} CTXH")
     
     if points_str_list:
-        lines.append(f"🎯 Điểm: {' | '.join(points_str_list)}")
+        lines.append(f"🎯 Điểm: {' • '.join(points_str_list)}")
+
+    lines.append(f"⏰ Thời gian đăng bài: {posted_time}")
 
     if event_time and event_time != "Chưa rõ thời gian":
-        lines.append(f"⏰ Thời gian: {event_time}")
+        lines.append(f"📅 Thời gian diễn ra: {event_time}")
 
     if location and location != "Chưa rõ địa điểm":
         lines.append(f"📍 Địa điểm: {location}")
@@ -573,10 +578,10 @@ class ZaloDispatcher:
             except Exception as e:
                 return False, f"Lỗi gửi tin: {e}"
 
-        # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Trần Lê Phát
+        # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Yuki
         test_targets = [
             {"id": "7456361874031804652", "name": "demo", "type": ThreadType.GROUP},
-            {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": ThreadType.USER}
+            {"id": "7581087306337796515", "name": "Yuki", "type": ThreadType.USER}
         ]
         any_succ = False
         for t in test_targets:
@@ -588,8 +593,8 @@ class ZaloDispatcher:
             except Exception as e:
                 print(f"Lỗi gửi test tới {t['name']}: {e}")
         if any_succ:
-            return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Trần Lê Phát & nhóm demo!"
-        return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Trần Lê Phát."
+            return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"
+        return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Yuki."
 
     def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
         """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 7456361874031804652)."""
@@ -679,7 +684,7 @@ class ZaloDispatcher:
                 f"🤖 Bot phát tín hiệu: {self.bot_name}\n"
                 f"🎯 Mục tiêu: {target_id} ({'Nhóm' if is_group else 'Cá nhân'})\n"
                 f"⏰ Thời gian: {now_vn}\n"
-                f"🌐 Máy chủ: VPS Cloud (180.93.125.40)\n"
+                f"🌐 Hệ thống: Cloud Server 24/7\n"
                 f"✅ Trạng thái kết nối: Hoạt động hoàn hảo 100%!\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"🎯 Hệ thống đã sẵn sàng bắn thông báo tự động ngay khi có bài viết hoặc sự kiện mới."

@@ -92,19 +92,19 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, cu
         is_user = str(target.get("type", "GROUP")).upper() == "USER"
         t_type = ThreadType.USER if is_user else ThreadType.GROUP
 
+        clean_text = formatted_msg
+        if clean_text.startswith("@All\n"):
+            clean_text = clean_text[5:]
+        elif clean_text.startswith("@All "):
+            clean_text = clean_text[5:]
+
         if is_user:
-            clean_text = formatted_msg
-            if clean_text.startswith("@All\n"):
-                clean_text = clean_text[5:]
-            elif clean_text.startswith("@All "):
-                clean_text = clean_text[5:]
             msg_obj = Message(text=clean_text)
         else:
             if zalo_cfg.get("auto_tag_all", True) and formatted_msg.startswith("@All"):
                 mention = Mention(uid="-1", length=len("@All"), offset=0)
                 msg_obj = Message(text=formatted_msg, mention=mention)
             else:
-                clean_text = formatted_msg[5:] if formatted_msg.startswith("@All\n") else formatted_msg
                 msg_obj = Message(text=clean_text)
 
         # Kiểm tra nhóm/người nhận này đã từng nhận hoạt động này chưa
@@ -161,6 +161,69 @@ def send_zalo_iuh(zalo: ZaloDispatcher, act: dict, is_reopened: bool = False, cu
     return any_success
 
 
+ADMIN_ZALO_UID = "7581087306337796515"  # Yuki
+last_admin_alert_time = 0
+last_error_state = False
+
+def alert_admin_iuh_error(zalo_inst, error_title: str, detail_msg: str, throttle_secs: int = 1800):
+    global last_admin_alert_time, last_error_state
+    now_ts = time.time()
+    if now_ts - last_admin_alert_time < throttle_secs:
+        return
+    last_admin_alert_time = now_ts
+    last_error_state = True
+    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+    warn_msg = (
+        "⚠️ [IUH - CẢNH BÁO LỖI HỆ THỐNG / COOKIE] ⚠️\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"🚨 Lỗi: {error_title}\n"
+        f"📌 Chi tiết: {detail_msg}\n"
+        f"⏰ Thời gian: {now_vn}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "👉 Thao tác khắc phục 1 chạm:\n"
+        "1. Đăng nhập tại: https://doantn.iuh.edu.vn/login.html\n"
+        "2. Lấy cookie PHPSESSID mới\n"
+        "3. Dán cập nhật tại Dashboard:\n"
+        "🔗 Web Dashboard: Hệ thống Yuki IUH (/bot3)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "(Hệ thống sẽ nhắc lại sau 30 phút nếu lỗi chưa được xử lý)"
+    )
+    try:
+        if not zalo_inst.client:
+            zalo_inst.connect()
+        if zalo_inst.client:
+            zalo_inst.client.send(Message(text=warn_msg), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
+            print(f"🚨 [IUH Alert] Đã gửi cảnh báo lỗi tới Zalo Yuki ({ADMIN_ZALO_UID})")
+            database.log_event("WARN", f"Đã gửi cảnh báo '{error_title}' tới Admin qua Zalo.", db_file=DB_TARGET)
+    except Exception as e_warn:
+        print(f"❌ [IUH Alert] Không thể gửi cảnh báo Zalo tới Admin: {e_warn}")
+
+def notify_admin_iuh_recovery(zalo_inst, activity_count: int):
+    global last_admin_alert_time, last_error_state
+    if not last_error_state:
+        return
+    last_error_state = False
+    last_admin_alert_time = 0  # Reset throttle để lần lỗi tiếp theo báo ngay
+    now_vn = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
+    recovery_msg = (
+        "✅ [IUH - HỆ THỐNG ĐÃ PHỤC HỒI THÀNH CÔNG] ✅\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🎉 Cổng Đoàn TN & ĐRL IUH đã kết nối bình thường trở lại!\n"
+        f"📌 Số hoạt động hiện có: {activity_count}\n"
+        f"⏰ Thời gian: {now_vn}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Bot 3 (Yuki IUH) đang tiếp tục chế độ quét tự động 24/7."
+    )
+    try:
+        if not zalo_inst.client:
+            zalo_inst.connect()
+        if zalo_inst.client:
+            zalo_inst.client.send(Message(text=recovery_msg), thread_id=ADMIN_ZALO_UID, thread_type=ThreadType.USER)
+            print(f"✅ [IUH Recovery] Đã gửi thông báo phục hồi tới Zalo Yuki ({ADMIN_ZALO_UID})")
+            database.log_event("SYSTEM", "Đã gửi thông báo phục hồi hệ thống tới Admin qua Zalo.", db_file=DB_TARGET)
+    except Exception as e:
+        print(f"❌ [IUH Recovery] Không thể gửi thông báo phục hồi: {e}")
+
 def run_bot():
     print("=" * 60)
     print("🚀 [YUKI 3 - IUH BOT] CÀO CỔNG ĐOÀN TN & ĐIỂM RÈN LUYỆN IUH 24/7")
@@ -169,10 +232,13 @@ def run_bot():
     config = load_config()
     portal_cfg = config.get("portal", {})
     phpsessid = portal_cfg.get("phpsessid", "")
+    username = portal_cfg.get("username", "")
+    password = portal_cfg.get("password", "")
+    auto_relogin = portal_cfg.get("auto_relogin", True)
     scanner_cfg = config.get("scanner", {})
-    interval = scanner_cfg.get("check_interval_seconds", 15)
+    interval = scanner_cfg.get("check_interval_seconds", 25)
 
-    scraper = IUHPortalScraper(phpsessid)
+    scraper = IUHPortalScraper(phpsessid, username=username, password=password, config_path=CONFIG_FILE, auto_relogin=auto_relogin)
     zalo = ZaloDispatcher(CONFIG_FILE)
     messenger = MessengerDispatcher(CONFIG_FILE, db_file=DB_TARGET) if HAS_MESSENGER else None
 
@@ -194,10 +260,22 @@ def run_bot():
 
     cycle = 0
     last_warn_time = 0
+    last_keep_alive_time = time.time()
+    KEEP_ALIVE_INTERVAL = 300  # 5 phút gửi heartbeat một lần nếu bot bị tạm dừng
 
     while True:
         if not database.is_bot_enabled(db_file=DB_TARGET):
             database.set_bot_status("bot_state", "paused", db_file=DB_TARGET)
+            now_ts = time.time()
+            if now_ts - last_keep_alive_time >= KEEP_ALIVE_INTERVAL:
+                is_alive, ka_msg = scraper.keep_alive()
+                last_keep_alive_time = now_ts
+                if is_alive:
+                    database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
+                    database.log_event("SYSTEM", f"💓 [Keep-Alive khi Tạm Dừng] {ka_msg}", db_file=DB_TARGET)
+                else:
+                    database.set_bot_status("portal_cookie_status", "expired", db_file=DB_TARGET)
+                    alert_admin_iuh_error(zalo, "Phiên IUH hết hạn trong lúc bot tạm dừng", ka_msg)
             time.sleep(5)
             continue
 
@@ -207,7 +285,10 @@ def run_bot():
             curr_cookie = portal_cfg.get("phpsessid", "")
             if curr_cookie != scraper.phpsessid:
                 scraper.update_cookie(curr_cookie)
-            interval = config.get("scanner", {}).get("check_interval_seconds", 15)
+            scraper.username = portal_cfg.get("username", "")
+            scraper.password = portal_cfg.get("password", "")
+            scraper.auto_relogin = portal_cfg.get("auto_relogin", True)
+            interval = config.get("scanner", {}).get("check_interval_seconds", 25)
         except Exception:
             pass
 
@@ -219,32 +300,13 @@ def run_bot():
 
         try:
             is_logged_in, msg, activities = scraper.fetch_activities()
+            last_keep_alive_time = time.time()
             if not is_logged_in:
                 database.set_bot_status("portal_cookie_status", "expired", db_file=DB_TARGET)
-                now_ts = time.time()
-                # Cảnh báo trực tiếp cho Admin qua Zalo mỗi 2 tiếng (7200s) để không spam
-                if now_ts - last_warn_time > 7200:
-                    last_warn_time = now_ts
-                    admin_id = "7662918962461429024"  # Trần Lê Phát
-                    warn_msg = (
-                        "⚠️ [IUH - CẢNH BÁO MẤT COOKIE CỔNG ĐRL] ⚠️\n"
-                        "━━━━━━━━━━━━━━━━━━━━\n"
-                        "Cổng Đoàn TN IUH (doantn.iuh.edu.vn) báo phiên đăng nhập đã HẾT HẠN!\n"
-                        f"📌 Chi tiết: {msg}\n"
-                        "🛑 Bot IUH tạm thời KHÔNG THỂ cào và săn hoạt động mới.\n"
-                        "👉 Vui lòng vào Web Dashboard (/bot3) để cập nhật PHPSESSID mới ngay!"
-                    )
-                    try:
-                        if not zalo.client:
-                            zalo.connect()
-                        if zalo.client:
-                            zalo.client.send(Message(text=warn_msg), thread_id=admin_id, thread_type=ThreadType.USER)
-                            print(f"⚠️ [IUH Warning] Đã gửi tin cảnh báo mất Cookie tới Admin ({admin_id})")
-                            database.log_event("WARN", "Đã gửi cảnh báo mất Cookie tới Admin qua Zalo.", db_file=DB_TARGET)
-                    except Exception as e_warn:
-                        print(f"❌ [IUH Warning] Không thể gửi cảnh báo Zalo tới Admin: {e_warn}")
+                alert_admin_iuh_error(zalo, "Cổng IUH báo phiên đăng nhập hết hạn", msg)
             else:
                 database.set_bot_status("portal_cookie_status", "valid", db_file=DB_TARGET)
+                notify_admin_iuh_recovery(zalo, len(activities))
                 last_warn_time = 0  # Reset cảnh báo khi cookie sống lại
                 new_count = 0
 
@@ -296,10 +358,14 @@ def run_bot():
 
                 if new_count > 0:
                     print(f"🎉 [Chu kỳ #{cycle}] Bắn Zalo thành công {new_count} hoạt động mới!")
+                
+                database.log_event("SCAN", f"🔄 Chu kỳ #{cycle}: Quét xong cổng ĐRL IUH ({len(activities)} hoạt động).", db_file=DB_TARGET)
 
         except Exception as e:
-            print(f"⚠️ [Chu kỳ #{cycle}] Lỗi quét: {e}")
-            database.log_event("ERROR", f"Lỗi quét: {e}", db_file=DB_TARGET)
+            err_str = f"Lỗi quét: {e}"
+            print(f"⚠️ [Chu kỳ #{cycle}] {err_str}")
+            database.log_event("ERROR", err_str, db_file=DB_TARGET)
+            alert_admin_iuh_error(zalo, "Lỗi ngoại lệ quét IUH", err_str)
 
         database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
         time.sleep(interval)
