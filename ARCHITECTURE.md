@@ -1,172 +1,204 @@
-# 🏛️ HỆ THỐNG KIẾN TRÚC & CƠ CHẾ VẬN HÀNH 4 BOT (YUKI ECOSYSTEM)
-
-> **Mục đích tài liệu:** Lưu giữ toàn bộ cấu trúc kiến trúc, luồng dữ liệu, cơ chế kỹ thuật và bảng tra cứu thông số quan trọng của hệ thống 4 Bot (HUIT, VAA, IUH, UFM). Khi cần bảo trì, cập nhật hoặc thêm tính năng trong tương lai, AI và lập trình viên chỉ cần đọc tài liệu này là nắm trọn vẹn 100% bối cảnh mà **không cần quét lại code hay tiêu tốn token**.
+# 🏛️ TỔNG QUAN KIẾN TRÚC HỆ THỐNG PENTA-BOT 24/7 (YUKI ECOSYSTEM)
+> ⚠️ **TÀI LIỆU BẮT BUỘC PHẢI ĐỌC TRƯỚC KHI CAN THIỆP HỆ THỐNG**
+> **Mục đích:** Lưu trữ 100% cấu trúc kiến trúc, bảng tra cứu ID, thuật toán chống trùng lặp, quy định cách ly và các lệnh vận hành của hệ thống 5 Bot (HUIT, VAA, IUH, UFM, OU).
+> **Dành cho AI & Lập trình viên:** Đọc tài liệu này giúp nắm trọn bối cảnh trong 1 lượt đọc, **không cần quét lại mã nguồn hàng chục file và tiết kiệm token tối đa**.
 
 ---
 
-## 🗺️ 1. SƠ ĐỒ TỔNG QUAN KIẾN TRÚC HỆ THỐNG
+## 🗺️ 1. SƠ ĐỒ KIẾN TRÚC TOÀN HỆ THỐNG
 
 ```mermaid
 flowchart TD
-    subgraph DATA_SOURCES["🌐 NGUỒN DỮ LIỆU ĐẦU VÀO"]
-        SRC_FB1["Bot 1: 17 Fanpages & Groups HUIT"]
-        SRC_FB2["Bot 2: 12 Fanpages & Groups VAA"]
+    subgraph DATA_SOURCES["🌐 5 NGUỒN DỮ LIỆU ĐẦU VÀO"]
+        SRC_HUIT["Bot 1: 16 Fanpages & Groups HUIT"]
+        SRC_VAA["Bot 2: 11 Fanpages & Groups VAA"]
         SRC_IUH["Bot 3: Cổng ĐRL IUH (doantn.iuh.edu.vn)"]
         SRC_UFM["Bot 4: Cổng Hoạt Động UFM (hoatdong.ufm.edu.vn)"]
+        SRC_OU["Bot 5: FB diemrenluyenou & Cổng diemrl.ou.edu.vn"]
     end
 
-    subgraph CORE_VPS["🖥️ CLOUD SERVER (Ubuntu 180.93.125.40 - Service: huit-bot)"]
-        subgraph ENGINES["Bộ máy cào & Phân tích"]
-            SCR_HUIT["bot.py (HUIT Comet Scraper)"]
-            SCR_VAA["vaabot.py (VAA Comet Scraper)"]
-            SCR_IUH["iuh_bot.py (IUH Scraper + ddddocr Captcha)"]
-            SCR_UFM["ufm_bot.py (UFM Portal Session & Parser)"]
+    subgraph CLOUD_VPS["🖥️ CLOUD SERVER (Ubuntu 180.93.125.40 - Service: huit-bot)"]
+        subgraph PROCESS_SUPERVISOR["start.sh -> run_all.py (Supervisor 5 Bot 24/7)"]
+            P1["bot.py (Yuki 1 - HUIT)"]
+            P2["vaabot.py (Yuki 2 - VAA)"]
+            P3["iuh_bot.py (Yuki 3 - IUH ĐRL)"]
+            P4["ufm_bot.py (Yuki 4 - UFM ĐRL)"]
+            P5["ou_bot.py (Yuki 5 - OU ĐRL)"]
         end
 
-        subgraph DEDUPLICATION["Bộ lọc & Chống trùng lặp"]
-            FILTER_TIME["Lọc thời gian bài viết (<= 2h hoặc sự kiện mới)"]
-            SQLITE_DB["SQLite Local DB (seen_posts.db, ufm_bot.db)"]
-            SUPABASE_SYNC["Supabase Cloud Sync (460+ bài lịch sử)"]
+        subgraph FASTAPI_WEB["FastAPI Web Dashboard (Port 8000 - Uvicorn)"]
+            AUTH["HMAC Auth Guard (Pass: YUKILEGIT0)"]
+            UI_HUIT["Tab HUIT (/)"]
+            UI_VAA["Tab VAA (/bot2)"]
+            UI_IUH["Tab IUH (/bot3)"]
+            UI_UFM["Tab UFM (/ufm)"]
+            UI_OU["Tab OU (/bot5)"]
+            POV_API["POV Real-time Snapshot API (Playwright)"]
         end
 
-        subgraph WEB_DASHBOARD["FastAPI Web Dashboard (Port 8000)"]
-            AUTH_GUARD["Auth Guard (HMAC Cookie: YUKILEGIT0)"]
-            UI_BOT1["Dashboard Yuki 1 (HUIT) - /"]
-            UI_BOT2["Dashboard Yuki 2 (VAA) - /bot2"]
-            UI_BOT3["Dashboard Yuki 3 (IUH) - /bot3"]
-            UI_BOT4["Dashboard Yuki 4 (UFM) - /ufm"]
-        end
-    end
-
-    subgraph DISPATCH_CHANNELS["📡 KÊNH PHÂN PHỐI THÔNG BÁO"]
-        subgraph ZALO_PIPELINE["Zalo (zlapi - Account: 845005453098855468)"]
-            ZALO_GROUPS["Gửi vào các Nhóm Sinh Viên mục tiêu"]
-            ZALO_ADMIN["Bắn tin test & Cảnh báo lỗi riêng cho Yuki (UID: 7581087306337796515)"]
-        end
-
-        subgraph FB_MESSENGER["Facebook Messenger (fbchat-muqit - UID: 61595329828799)"]
-            MSGR_GROUPS["Nhóm Demo & Kênh Messenger"]
+        subgraph STORAGE_LAYER["Lớp Lưu Trữ & Chống Lặp SQLite"]
+            DB_MAIN["seen_posts.db (HUIT, VAA, IUH)"]
+            DB_UFM["ufm_bot.db (UFM)"]
+            DB_OU["ou_bot.db (OU)"]
+            DELIV_HIST["delivery_history (Bảng lịch sử gửi từng Target)"]
         end
     end
 
-    SRC_FB1 --> SCR_HUIT
-    SRC_FB2 --> SCR_VAA
-    SRC_IUH --> SCR_IUH
-    SRC_UFM --> SCR_UFM
+    subgraph DISPATCH_PIPELINE["📡 KÊNH PHÂN PHỐI THÔNG BÁO"]
+        subgraph ZALO_NET["Zalo Pipeline (zlapi - Account: 0775000537 / Yuki)"]
+            TARGET_DEMO["Nhóm Test & Cô Lập: demo (475259879796859360)"]
+            TARGET_ADMIN["Cá nhân Admin: Trần Lê Phát (7662918962461429024)"]
+            GROUPS_HUIT["3 Nhóm Sinh Viên HUIT"]
+            GROUPS_VAA["2 Nhóm Sinh Viên VAA"]
+            GROUPS_IUH["2 Nhóm Sinh Viên IUH"]
+            GROUPS_UFM["2 Nhóm Sinh Viên UFM"]
+            GROUPS_OU["Cá nhân Thu Phương (OU)"]
+        end
 
-    SCR_HUIT & SCR_VAA & SCR_IUH & SCR_UFM --> FILTER_TIME
-    FILTER_TIME --> SQLITE_DB & SUPABASE_SYNC
+        subgraph MSGR_NET["Facebook Messenger (fbchat-muqit)"]
+            MSGR_TARGET["Nhóm / Cá nhân Messenger"]
+        end
+    end
 
-    SQLITE_DB --> ZALO_GROUPS & MSGR_GROUPS
-    SCR_HUIT & SCR_VAA -.->|"Cookie lỗi / Checkpoint"| ZALO_ADMIN
+    SRC_HUIT --> P1
+    SRC_VAA --> P2
+    SRC_IUH --> P3
+    SRC_UFM --> P4
+    SRC_OU --> P5
 
-    WEB_DASHBOARD -->|"Theo dõi log, cấu hình, test gửi"| ENGINES
+    P1 & P2 & P3 & P4 & P5 <--> STORAGE_LAYER
+    P1 & P2 & P3 & P4 & P5 --> ZALO_NET & MSGR_NET
+
+    FASTAPI_WEB <--> STORAGE_LAYER
+    FASTAPI_WEB -.->|"Bắn test / Xem snapshot POV"| ZALO_NET
 ```
 
 ---
 
-## ⚙️ 2. CHI TIẾT 4 CON BOT
+## ⚙️ 2. BẢNG ĐẶC TẢ CHI TIẾT 5 CON BOT (PENTA-BOT MATRIX)
 
 | Tiêu chí | Bot 1: Yuki 1 (HUIT) | Bot 2: Yuki 2 (VAA) | Bot 3: Yuki 3 (IUH) | Bot 4: Yuki 4 (UFM) | Bot 5: Yuki 5 (OU) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Đơn vị** | ĐH Công Thương TP.HCM | Học viện Hàng Không VN | ĐH Công Nghiệp TP.HCM | ĐH Tài chính - Marketing | Trường ĐH Mở TP.HCM (OU) |
-| **File chạy chính** | `bot.py` | `vaabot.py` | `iuh_bot.py` | `ufm_bot.py` & `vaa/ufm/bot.py` | `ou_bot.py` |
-| **File cấu hình** | `config.json` | `config_bot2.json`, `vaabot.json` | `config_iuh.json` | `config_ufm.json`, `vaa/ufm/config.json` | `config_ou.json` |
-| **Nguồn cào** | 17 Fanpages & Groups | 12 Fanpages & Groups | `doantn.iuh.edu.vn` | `hoatdong.ufm.edu.vn` | FB `diemrenluyenou` & Cổng `diemrl.ou.edu.vn` |
-| **Cơ chế xác thực** | Cookie Facebook Desktop | Cookie Facebook Desktop | Session Cookie + OCR Captcha | Tài khoản portal: `2621008460` | Cookie FB VAA + SSO OU Captcha AI (`2654092020`) |
-| **Database chống trùng** | `database.py` (`seen_posts.db`) | `database.py` (`seen_posts.db`) | `database.py` (bảng `iuh_posts`) | `ufm_bot.db` (bảng `ufm_activities`) | `ou_bot.db` (`seen_posts` & `seen_activities`) |
-| **Chu kỳ quét** | Mỗi 60 giây | Mỗi 60 giây | Mỗi 120 giây | Mỗi 180 giây | Mỗi 25-30 giây (Keep-alive 90s) |
-| **Đường dẫn Dashboard** | `/` (Trang chủ) | `/bot2` | `/bot3` | `/ufm` | `/bot5` hoặc `/ou` |
+| **Trường** | ĐH Công Thương TP.HCM | Học viện Hàng Không VN | ĐH Công Nghiệp TP.HCM | ĐH Tài chính - Marketing | ĐH Mở TP.HCM |
+| **File thực thi** | `bot.py` | `vaabot.py` | `iuh_bot.py` | `ufm_bot.py` (và `vaa/ufm/bot.py`) | `ou_bot.py` |
+| **File cấu hình** | `config.json` | `config_bot2.json`, `vaabot.json`, `vaa/config.json` | `config_iuh.json` | `config_ufm.json`, `vaa/ufm/config.json` | `config_ou.json` |
+| **Nguồn cào** | 16 Fanpages/Groups HUIT | 11 Fanpages/Groups VAA | `doantn.iuh.edu.vn/doanvien.html` | `hoatdong.ufm.edu.vn/DangKy` | FB `diemrenluyenou` & Cổng `diemrl.ou.edu.vn` |
+| **Cơ chế xác thực** | Cookie Facebook Desktop | Cookie Facebook Desktop | Session Cookie + OCR Captcha (`ddddocr`) | Form Auth + Session Cookie (`focusoncareer2111`) | Cookie FB + SSO Captcha AI (`2654092020`) |
+| **Database** | `seen_posts.db` | `seen_posts.db` (`bot2_posts`) | `seen_posts.db` (`iuh_posts`) | `ufm_bot.db` | `ou_bot.db` |
+| **Chu kỳ quét** | 60 giây | 60 giây | 120 giây | 180 giây | 25 - 30 giây |
+| **Route Web UI** | `/` (Trang chủ) | `/bot2` | `/bot3` | `/ufm` | `/bot5` |
+| **Tính năng POV** | - | - | Có (Nút POV Cổng IUH) | Có (Nút POV Cổng UFM) | Có (Nút POV Cổng OU) |
 
 ---
 
-## 🔄 3. CƠ CHẾ VẬN HÀNH CHI TIẾT CÁC PHÂN HỆ
+## 📱 3. DANH BẠ THREAD ID ZALO TOÀN HỆ THỐNG
 
-### 3.1. Phân hệ Cào Facebook (Bot 1 & Bot 2)
-1. **Desktop SSR Comet Scraping**:
-   - Sử dụng `requests.Session` kèm bộ headers Chrome Desktop thật (`User-Agent`, `Sec-Fetch-Dest: document`).
-   - Tải thẳng mã HTML của Fanpage/Group để bóc tách các thẻ `<script>` chứa payload JSON phản hồi từ Facebook SSR.
-   - Giải mã `message.text`, `creation_time`, `actors.name`, và `post_id`.
-   - **Lưu ý tối quan trọng**: Không dùng `mbasic.facebook.com` vì Meta đã chặn trả về lỗi 400.
-2. **Bộ lọc bài viết (Time & Content Filter)**:
-   - Chỉ nhận bài viết có mốc `creation_time` đăng trong vòng **$\le$ 2.0 giờ**.
-   - Bỏ qua các bài viết rỗng, bài chỉ chứa ảnh/link không kèm nội dung caption.
-   - Tự động vào link chi tiết (`fetch_full_post_content`) nếu nội dung xem trước quá ngắn (< 120 ký tự) để cào trọn vẹn link Google Form / link đăng ký.
-3. **Cơ chế Cảnh báo Cookie thông minh**:
-   - Khi phát hiện checkpoint hoặc hết hạn session, bot tự động kích hoạt **Chế độ ẩn danh (Guest Mode)** để tiếp tục cào các Fanpage công khai.
-   - Đồng thời tự động kích hoạt luồng bắn tin nhắn cảnh báo đến Zalo Admin Yuki (giới hạn tần suất 1 lần/giờ để không làm phiền).
+### 3.1. Tài khoản Bot Phát Tin (Sender)
+- **Tên hiển thị:** Yuki (UID: `637058638692425903`)
+- **Số điện thoại:** `0775000537`
 
-### 3.2. Phân hệ Cào Cổng Đoàn - Hội IUH (Bot 3)
-1. **Giải Captcha tự động bằng AI Local**:
-   - Sử dụng thư viện `ddddocr` trên VPS để đọc ảnh Captcha dạng số từ `doantn.iuh.edu.vn`.
-   - Tự động thử lại tối đa 5 lần nếu Captcha sai hoặc mạng chập chờn.
-2. **Quản lý Session**:
-   - Tự động duy trì cookie `.AspNetCore.Cookies` và `.AspNetCore.Antiforgery`.
-   - Nếu session hết hạn, bot tự động kích hoạt hàm đăng nhập lại ngầm định mà không cần người dùng thao tác.
+### 3.2. Kênh Thử Nghiệm & Cô Lập Tuyệt Đối (Test Isolation)
+> ⚠️ **NGHIÊM CẤM:** Tất cả các thao tác bấm nút Test trên Web Dashboard, debug gửi tin, hoặc kiểm thử tính năng **CHỈ ĐƯỢC PHÉP** gửi tới 2 mục sau:
+- **Nhóm demo:** Thread ID `475259879796859360` (Type: `GROUP`)
+- **Cá nhân Admin:** Trần Lê Phát - Thread ID `7662918962461429024` (Type: `USER`)
+- **Tuyệt đối không gửi tin test vào các nhóm sinh viên thật.**
 
-### 3.3. Phân hệ Cào Cổng Hoạt Động UFM (Bot 4)
-1. **Xác thực Portal**:
-   - Sử dụng tài khoản sinh viên `2621008460` / `focusoncareer2111`.
-   - Tự động trích xuất token `__RequestVerificationToken` từ form đăng nhập.
-2. **Cập nhật & Bền vững Cookie**:
-   - Sau khi đăng nhập thành công, tự động ghi đè Cookie mới vào `config.json` để tái sử dụng cho các chu kỳ quét sau.
-3. **Bóc tách bảng sự kiện**:
-   - So sánh `id_hoat_dong` và tên sự kiện với bảng `ufm_activities` trong SQLite để phát hiện ngay sự kiện mới mở đăng ký ĐRL.
+### 3.3. Các Nhóm Chính Thức Nhận Thông Báo Của Sinh Viên
+| Bot | Tên hiển thị trong Zalo | Thread ID | Loại |
+| :--- | :--- | :--- | :--- |
+| **Bot 1 (HUIT)** | `Săn drl Hu ít` | `7086011981379160878` | `GROUP` |
+| **Bot 1 (HUIT)** | `Thông báo drl` | `979670734727637728` | `GROUP` |
+| **Bot 1 (HUIT)** | `Thông báo ‼️` | `6036269726715046333` | `GROUP` |
+| **Bot 2 (VAA)** | `Tbao đrl VAA` | `3211449471524750057` | `GROUP` |
+| **Bot 2 (VAA)** | `TBao Skien , ĐRL Vaa -` | `387016397668099110` | `GROUP` |
+| **Bot 3 (IUH)** | `TB điểm rèn luyện IUH` | `6906603484437051809` | `GROUP` |
+| **Bot 3 (IUH)** | `IUH-TBAO DRL` | `4567863637705237532` | `GROUP` |
+| **Bot 4 (UFM)** | `Tbao , đky sự kiện UFM` | `3790417084788199906` | `GROUP` |
+| **Bot 4 (UFM)** | `Ufm và canh bạc drl` | `2349841347887711204` | `GROUP` |
+| **Bot 5 (OU)** | `Thu Phương` | `2565765564417722339` | `USER` |
 
----
-
-## 📡 4. CƠ CHẾ PHÂN PHỐI TIN NHẮN (DISPATCHER PIPELINE)
-
-### 4.1. Kênh Zalo (`zalo_sender.py`)
-- **Tài khoản Bot (Sender)**: Đăng nhập bằng Cookies & IMEI (`833054fc-...`), UID Zalo: `845005453098855468` (Phone: `+84384346537`).
-- **Tài khoản Quản trị & Nhận cảnh báo (Admin Recipient)**:
-  - **Tên hiển thị**: `Yuki`
-  - **UID Zalo**: `7581087306337796515`
-  - **Quyền hạn**: Nhận tin nhắn kiểm tra (Test Single/All), nhận cảnh báo khi Cookie Facebook/Zalo gặp sự cố.
-- **Kênh nhóm (Groups)**: Gửi tin định dạng đẹp mắt kèm thẻ `#DRL`, tiêu đề, tóm tắt nội dung và link gốc bài viết vào danh sách `target_groups` cấu hình trong file JSON.
-
-### 4.2. Kênh Facebook Messenger (`messenger_sender.py`)
-- **Tài khoản Bot**: UID `61595329828799` (Yu Ki).
-- **Cơ chế**: Sử dụng thư viện `fbchat-muqit` duy trì kết nối WebSocket thời gian thực tới MQTT broker của Meta (`edge-chat.facebook.com`).
-- Tự động hẹn giờ tái kết nối mỗi 30 - 45 phút để tránh rớt socket mạng.
+### 3.4. Danh sách các nhóm & Target đã bị xóa vĩnh viễn (KHÔNG BAO GIỜ THÊM LẠI)
+1. `Huit _CTV BOT tbao Zalo` (`6270243835909820050`) - Đã xóa theo yêu cầu.
+2. `TSTD Huit 2027` (`8647983209102501525`) - Đã xóa theo yêu cầu.
+3. `Thông báo P. CTSV HUIT 2` (`3098651132176283286`) - Đã xóa theo yêu cầu.
+4. `Marketing K26 – HUIT` (`3777114335248827133`) - Đã xóa theo yêu cầu.
+5. Target Facebook #14: `Yu Ki (FB Profile)` (`https://www.facebook.com/profile.php?id=61595329828799`) - Đã xóa khỏi danh sách cào Bot 2.
 
 ---
 
-## 🔐 5. BẢO MẬT & TRUY CẬP WEB DASHBOARD
+## 🛡️ 4. KIẾN TRÚC CHỐNG LẶP TIN (ANTI-DUPLICATE ARCHITECTURE)
 
-- **URL Dashboard**: `http://180.93.125.40:8000/`
-- **Mật khẩu bảo vệ**: `YUKILEGIT0`
-- **Cơ chế Authentication Guard**:
-  - Middleware kiểm tra Cookie đã ký HMAC `yuki_auth_session`.
-  - Nếu chưa đăng nhập hoặc cookie không hợp lệ ➔ Chuyển hướng ngay về trang `/login` (với các API trả về `401 Unauthorized`).
-  - Hỗ trợ lưu phiên đăng nhập 30 ngày (Remember Me).
-  - Nút **Thoát (Logout)** trên thanh điều hướng cho phép xóa phiên tức thì.
-- **Che giấu thông tin nhạy cảm**: Tuyệt đối không để lộ IP máy chủ hoặc đường dẫn hệ thống nội bộ trong các mẫu tin nhắn gửi vào Zalo / Messenger (thay thế bằng nhãn chuẩn `🌐 Hệ thống: Cloud Server 24/7`).
+Đây là thành phần cốt lõi đã được hoàn thiện để giải quyết triệt để 2 lỗi nghiêm trọng trong quá khứ:
+1. *Lỗi bài Minigame chỉ gửi 1 người rồi tắt.*
+2. *Lỗi hoạt động UFM mới mở không nổ chuông Zalo do bot tự khóa chính mình.*
+
+### 4.1. Nguyên tắc vàng của cơ chế chống lặp
+1. **`delivery_history` là Chân lý Duy nhất cho từng Người nhận (`target_id`):**
+   - Bảng `delivery_history` lưu trữ chi tiết: `(post_id, zalo_target_id, status = 'SUCCESS')`.
+   - Khi kiểm tra gửi cho nhóm $A$, bot chỉ hỏi: *"Nhóm $A$ đã nhận bài viết này thành công chưa?"*. Nếu chưa ➔ Bắt buộc phải gửi.
+2. **Cờ toàn cục (`seen_activities.is_sent`, `crawled_posts.is_sent_zalo`) CHỈ được kiểm tra khi `target_id is None`:**
+   - Tuyệt đối không kiểm tra cờ toàn cục khi đang duyệt danh sách từng nhóm.
+   - Nếu kiểm tra cờ toàn cục khi gửi từng nhóm, ngay khi nhóm đầu tiên (hoặc tài khoản test) nhận tin, cờ toàn cục bật lên sẽ làm tất cả các nhóm còn lại bị chặn (bỏ qua).
+3. **Thứ tự Ghi nhận Trạng thái Hoạt động:**
+   - Khi phát hiện bài mới / hoạt động mới: Ghi nhận vào DB với `is_sent = False` (chưa gửi).
+   - Tiến hành gọi `send_zalo_*` duyệt qua danh sách tất cả các nhóm được bật (`enabled: true`).
+   - Sau khi vòng lặp gửi tin hoàn tất: Nếu có ít nhất 1 nhóm gửi thành công (`any_success = True`), mới cập nhật `is_sent = True`.
+4. **Luôn chuẩn hóa `clean_text` trước các nhánh rẽ:**
+   - Biến `clean_text` (nội dung bỏ tag `@All` để lưu vào DB) phải được gán giá trị mặc định ngay đầu vòng lặp duyệt target, không được để trong nhánh `is_user` tránh lỗi `UnboundLocalError`.
 
 ---
 
-## 📋 6. BẢNG TRA CỨU NHANH THÔNG SỐ VẬN HÀNH
+## 🖥️ 5. MÁY CHỦ CLOUD VPS & DỊCH VỤ 24/7 (SYSTEMD)
 
-| Thông số / Tác vụ | Giá trị / Lệnh thực thi |
+### 5.1. Thông số kết nối VPS
+- **IP:** `180.93.125.40`
+- **SSH Port:** `22`
+- **User:** `root`
+- **Mật khẩu:** `2tLGYzo2Ihgl6wKX`
+- **Thư mục dự án:** `/root/huit-bot/`
+
+### 5.2. Vì sao tắt laptop thì VPS và Bot KHÔNG bị tắt?
+- Toàn bộ hệ thống chạy dưới dạng dịch vụ Linux ngầm: `huit-bot.service` (`/etc/systemd/system/huit-bot.service`).
+- `systemd` tự động khởi chạy tiến trình khi VPS boot và tự động hồi sinh tiến trình sau 5 giây nếu có crash (`Restart=always`, `RestartSec=5`).
+- Tiến trình chạy hoàn toàn độc lập trong nhân Linux của VPS, **không gắn với session SSH hay laptop cá nhân**.
+
+### 5.3. Cấu trúc khởi động `start.sh`
+```bash
+# 1. Khởi chạy Web Dashboard ở chế độ nền
+uvicorn web_app:app --host 0.0.0.0 --port 8000 &
+
+# 2. Khởi chạy 5 Bot đồng thời qua run_all.py (foreground supervisor)
+python -u run_all.py
+```
+`run_all.py` khởi tạo 5 luồng riêng biệt, mỗi luồng giám sát một tiến trình con (`subprocess.Popen`):
+- Luồng 1: `bot.py` (HUIT)
+- Luồng 2: `vaabot.py` (VAA)
+- Luồng 3: `iuh_bot.py` (IUH)
+- Luồng 4: `ufm_bot.py` (UFM)
+- Luồng 5: `ou_bot.py` (OU)
+Nếu bất kỳ bot nào gặp lỗi mạng văng ra, luồng giám sát sẽ tự động khởi động lại bot đó sau 5 giây mà không làm gián đoạn các bot khác.
+
+---
+
+## 🌐 6. WEB DASHBOARD & TÍNH NĂNG SNAPSHOT POV
+
+- **Địa chỉ truy cập:** `http://180.93.125.40:8000/`
+- **Mật khẩu:** `YUKILEGIT0` (Xác thực Cookie HMAC 30 ngày).
+- **Tính năng POV Cổng Trường (Real-time Snapshot):**
+  - Bot 3 (IUH), Bot 4 (UFM), Bot 5 (OU) có nút **"👁️ Xem Trực Tiếp Cổng Trường (POV)"** trên thanh điều khiển.
+  - Sử dụng Playwright Headless chụp ảnh màn hình trang đăng ký bên trong đúng phiên làm việc (session/cookies) của bot và hiển thị modal trực quan cho admin.
+  - Hỗ trợ nút **"Quét Ngay Lập Tức"** để kích hoạt chu kỳ quét cưỡng bức không cần đợi timer.
+
+---
+
+## ⚡ 7. BẢNG TRA CỨU LỆNH NHANH CHO AI & DEVELOPER
+
+| Nhu cầu thao tác | Lệnh thực thi qua SSH / Local |
 | :--- | :--- |
-| **IP VPS** | `180.93.125.40` (Port SSH: `22`, User: `root`, Pass: `2tLGYzo2Ihgl6wKX`) |
-| **Systemd Service** | `huit-bot` (`systemctl restart huit-bot`, `systemctl status huit-bot`) |
-| **Xem log VPS trực tiếp** | `journalctl -u huit-bot -f` |
-| **Mật khẩu Web Dashboard** | `YUKILEGIT0` |
-| **Zalo Bot Sender** | UID `845005453098855468` (Phone: `+84384346537`) |
-| **Zalo Admin Recipient** | UID `7581087306337796515` (Tên: `Yuki`) |
-| **Messenger Bot Sender** | UID `61595329828799` |
-| **Đồng bộ mã nguồn lên VPS** | `python sync_to_vps.py` (Tự tải file, kiểm tra biên dịch, khởi động lại service) |
-| **Đồng bộ mã nguồn lên GitHub** | `python github_sync.py` (Đẩy Git Commit tự động qua API không cần git CLI) |
-| **Kho GitHub Repo** | `https://github.com/yukilegit11-creator/huit-bot` |
-| **Thêm mục cào mới (Target)** | Thêm `{ "name": "...", "url": "...", "enabled": true }` vào `targets` trong `config.json` hoặc `config_bot2.json` |
-| **Thêm nhóm Zalo nhận tin** | Thêm `{ "id": "...", "name": "...", "type": "GROUP", "enabled": true }` vào `target_groups` trong config tương ứng |
-| **Cập nhật Cookie Facebook** | Dán JSON cookies vào mục Cấu hình trên Web Dashboard (hoặc ghi đè trường `fb_cookies` trong `config.json` / `config_bot2.json`) |
-
----
-
-> [!TIP]
-> **Kinh nghiệm vàng khi bảo trì:** Khi có sự cố không cào được bài, hãy kiểm tra theo đúng thứ tự 3 bước:
-> 1. Kiểm tra trạng thái service: `systemctl status huit-bot`.
-> 2. Kiểm tra log cào: Xem `journalctl -u huit-bot -n 50 --no-pager`.
-> 3. Nếu log báo cào 0 bài liên tục: Thử kiểm tra xem Fanpage mục tiêu có bài mới trong vòng 2 tiếng gần nhất hay không trước khi nghi ngờ lỗi cookie.
+| **Khởi động lại toàn bộ hệ thống** | `systemctl restart huit-bot` |
+| **Kiểm tra trạng thái 5 Bot & Web** | `systemctl status huit-bot --no-pager` |
+| **Xem log trực tiếp thời gian thực** | `journalctl -u huit-bot -f` |
+| **Xem 50 dòng log gần nhất** | `journalctl -u huit-bot -n 50 --no-pager` |
+| **Kiểm tra cổng Web 8000** | `ss -tlpn \| grep 8000` |
+| **Đồng bộ toàn bộ file từ máy lên VPS** | Chạy file `python sync_and_restart_vps.py` |
+| **Cập nhật Git Repo** | `https://github.com/yukilegit11-creator/huit-bot.git` |

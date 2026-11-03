@@ -31,7 +31,7 @@ def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
-ADMIN_ZALO_UID = "7581087306337796515"
+ADMIN_ZALO_UID = "7662918962461429024"
 last_ufm_admin_alert_time = 0
 
 def alert_admin_ufm_error(zalo_inst, error_title: str, detail_msg: str, throttle_secs: int = 1800):
@@ -243,12 +243,13 @@ def run_bot():
 
                         # 1. Trước đó chưa gửi thông báo (Baseline) mà bây giờ ĐANG MỞ ĐĂNG KÝ
                         if not old_is_sent and is_now_open:
-                            database.update_seen_is_sent(matched_id, is_sent=True)
-                            database.add_crawled_activity(act, action_type="NEW", is_sent=True)
                             log_msg = f"🎉 Phát hiện hoạt động MỚI MỞ ĐĂNG KÝ: {act['title']} (+{act['points']} ĐRL)"
                             print(log_msg)
                             database.log_event("ACTIVITY", log_msg)
-                            zalo.send_activity_alert(act, is_reopened=False)
+                            ok = zalo.send_activity_alert(act, is_reopened=False)
+                            if ok:
+                                database.update_seen_is_sent(matched_id, is_sent=True)
+                                database.add_crawled_activity(act, action_type="NEW", is_sent=True)
                             if messenger and config.get("messenger", {}).get("enabled", False):
                                 try:
                                     messenger.send_activity_alert(act, is_reopened=False)
@@ -273,12 +274,13 @@ def run_bot():
 
                         # 3. Trước đó chưa mở ('Hoạt động học kỳ', 'Chưa mở', ...) và bây giờ MỞ ĐĂNG KÝ
                         if not was_previously_open and is_now_open:
-                            database.update_seen_is_sent(matched_id, is_sent=True)
-                            database.add_crawled_activity(act, action_type="NEW", is_sent=True)
                             log_msg = f"🔥 Phát hiện hoạt động CHÍNH THỨC MỞ ĐĂNG KÝ: {act['title']} (+{act['points']} ĐRL)"
                             print(log_msg)
                             database.log_event("ACTIVITY", log_msg)
-                            zalo.send_activity_alert(act, is_reopened=False)
+                            ok = zalo.send_activity_alert(act, is_reopened=False)
+                            if ok:
+                                database.update_seen_is_sent(matched_id, is_sent=True)
+                                database.add_crawled_activity(act, action_type="NEW", is_sent=True)
                             if messenger and config.get("messenger", {}).get("enabled", False):
                                 try:
                                     messenger.send_activity_alert(act, is_reopened=False)
@@ -290,14 +292,18 @@ def run_bot():
 
                     # Hoạt động MỚI 100%
                     new_count += 1
-                    database.record_seen_activity(act, is_sent=True)
-                    database.add_crawled_activity(act, action_type="NEW", is_sent=True)
+                    database.record_seen_activity(act, is_sent=False)
 
                     log_msg = f"🎉 Phát hiện hoạt động MỚI: {act['title']} (+{act['points']} ĐRL)"
                     print(log_msg)
                     database.log_event("ACTIVITY", log_msg)
 
-                    zalo.send_activity_alert(act, is_reopened=False)
+                    ok = zalo.send_activity_alert(act, is_reopened=False)
+                    if ok:
+                        database.update_seen_is_sent(act["activity_id"], is_sent=True)
+                        database.add_crawled_activity(act, action_type="NEW", is_sent=True)
+                    else:
+                        database.add_crawled_activity(act, action_type="NEW", is_sent=False)
                     if messenger and config.get("messenger", {}).get("enabled", False):
                         try:
                             messenger.send_activity_alert(act, is_reopened=False)

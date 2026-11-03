@@ -270,7 +270,7 @@ def get_all_bot_status(db_file=None) -> dict:
     conn.close()
     return {r["key"]: r["value"] for r in rows}
 
-def record_seen_activity(act: dict, is_sent: bool = True, db_file=None):
+def record_seen_activity(act: dict, is_sent: bool = False, db_file=None):
     conn = get_connection(db_file)
     cursor = conn.cursor()
     now_vn = get_vn_now_str()
@@ -414,11 +414,15 @@ def is_activity_already_sent_zalo(activity_id: str, title: str = None, target_id
                 conn.close()
                 return True
 
-    # 3. Kiểm tra seen_activities is_sent = 1
-    cursor.execute("SELECT 1 FROM seen_activities WHERE activity_id = ? AND is_sent = 1", (str(activity_id),))
-    if cursor.fetchone() is not None:
-        conn.close()
-        return True
+    # 3. CHỈ kiểm tra seen_activities is_sent = 1 khi kiểm tra toàn cục (KHÔNG truyền target_id)
+    if not target_id:
+        try:
+            cursor.execute("SELECT 1 FROM seen_activities WHERE activity_id = ? AND is_sent = 1", (str(activity_id),))
+            if cursor.fetchone() is not None:
+                conn.close()
+                return True
+        except Exception:
+            pass
 
     conn.close()
     return False

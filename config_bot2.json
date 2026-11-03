@@ -1,317 +1,312 @@
 {
-  "instance_name": "Bot VAA / VAU (Học Viện Hàng Không)",
-  "bot_name": "Yuki 2 (VAA)",
-  "admin": {
-    "name": "Trần Lê Phát",
-    "github": "yukilegit11-creator",
-    "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
-    "role": "Admin & Lead Developer",
-    "zalo_uid": "7662918962461429024",
-    "auto_sync_github": true
-  },
-  "targets": [
-    {
-      "id": "target_1",
-      "name": "CLB Khoa Học Trẻ Học Viện Hàng Không Việt Nam",
-      "url": "https://www.facebook.com/vaa.ys2016"
-    },
-    {
-      "id": "target_2",
-      "name": "Trung tâm Nghiên cứu và phát triển số - VAU",
-      "url": "https://www.facebook.com/drd.vau"
-    },
-    {
-      "id": "target_3",
-      "name": "Đoàn Hội Khoa Ngoại Ngữ - Học viện Hàng không Việt Nam",
-      "url": "https://www.facebook.com/doanhoi.khoangoaingu.vaa"
-    },
-    {
-      "id": "target_4",
-      "name": "Đoàn Hội khoa Kỹ thuật Hàng không - Học viện Hàng không Việt Nam",
-      "url": "https://www.facebook.com/doanhoikhoakythuathangkhong"
-    },
-    {
-      "id": "target_5",
-      "name": "Đoàn Hội khoa Khai thác Hàng không - Học viện Hàng không Việt Nam",
-      "url": "https://www.facebook.com/doanhoikhoakhaithachangkhong"
-    },
-    {
-      "id": "target_6",
-      "name": "Đoàn - Hội khoa Quản trị kinh doanh - Học viện Hàng không Việt Nam",
-      "url": "https://www.facebook.com/vaa.doanhoikhoaquantrikinhdoanh"
-    },
-    {
-      "id": "target_7",
-      "name": "VAA Global-Citizen Students Club-GLOCIS",
-      "url": "https://www.facebook.com/profile.php?id=61576624683756"
-    },
-    {
-      "id": "target_8",
-      "name": "Đoàn Hội khoa Kinh tế Hàng không - Học viện Hàng không Việt Nam",
-      "url": "https://www.facebook.com/doanhoi.kinhtehangkhong.vaa"
-    },
-    {
-      "id": "target_9",
-      "name": "BOT CHECK TB",
-      "url": "https://www.facebook.com/profile.php?id=61595823548942"
-    },
-    {
-      "id": "target_10",
-      "name": "CLB Tổ Chức Sự Kiện Học Viện Hàng Không Việt Nam - VEPC",
-      "url": "https://www.facebook.com/vepc.vaa"
-    },
-    {
-      "id": "target_11",
-      "name": "Đoàn Thanh Niên - Hội Sinh Viên VAU",
-      "url": "https://www.facebook.com/DoanTNHoiSV.VAU"
-    },
-    {
-      "id": "target_12",
-      "name": "Yu Ki (FB Profile)",
-      "url": "https://www.facebook.com/profile.php?id=61595329828799"
-    }
-  ],
-  "fb_cookies": {
-    "ps_l": "1",
-    "datr": "QbjDap5S3XtDDPF8wUPLvuRU",
-    "fr": "1ta0PV5JoJsf44xQK.AWderoxfXNEFNdxNUlBb_GtLQH09ggN87ZKdwSVkNaAF1RANthI.Bq6dMY..AAA.0.0.Bq6dMk.AWdMelIuWNSitUe6sXZsAiM0nR4",
-    "xs": "20%3ADnGCXmH-2sB1vQ%3A2%3A1792852867%3A-1%3A-1%3A%3AAc1nZYFh651VvgtztzzypXdd9SquwcSHghqJk_0BRV8",
-    "c_user": "100087432870248",
-    "presence": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708842074%2C%22v%22%3A1%7D",
-    "dpr": "1.5",
-    "ps_n": "1",
-    "sb": "QbjDantBe3VGruYaEe2PSt3i",
-    "wd": "1280x593"
-  },
-  "zalo": {
-    "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
-    "target_thread_id": "3211449471524750057",
-    "target_type": "GROUP",
-    "target_group_name": "Tbao đrl VAA",
-    "auto_tag_all": true,
-    "target_groups": [
-      {
-        "id": "475259879796859360",
-        "name": "demo",
-        "type": "GROUP",
-        "enabled": true
-      },
-      {
-        "id": "3211449471524750057",
-        "name": "Tbao đrl VAA",
-        "type": "GROUP",
-        "enabled": true
-      },
-      {
-        "id": "387016397668099110",
-        "name": "TBao Skien , ĐRL Vaa -",
-        "type": "GROUP",
-        "enabled": true
-      },
-      {
-        "id": "7662918962461429024",
+    "instance_name": "Bot VAA / VAU (Học Viện Hàng Không)",
+    "bot_name": "Yuki 2 (VAA)",
+    "admin": {
         "name": "Trần Lê Phát",
-        "type": "USER",
-        "enabled": true
-      }
-    ],
-    "cookies": {
-      "zpdid": "41Bwd5pph34O49IUMlp0DnuHaf1OyCGw",
-      "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HG4MH1wMySKm1IQbcYBWf74rjeMQGX4b4p8dq",
-      "_zlang": "vn",
-      "_ga": "GA1.2.956594134.1793718596",
-      "_gid": "GA1.2.1558683245.1793718596",
-      "_ga_3EM8ZPYYN3": "GS2.2.s1793718596$o1$g0$t1793718596$j60$l0$h0",
-      "zpsid": "eMKnVcAlVqAZUYmFKw9P6jyiKKzAhbiPsYnBIqsuFHcZLayeJQ86UfnwLaDRzWDihoaAN3toLsRyUoPH9wDFVyT8I4u9c11cqtXFG3246nVPTrym0OCMOd4",
-      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
-      "zpw_sek": "abUD.466784528.a0.5HjT6HkdWcEOqWSEgKFL5VDXi7wgUVT4xHEpKCOCW5dOCx4bnWMcNkGBud7_VkWtzKrlMDiL4XyQGiVlOIdL5G",
-      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
-      "app.event.zalo.me": "3236038380622178657"
+        "github": "yukilegit11-creator",
+        "avatar_url": "https://avatars.githubusercontent.com/u/349174043?v=4",
+        "role": "Admin & Lead Developer",
+        "zalo_uid": "7662918962461429024",
+        "auto_sync_github": true
     },
-    "secret_key": "QePfENOULPpd0NFsKlH7dw=="
-  },
-  "supabase": {
-    "enabled": false,
-    "url": "",
-    "anon_key": ""
-  },
-  "filter_keywords": [
-    "link đăng ký",
-    "link dang ky",
-    "form",
-    "forms.gle",
-    "đăng ký",
-    "dang ky",
-    "điểm rèn luyện",
-    "diem ren luyen",
-    "đrl",
-    "ĐRL",
-    "drl",
-    "DRL",
-    "nrl",
-    "NRL",
-    "ngày rèn luyện",
-    "ngay ren luyen",
-    "Ngày rèn luyện",
-    "chuyên đề",
-    "chuyen de",
-    "Chuyên đề"
-  ],
-  "scanner": {
-    "max_post_age_hours": 2,
-    "check_interval_seconds": 30,
-    "delay_between_pages_seconds": 9,
-    "max_post_age_minutes": 10
-  },
-  "messenger": {
-    "enabled": true,
-    "cookies": [
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1828253638.676091,
-        "hostOnly": false,
-        "httpOnly": true,
-        "name": "ps_l",
-        "path": "/",
-        "sameSite": "lax",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "1"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1828253437.025433,
-        "hostOnly": false,
-        "httpOnly": true,
-        "name": "datr",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "-pbpavf2opPl_hPBKlMxbUIH"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1801484875.10707,
-        "hostOnly": false,
-        "httpOnly": true,
-        "name": "fr",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "1APj3j657FwOoV8e5.AWeEWApea_wBQ2fknEnrDy7G9FzSnfmbta_x7_tjtVBAipEuJI0.Bq6dNI..AAA.0.0.Bq6dNI.AWdT7XY8no0S8IXko7OLjPfr2Tg"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1825244875.107142,
-        "hostOnly": false,
-        "httpOnly": true,
-        "name": "xs",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "14%3AHcgpFYhcu3gPiw%3A2%3A1793705121%3A-1%3A-1%3A%3AAc0s2zC6XC4Y5OGGM3a1_elKwvJLPwVhemfjQMbVVw"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1825244875.106991,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "c_user",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "61595329828799"
-      },
-      {
-        "domain": ".facebook.com",
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "presence",
-        "path": "/",
-        "sameSite": null,
-        "secure": true,
-        "session": true,
-        "storeId": null,
-        "value": "C%7B%22lm3%22%3A%22g.1620250146795363%22%2C%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708880523%2C%22v%22%3A1%7D"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1794302633,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "dpr",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "0.75"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1828253638.676286,
-        "hostOnly": false,
-        "httpOnly": true,
-        "name": "ps_n",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "1"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1828265125.311024,
-        "hostOnly": false,
-        "httpOnly": true,
-        "name": "sb",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "-5bpaiCSb5HDa411EdNDilYJ"
-      },
-      {
-        "domain": ".facebook.com",
-        "expirationDate": 1794313676,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "wd",
-        "path": "/",
-        "sameSite": "lax",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "1853x893"
-      }
+    "targets": [
+        {
+            "id": "target_1",
+            "name": "CLB Khoa Học Trẻ Học Viện Hàng Không Việt Nam",
+            "url": "https://www.facebook.com/vaa.ys2016"
+        },
+        {
+            "id": "target_2",
+            "name": "Trung tâm Nghiên cứu và phát triển số - VAU",
+            "url": "https://www.facebook.com/drd.vau"
+        },
+        {
+            "id": "target_3",
+            "name": "Đoàn Hội Khoa Ngoại Ngữ - Học viện Hàng không Việt Nam",
+            "url": "https://www.facebook.com/doanhoi.khoangoaingu.vaa"
+        },
+        {
+            "id": "target_4",
+            "name": "Đoàn Hội khoa Kỹ thuật Hàng không - Học viện Hàng không Việt Nam",
+            "url": "https://www.facebook.com/doanhoikhoakythuathangkhong"
+        },
+        {
+            "id": "target_5",
+            "name": "Đoàn Hội khoa Khai thác Hàng không - Học viện Hàng không Việt Nam",
+            "url": "https://www.facebook.com/doanhoikhoakhaithachangkhong"
+        },
+        {
+            "id": "target_6",
+            "name": "Đoàn - Hội khoa Quản trị kinh doanh - Học viện Hàng không Việt Nam",
+            "url": "https://www.facebook.com/vaa.doanhoikhoaquantrikinhdoanh"
+        },
+        {
+            "id": "target_7",
+            "name": "VAA Global-Citizen Students Club-GLOCIS",
+            "url": "https://www.facebook.com/profile.php?id=61576624683756"
+        },
+        {
+            "id": "target_8",
+            "name": "Đoàn Hội khoa Kinh tế Hàng không - Học viện Hàng không Việt Nam",
+            "url": "https://www.facebook.com/doanhoi.kinhtehangkhong.vaa"
+        },
+        {
+            "id": "target_9",
+            "name": "BOT CHECK TB",
+            "url": "https://www.facebook.com/profile.php?id=61595823548942"
+        },
+        {
+            "id": "target_10",
+            "name": "CLB Tổ Chức Sự Kiện Học Viện Hàng Không Việt Nam - VEPC",
+            "url": "https://www.facebook.com/vepc.vaa"
+        },
+        {
+            "id": "target_11",
+            "name": "Đoàn Thanh Niên - Hội Sinh Viên VAU",
+            "url": "https://www.facebook.com/DoanTNHoiSV.VAU"
+        }
     ],
-    "target_groups": [
-      {
-        "id": "1773570903700841",
-        "name": "Nhóm demo (Facebook Messenger)",
-        "type": "GROUP",
-        "enabled": true
-      }
+    "fb_cookies": {
+        "ps_l": "1",
+        "datr": "QbjDap5S3XtDDPF8wUPLvuRU",
+        "fr": "1ta0PV5JoJsf44xQK.AWderoxfXNEFNdxNUlBb_GtLQH09ggN87ZKdwSVkNaAF1RANthI.Bq6dMY..AAA.0.0.Bq6dMk.AWdMelIuWNSitUe6sXZsAiM0nR4",
+        "xs": "20%3ADnGCXmH-2sB1vQ%3A2%3A1792852867%3A-1%3A-1%3A%3AAc1nZYFh651VvgtztzzypXdd9SquwcSHghqJk_0BRV8",
+        "c_user": "100087432870248",
+        "presence": "C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708842074%2C%22v%22%3A1%7D",
+        "dpr": "1.5",
+        "ps_n": "1",
+        "sb": "QbjDantBe3VGruYaEe2PSt3i",
+        "wd": "1280x593"
+    },
+    "zalo": {
+        "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
+        "target_thread_id": "3211449471524750057",
+        "target_type": "GROUP",
+        "target_group_name": "Tbao đrl VAA",
+        "auto_tag_all": true,
+        "target_groups": [
+            {
+                "id": "475259879796859360",
+                "name": "demo",
+                "type": "GROUP",
+                "enabled": true
+            },
+            {
+                "id": "3211449471524750057",
+                "name": "Tbao đrl VAA",
+                "type": "GROUP",
+                "enabled": true
+            },
+            {
+                "id": "387016397668099110",
+                "name": "TBao Skien , ĐRL Vaa -",
+                "type": "GROUP",
+                "enabled": true
+            },
+            {
+                "id": "7662918962461429024",
+                "name": "Trần Lê Phát",
+                "type": "USER",
+                "enabled": true
+            }
+        ],
+        "cookies": {
+            "zpdid": "41Bwd5pph34O49IUMlp0DnuHaf1OyCGw",
+            "zlogin_session": "kW4JGLyjCnIxFnDDLXTbH-Tj24HG4MH1wMySKm1IQbcYBWf74rjeMQGX4b4p8dq",
+            "_zlang": "vn",
+            "_ga": "GA1.2.956594134.1793718596",
+            "_gid": "GA1.2.1558683245.1793718596",
+            "_ga_3EM8ZPYYN3": "GS2.2.s1793718596$o1$g0$t1793718596$j60$l0$h0",
+            "zpsid": "eMKnVcAlVqAZUYmFKw9P6jyiKKzAhbiPsYnBIqsuFHcZLayeJQ86UfnwLaDRzWDihoaAN3toLsRyUoPH9wDFVyT8I4u9c11cqtXFG3246nVPTrym0OCMOd4",
+            "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
+            "zpw_sek": "abUD.466784528.a0.5HjT6HkdWcEOqWSEgKFL5VDXi7wgUVT4xHEpKCOCW5dOCx4bnWMcNkGBud7_VkWtzKrlMDiL4XyQGiVlOIdL5G",
+            "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIrk9UvpiepOt.1",
+            "app.event.zalo.me": "3236038380622178657"
+        },
+        "secret_key": "QePfENOULPpd0NFsKlH7dw=="
+    },
+    "supabase": {
+        "enabled": false,
+        "url": "",
+        "anon_key": ""
+    },
+    "filter_keywords": [
+        "link đăng ký",
+        "link dang ky",
+        "form",
+        "forms.gle",
+        "đăng ký",
+        "dang ky",
+        "điểm rèn luyện",
+        "diem ren luyen",
+        "đrl",
+        "ĐRL",
+        "drl",
+        "DRL",
+        "nrl",
+        "NRL",
+        "ngày rèn luyện",
+        "ngay ren luyen",
+        "Ngày rèn luyện",
+        "chuyên đề",
+        "chuyen de",
+        "Chuyên đề"
     ],
-    "target_thread_id": "1773570903700841",
-    "account": {
-      "email": "fat14112008@gmail.com",
-      "password": "YUKILEGIT0"
+    "scanner": {
+        "max_post_age_hours": 2,
+        "check_interval_seconds": 30,
+        "delay_between_pages_seconds": 9,
+        "max_post_age_minutes": 10
+    },
+    "messenger": {
+        "enabled": true,
+        "cookies": [
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1828253638.676091,
+                "hostOnly": false,
+                "httpOnly": true,
+                "name": "ps_l",
+                "path": "/",
+                "sameSite": "lax",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "1"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1828253437.025433,
+                "hostOnly": false,
+                "httpOnly": true,
+                "name": "datr",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "-pbpavf2opPl_hPBKlMxbUIH"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1801484875.10707,
+                "hostOnly": false,
+                "httpOnly": true,
+                "name": "fr",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "1APj3j657FwOoV8e5.AWeEWApea_wBQ2fknEnrDy7G9FzSnfmbta_x7_tjtVBAipEuJI0.Bq6dNI..AAA.0.0.Bq6dNI.AWdT7XY8no0S8IXko7OLjPfr2Tg"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1825244875.107142,
+                "hostOnly": false,
+                "httpOnly": true,
+                "name": "xs",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "14%3AHcgpFYhcu3gPiw%3A2%3A1793705121%3A-1%3A-1%3A%3AAc0s2zC6XC4Y5OGGM3a1_elKwvJLPwVhemfjQMbVVw"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1825244875.106991,
+                "hostOnly": false,
+                "httpOnly": false,
+                "name": "c_user",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "61595329828799"
+            },
+            {
+                "domain": ".facebook.com",
+                "hostOnly": false,
+                "httpOnly": false,
+                "name": "presence",
+                "path": "/",
+                "sameSite": null,
+                "secure": true,
+                "session": true,
+                "storeId": null,
+                "value": "C%7B%22lm3%22%3A%22g.1620250146795363%22%2C%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793708880523%2C%22v%22%3A1%7D"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1794302633,
+                "hostOnly": false,
+                "httpOnly": false,
+                "name": "dpr",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "0.75"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1828253638.676286,
+                "hostOnly": false,
+                "httpOnly": true,
+                "name": "ps_n",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "1"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1828265125.311024,
+                "hostOnly": false,
+                "httpOnly": true,
+                "name": "sb",
+                "path": "/",
+                "sameSite": "no_restriction",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "-5bpaiCSb5HDa411EdNDilYJ"
+            },
+            {
+                "domain": ".facebook.com",
+                "expirationDate": 1794313676,
+                "hostOnly": false,
+                "httpOnly": false,
+                "name": "wd",
+                "path": "/",
+                "sameSite": "lax",
+                "secure": true,
+                "session": false,
+                "storeId": null,
+                "value": "1853x893"
+            }
+        ],
+        "target_groups": [
+            {
+                "id": "1773570903700841",
+                "name": "Nhóm demo (Facebook Messenger)",
+                "type": "GROUP",
+                "enabled": true
+            }
+        ],
+        "target_thread_id": "1773570903700841",
+        "account": {
+            "email": "fat14112008@gmail.com",
+            "password": "YUKILEGIT0"
+        }
+    },
+    "dashboard_auth": {
+        "enabled": true,
+        "password": "YUKILEGIT0"
     }
-  },
-  "dashboard_auth": {
-    "enabled": true,
-    "password": "YUKILEGIT0"
-  }
 }

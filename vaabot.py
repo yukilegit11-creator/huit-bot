@@ -259,9 +259,14 @@ def run_bot():
                                 database.log_event("FILTER", f"[Yuki 2 (VAA)] Bỏ qua gửi Zalo do đã quá 10 phút: {fresh_reason}", db_file=DB_TARGET)
                                 continue
 
-                            # 3.2. Nghiêm cấm gửi trùng lặp bài viết đã gửi thành công trước đó
-                            if database.is_post_already_sent_zalo(ident, content=p.get("content", ""), db_file=DB_TARGET):
-                                print(f"      🛑 [Yuki 2 (VAA)] Bài viết [{ident}] đã từng gửi Zalo trước đó, nghiêm cấm gửi lần 2!")
+                            # 3.2. Nghiêm cấm gửi trùng lặp bài viết nếu tất cả nhóm đã nhận tin thành công
+                            enabled_targets = [t for t in config.get("zalo", {}).get("target_groups", []) if t.get("enabled", True)]
+                            all_sent = len(enabled_targets) > 0 and all(
+                                database.is_post_already_sent_zalo(ident, content=p.get("content", ""), target_id=str(t.get("id")), db_file=DB_TARGET)
+                                for t in enabled_targets
+                            )
+                            if all_sent:
+                                print(f"      🛑 [Yuki 2 (VAA)] Bài viết [{ident}] đã được gửi tới toàn bộ nhóm nhận tin trước đó, bỏ qua!")
                                 continue
 
                             print(f"      🎯 [Yuki 2 (VAA)] Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo Bot 2...")

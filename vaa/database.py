@@ -304,11 +304,15 @@ def is_post_already_sent_zalo(post_id: str, content: str = None, target_id: str 
         conn.close()
         return True
 
-    # 2. Kiểm tra trong crawled_posts theo is_sent_zalo = 1
-    cursor.execute("SELECT 1 FROM crawled_posts WHERE post_id = ? AND is_sent_zalo = 1", (str(post_id),))
-    if cursor.fetchone() is not None:
-        conn.close()
-        return True
+    # 2. CHỈ kiểm tra crawled_posts theo is_sent_zalo = 1 khi kiểm tra toàn cục (không truyền target_id cụ thể)
+    if not target_id:
+        try:
+            cursor.execute("SELECT 1 FROM crawled_posts WHERE post_id = ? AND is_sent_zalo = 1", (str(post_id),))
+            if cursor.fetchone() is not None:
+                conn.close()
+                return True
+        except Exception:
+            pass
 
     # 3. Kiểm tra nội dung bài viết trong delivery_history
     if content:

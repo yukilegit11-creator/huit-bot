@@ -641,10 +641,19 @@ class ZaloDispatcher:
             else:
                 db_chk = database.DB_FILE
 
-            if database.is_post_already_sent_zalo(pid, post_data.get("content", ""), db_file=db_chk):
-                print(f"🛑 [Chống lặp tuyệt đối] Bài viết ID {pid} ('{content_key[:30]}...') đã được gửi thành công trước đó trong SQLite DB. Nghiêm cấm gửi lần 2!")
-                self._sent_cache[post_ident] = now_ts
-                return True
+            if target_thread_id:
+                if database.is_post_already_sent_zalo(pid, post_data.get("content", ""), target_id=str(target_thread_id), db_file=db_chk):
+                    print(f"🛑 [Chống lặp tuyệt đối] Bài viết ID {pid} ('{content_key[:30]}...') đã được gửi tới target {target_thread_id} trước đó.")
+                    return True
+            else:
+                all_sent = len(target_list) > 0 and all(
+                    database.is_post_already_sent_zalo(pid, post_data.get("content", ""), target_id=str(g["id"]), db_file=db_chk)
+                    for g in target_list
+                )
+                if all_sent:
+                    print(f"🛑 [Chống lặp tuyệt đối] Bài viết ID {pid} ('{content_key[:30]}...') đã được gửi tới TOÀN BỘ nhóm nhận tin trước đó. Nghiêm cấm gửi lại!")
+                    self._sent_cache[post_ident] = now_ts
+                    return True
         except Exception as ex_db_chk:
             print(f"Lỗi kiểm tra trùng lặp DB: {ex_db_chk}")
 

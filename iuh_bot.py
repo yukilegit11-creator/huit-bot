@@ -343,13 +343,17 @@ def run_bot():
                         continue
 
                     # Hoạt động MỚI 100% (vừa xuất hiện trong chu kỳ này, <= 1 chu kỳ quét ~ vài giây)
-                    # -> Lưu DB TRƯỚC rồi gửi Zalo đúng 1 lần duy nhất
+                    # -> Lưu DB TRƯỚC với is_sent=False rồi gửi Zalo đúng 1 lần duy nhất
                     new_count += 1
-                    database.record_seen_activity(act, is_sent=True, db_file=DB_TARGET)
-                    database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=DB_TARGET)
+                    database.record_seen_activity(act, is_sent=False, db_file=DB_TARGET)
                     
                     database.log_event("ACTIVITY", f"Phát hiện hoạt động MỚI: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
-                    send_zalo_iuh(zalo, act, is_reopened=False)
+                    ok = send_zalo_iuh(zalo, act, is_reopened=False)
+                    if ok:
+                        database.update_seen_is_sent(aid, is_sent=True, db_file=DB_TARGET)
+                        database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=DB_TARGET)
+                    else:
+                        database.add_crawled_activity(act, action_type="NEW", is_sent=False, db_file=DB_TARGET)
                     if messenger and config.get("messenger", {}).get("enabled", False):
                         try:
                             messenger.send_activity_alert(act, is_reopened=False, db_file=DB_TARGET, unit_label="Đơn vị tổ chức")
