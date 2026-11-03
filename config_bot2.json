@@ -109,17 +109,17 @@
       }
     ],
     "cookies": {
-      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8W-dUoidafSW7QSxgNHJLE8V9ldfJSp.1",
+      "__zi-legacy": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA2SfpXg3Om.1",
       "_ga": "GA1.2.1298407733.1793676454",
       "_zlang": "vn",
       "_ga_3EM8ZPYYN3": "GS2.2.s1793681845",
       "_gid": "GA1.2.120731817.1793676458",
-      "zpw_sek": "oPV6.404184050.a0.0bCDkNS3oGxqTanZ9orRUtqFFX0a5ta9Qa5qK49x40v0O1rFSbWl3q4LCH5X46PPUoFXDbNmLYncBBuGxqTRUm",
+      "zpw_sek": "pt54.466784528.a0.pEx5gaxrrp7DW59S_160HwOpvIp_Aw9mwqFuBOaXytFlTBKFhLh94wn7pogwBBrbe1yw2exCZH2z42mfD7k0Hm",
       "ZConsentDenied": "timestamp=1793679453752&location=https://zalo.me/pc",
-      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8W-dUoidafSW7QSxgNHJLE8V9ldfJSp.1",
+      "__zi": "3000.SSZzejyD6zOgdh2mtnLQWYQN_RAG01ICFjIXe9fEM8Wud-gic4rTY72RxwtNIbA2SfpXg3Om.1",
       "_ga_YS1V643LGV": "GS2.1.s1793681842",
-      "app.event.zalo.me": "5649720127043044590",
-      "zpsid": "7eF4.404184050.4.LySYxeDftYDnCiaxZsdU8_OQh1UpNUyRjrdh4utJat1UP8b3WeorokbftYC"
+      "app.event.zalo.me": "3236038380622178657",
+      "zpsid": "ONtp.466784528.9.AkrrAkBblw_oT6sqxkM_hvUMpPlKquYNrj2Db-nVylm_wEZFuqdHHeZblwy"
     }
   },
   "supabase": {
@@ -151,5 +151,160 @@
     "check_interval_seconds": 30,
     "delay_between_pages_seconds": 9,
     "max_post_age_minutes": 10
+  },
+  "messenger": {
+    "enabled": true,
+    "cookies": [
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1828244071.081721,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "ps_l",
+        "path": "/",
+        "sameSite": "lax",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "1"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1828169673.421974,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "datr",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "yE_oaikA_BpQ9ptfhYVdVcJr"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1801460070.560389,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "fr",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "1dAtNBSnXaVwDzODb.AWdYHAzWkzwRov2f4QPM92RagnOPgKSMaNHErqPlI23ExpgGLpk.Bq6WpN..AAA.0.0.Bq6XJj.AWej4-zEGSfo5nS165Gsn3xnZZk"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1825217999.406145,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "xs",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "11%3AOOp5G84zDO3otQ%3A2%3A1793610749%3A-1%3A-1%3A%3AAc3l7Waui5PXsZJlL1MABGmQXPaWeqn7Y0C13Rds-g"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1794215534.793657,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "locale",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "vi_VN"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1825217999.405976,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "c_user",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "61574475721537"
+      },
+      {
+        "domain": ".facebook.com",
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "presence",
+        "path": "/",
+        "sameSite": null,
+        "secure": true,
+        "session": true,
+        "storeId": null,
+        "value": "C%7B%22lm3%22%3A%22u.100067484752827%22%2C%22t3%22%3A%5B%5D%2C%22utc3%22%3A1793684137561%2C%22v%22%3A1%7D"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1794288874,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "dpr",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "1.2000000476837158"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1828244071.081817,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "ps_n",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "1"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1828170752.038199,
+        "hostOnly": false,
+        "httpOnly": true,
+        "name": "sb",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "yE_oamQF97AaPZ6Q_kZ6_A7F"
+      },
+      {
+        "domain": ".facebook.com",
+        "expirationDate": 1794288874,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "wd",
+        "path": "/",
+        "sameSite": "lax",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "1600x742"
+      }
+    ],
+    "target_groups": [
+      {
+        "id": "1773570903700841",
+        "name": "Nhóm Messenger UFM",
+        "type": "GROUP",
+        "enabled": true
+      }
+    ]
   }
 }

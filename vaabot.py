@@ -13,16 +13,19 @@ if sys.platform == "win32":
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Tự động nạp file cấu hình (Ưu tiên vaabot.json hoặc config_bot2.json)
-CONFIG_FILE = os.path.join(SCRIPT_DIR, "vaabot.json")
-if not os.path.exists(CONFIG_FILE):
-    CONFIG_FILE = os.path.join(SCRIPT_DIR, "config_bot2.json")
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config_bot2.json")
 
 from scraper import FacebookCometScraper
 from zalo_sender import ZaloDispatcher
 import zalo_sender
 from supabase_client import SupabaseDispatcher
 import database
+
+try:
+    from messenger_sender import MessengerDispatcher
+    HAS_MESSENGER = True
+except ImportError:
+    HAS_MESSENGER = False
 
 DB_TARGET = database.BOT2_DB_FILE
 
@@ -41,14 +44,14 @@ def matches_filter_keywords(text: str, keywords: list) -> tuple:
 
 def run_bot():
     print("=" * 60)
-    print("🚀 [YUKI 2 - VAA BOT] HỆ THỐNG CÀO FACEBOOK & BẮN ZALO 24/7 (HỌC VIỆN HÀNG KHÔNG)")
+    print("🚀 HỆ THỐNG BOT KÊNH 2: CÀO FACEBOOK & BẮN ZALO 24/7 (ĐỘC LẬP)")
     print("=" * 60)
 
     config = load_config()
     targets = config.get("targets", [])
     fb_cookies = config.get("fb_cookies", {})
     scanner_cfg = config.get("scanner", {})
-    max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
+    max_age_hours = scanner_cfg.get("max_post_age_hours", 0.1667)
     check_interval = scanner_cfg.get("check_interval_seconds", 30)
     delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
 
@@ -56,6 +59,7 @@ def run_bot():
     scraper = FacebookCometScraper(fb_cookies)
     zalo = ZaloDispatcher(CONFIG_FILE)
     supabase = SupabaseDispatcher(CONFIG_FILE)
+    messenger = MessengerDispatcher(CONFIG_FILE, db_file=DB_TARGET) if HAS_MESSENGER else None
 
     # Khởi tạo DB và ghi nhận trạng thái khởi động ngay lập tức
     database.init_db(DB_TARGET)
@@ -74,6 +78,13 @@ def run_bot():
     except Exception as ze:
         print(f"⚠️ Lỗi kết nối Zalo Bot 2: {ze}")
         database.log_event("ZALO", f"⚠️ Lỗi kết nối Zalo Bot 2: {ze}", db_file=DB_TARGET)
+
+    if messenger and config.get("messenger", {}).get("enabled", False):
+        print("🔌 Khởi động kết nối Facebook Messenger cho Bot 2 (VAA)...")
+        if messenger.connect():
+            print("✅ Kết nối Facebook Messenger Bot 2 thành công!")
+        else:
+            print("⚠️ Kết nối Facebook Messenger Bot 2 tạm thời chưa khả dụng.")
 
     cycle = 0
     total_new_posts = 0
@@ -103,7 +114,7 @@ def run_bot():
             fb_cookies = config.get("fb_cookies", {})
             scraper.cookies = fb_cookies
             scanner_cfg = config.get("scanner", {})
-            max_age_hours = scanner_cfg.get("max_post_age_hours", 1.0)
+            max_age_hours = scanner_cfg.get("max_post_age_hours", 2.0)
             check_interval = scanner_cfg.get("check_interval_seconds", 30)
             delay_between_pages = scanner_cfg.get("delay_between_pages_seconds", 9)
         except Exception:
@@ -183,7 +194,7 @@ def run_bot():
                             # 3.1. Kiểm tra nghiêm ngặt quy định 10 phút trước khi gửi
                             is_fresh, fresh_reason = zalo_sender.is_post_fresh_within_10_minutes(p)
                             if not is_fresh:
-                                print(f"      ⏳ [Yuki 2 (VAA)] Bỏ qua gửi Zalo do quá 10 phút: {fresh_reason}")
+                                print(f"      ⏳ [Yuki 2 (VAA)] Bỏ qua gửi Zalo: {fresh_reason}")
                                 database.log_event("FILTER", f"[Yuki 2 (VAA)] Bỏ qua gửi Zalo do đã quá 10 phút: {fresh_reason}", db_file=DB_TARGET)
                                 continue
 
@@ -194,9 +205,16 @@ def run_bot():
 
                             print(f"      🎯 [Yuki 2 (VAA)] Khớp từ khóa [{matched_kw}] -> Đang gửi vào Zalo Bot 2...")
                             database.log_event("FILTER", f"[Yuki 2 (VAA)] Khớp từ khóa [{matched_kw}] -> Đang gửi Zalo...", db_file=DB_TARGET)
-                            sent_zalo = zalo.send_alert(p, page_name)
+                            sent_zalo = zalo.send_alert(p, page_name, matched_kw=matched_kw)
                             if sent_zalo:
                                 database.mark_post_sent_zalo(ident, db_file=DB_TARGET)
+
+                            # Gửi song song qua Facebook Messenger
+                            if messenger and config.get("messenger", {}).get("enabled", False):
+                                try:
+                                    messenger.send_post_alert(p, page_name, matched_kw=matched_kw, db_file=DB_TARGET)
+                                except Exception as me:
+                                    print(f"      ⚠️ [Yuki 2] Lỗi gửi Messenger: {me}")
                         else:
                             print(f"      ⏩ [Yuki 2 (VAA)] Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
                             database.log_event("FILTER", f"[Yuki 2 (VAA)] Bỏ qua gửi Zalo (bài viết không chứa từ khóa lọc)", db_file=DB_TARGET)

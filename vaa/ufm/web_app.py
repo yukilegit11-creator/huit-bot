@@ -2528,6 +2528,365 @@ def dashboard():
 
       Swal.fire('Đồng bộ xong!', `Đã nạp ${data.groups.length} nhóm từ Zalo!`, 'success');
       renderTargetGroupsEditor(existingGroups);
+      renderAllActiveChannels();
+    }
+
+    // ==========================================
+    // JS CHO KÊNH FACEBOOK MESSENGER
+    // ==========================================
+
+    function renderAllActiveChannels() {
+      const activePillContainer = document.getElementById('activeChannelsList');
+      if (!activePillContainer) return;
+
+      let pillsHtml = '';
+      const zaloGroups = currentConfig.zalo?.target_groups || [];
+      zaloGroups.forEach(g => {
+        if (g.enabled === true || g.enabled === 'true') {
+          pillsHtml += `
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-medium">
+              <i class="bi bi-chat-dots-fill text-xs"></i>
+              <span>[Zalo] ${g.name}</span>
+            </span>
+          `;
+        }
+      });
+
+      const isMsgEnabled = currentConfig.messenger?.enabled === true;
+      if (isMsgEnabled) {
+        const msgGroups = currentConfig.messenger?.target_groups || [];
+        msgGroups.forEach(g => {
+          if (g.enabled === true || g.enabled === 'true') {
+            pillsHtml += `
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-medium">
+                <i class="bi bi-messenger text-xs"></i>
+                <span>[FB] ${g.name}</span>
+              </span>
+            `;
+          }
+        });
+      }
+
+      activePillContainer.innerHTML = pillsHtml || '<span class="text-xs text-gray-500">Chưa có kênh nào bật nhận tin</span>';
+    }
+
+    function renderMessengerGroupsEditor(groups) {
+      const container = document.getElementById('messengerGroupsContainer');
+      if (!container) return;
+
+      if (!groups || groups.length === 0) {
+        container.innerHTML = '<div class="text-xs text-gray-500 py-4 text-center">Chưa có nhóm Messenger nào.<br>Bấm <b>"Thêm ID"</b> để dán Thread ID nhóm hoặc bấm <b>"Đồng bộ FB"</b>.</div>';
+        return;
+      }
+
+      let html = '';
+      groups.forEach((g, idx) => {
+        const isEnabled = g.enabled === true || g.enabled === 'true';
+        html += `
+          <div class="flex items-center justify-between p-2.5 rounded-lg bg-gray-800/80 border border-blue-900/40 text-xs">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="msg_grp_chk_${idx}" ${isEnabled ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 bg-gray-900 border-gray-700 focus:ring-blue-500">
+              <div>
+                <div class="font-semibold text-white flex items-center gap-1.5">
+                  <i class="bi bi-messenger text-sky-400"></i>
+                  <span>${g.name}</span>
+                </div>
+                <div class="text-[10px] text-gray-500 font-mono">Thread ID: ${g.id}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="triggerTestMessenger('${g.id}')" class="px-2 py-1 rounded bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[11px] font-medium transition" title="Gửi tin thử nghiệm vào nhóm này">
+                Thử tin
+              </button>
+              <button onclick="removeMessengerGroup('${g.id}')" class="px-2 py-1 rounded bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-medium transition" title="Xóa nhóm khỏi danh sách">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    async function toggleMessengerChannel() {
+      try {
+        const res = await fetch('/api/messenger/toggle', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire('Thành công', data.message, 'success');
+          if (!currentConfig.messenger) currentConfig.messenger = {};
+          currentConfig.messenger.enabled = data.enabled;
+          fetchStatus();
+          renderAllActiveChannels();
+        }
+      } catch (e) {
+        Swal.fire('Lỗi', 'Không thể đổi trạng thái Messenger: ' + e, 'error');
+      }
+    }
+
+    async function saveMessengerGroupsConfig() {
+      if (!currentConfig.messenger) currentConfig.messenger = {};
+      const groups = currentConfig.messenger.target_groups || [];
+      groups.forEach((g, idx) => {
+        const chk = document.getElementById(`msg_grp_chk_${idx}`);
+        if (chk) {
+          g.enabled = chk.checked;
+        }
+      });
+
+      try {
+        const res = await fetch('/api/messenger/save-groups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groups: groups })
+        });
+        const data = await res.json();
+        Swal.fire('Đã lưu!', 'Danh sách nhóm Messenger đã được cập nhật.', 'success');
+        renderMessengerGroupsEditor(groups);
+        renderAllActiveChannels();
+        fetchStatus();
+      } catch (e) {
+        Swal.fire('Lỗi', 'Không thể lưu danh sách: ' + e, 'error');
+      }
+    }
+
+    async function openAddMessengerGroupModal() {
+      const { value: formValues } = await Swal.fire({
+        title: '➕ Thêm Nhóm Messenger',
+        html: `
+          <div class="text-left text-xs space-y-3 text-gray-300">
+            <div>
+              <label class="block text-gray-400 mb-1 font-semibold">Thread ID nhóm Messenger (*):</label>
+              <input id="swalMsgGroupId" class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white font-mono text-xs focus:outline-none focus:border-blue-500" placeholder="VD: 749281749201948">
+              <span class="text-[10px] text-gray-500">Mẹo: Mở nhóm chat trên messenger.com trên máy tính, nhìn vào thanh URL: messenger.com/t/<b>123456789</b> -> dãy số đó chính là Thread ID.</span>
+            </div>
+            <div>
+              <label class="block text-gray-400 mb-1 font-semibold">Tên gợi nhớ của nhóm:</label>
+              <input id="swalMsgGroupName" class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white text-xs focus:outline-none focus:border-blue-500" placeholder="VD: Nhóm Hoạt Động K26 UFM">
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Thêm Ngay',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#2563eb',
+        preConfirm: () => {
+          const tid = document.getElementById('swalMsgGroupId').value.trim();
+          const tname = document.getElementById('swalMsgGroupName').value.trim();
+          if (!tid) {
+            Swal.showValidationMessage('Vui lòng nhập Thread ID nhóm!');
+            return false;
+          }
+          return { thread_id: tid, name: tname };
+        }
+      });
+
+      if (formValues) {
+        try {
+          const res = await fetch('/api/messenger/add-group', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formValues)
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire('Thành công', data.message, 'success');
+            await loadConfigForm();
+            fetchStatus();
+          } else {
+            Swal.fire('Không thể thêm', data.message, 'error');
+          }
+        } catch (e) {
+          Swal.fire('Lỗi', 'Không thể kết nối API: ' + e, 'error');
+        }
+      }
+    }
+
+    async function removeMessengerGroup(threadId) {
+      const confirm = await Swal.fire({
+        title: 'Xóa nhóm Messenger?',
+        text: `Bạn có chắc muốn xóa nhóm có Thread ID ${threadId} khỏi danh sách nhận thông báo?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa nhóm',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#e11d48'
+      });
+
+      if (confirm.isConfirmed) {
+        try {
+          const res = await fetch('/api/messenger/remove-group', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thread_id: threadId })
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire('Đã xóa', data.message, 'success');
+            await loadConfigForm();
+            fetchStatus();
+          } else {
+            Swal.fire('Lỗi', data.message, 'error');
+          }
+        } catch (e) {
+          Swal.fire('Lỗi', 'Không thể xóa nhóm: ' + e, 'error');
+        }
+      }
+    }
+
+    async function fetchMessengerGroupsFromClient() {
+      Swal.fire({
+        title: 'Đang quét danh sách nhóm từ Facebook...',
+        html: '<div class="text-xs text-gray-400">Bot đang dùng cookie để lấy danh sách hội thoại nhóm gần đây.</div>',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        const res = await fetch('/api/messenger/fetch-groups');
+        const data = await res.json();
+        if (!data.success) {
+          Swal.fire('Lỗi', data.message, 'error');
+          return;
+        }
+
+        const groups = data.groups || [];
+        if (groups.length === 0) {
+          Swal.fire('Thông báo', 'Không tìm thấy nhóm Messenger nào gần đây trong hộp thư tài khoản.', 'info');
+          return;
+        }
+
+        const existingGroups = currentConfig.messenger?.target_groups || [];
+        const existingIds = new Set(existingGroups.map(g => String(g.id)));
+
+        let addedCount = 0;
+        for (const g of groups) {
+          if (!existingIds.has(String(g.id))) {
+            existingGroups.push({
+              id: String(g.id),
+              name: g.name || `Nhóm ${g.id}`,
+              type: "GROUP",
+              enabled: true
+            });
+            addedCount++;
+          }
+        }
+
+        if (!currentConfig.messenger) currentConfig.messenger = {};
+        currentConfig.messenger.target_groups = existingGroups;
+
+        await fetch('/api/config/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentConfig)
+        });
+
+        Swal.fire('Đồng bộ xong!', `Đã nạp ${groups.length} nhóm (Thêm mới ${addedCount} nhóm)!`, 'success');
+        renderMessengerGroupsEditor(existingGroups);
+        renderAllActiveChannels();
+        fetchStatus();
+      } catch (e) {
+        Swal.fire('Lỗi', 'Không thể đồng bộ: ' + e, 'error');
+      }
+    }
+
+    async function triggerTestMessenger(targetId) {
+      Swal.fire({
+        title: 'Đang gửi tin thử nghiệm Messenger...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        const res = await fetch('/api/messenger/test-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_id: targetId || null })
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire('Thành công!', data.message, 'success');
+        } else {
+          Swal.fire('Thất bại', data.message, 'error');
+        }
+        fetchLogs();
+      } catch (e) {
+        Swal.fire('Lỗi', 'Không thể gửi tin thử nghiệm: ' + e, 'error');
+      }
+    }
+
+    async function checkMessengerSessionNow() {
+      Swal.fire({
+        title: 'Đang kiểm tra kết nối Facebook...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+      try {
+        const res = await fetch('/api/messenger/check-connection', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire('Tuyệt vời!', data.message, 'success');
+        } else {
+          Swal.fire('Cảnh báo phiên!', data.message, 'warning');
+        }
+        fetchStatus();
+      } catch (e) {
+        Swal.fire('Lỗi', 'Không thể kết nối API: ' + e, 'error');
+      }
+    }
+
+    function openMessengerCookieModal() {
+      Swal.fire({
+        title: '🔑 Cập Nhật Cookie Facebook Messenger',
+        html: `
+          <div class="text-left text-xs space-y-3 text-gray-300">
+            <p class="text-gray-400">Dán chuỗi JSON Cookie Facebook (mảng từ tiện ích C3C FB State, Cookie-Editor hoặc EditThisCookie) vào bên dưới:</p>
+            <textarea id="swalMessengerCookieInput" rows="7" class="w-full p-2.5 rounded-xl bg-gray-900 border border-gray-700 font-mono text-[11px] text-sky-300 focus:outline-none focus:border-blue-500 custom-scroll" placeholder='[&#10;  { "name": "c_user", "value": "1000..." },&#10;  { "name": "xs", "value": "..." }&#10;]'></textarea>
+            <div class="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] space-y-1">
+              <div>💡 <b>Cách lấy cookie Facebook dễ nhất:</b></div>
+              <div>1. Đăng nhập facebook.com trên trình duyệt máy tính.</div>
+              <div>2. Dùng tiện ích <b>Cookie-Editor</b> hoặc <b>C3C State Extractor</b>, bấm Export -> dạng <b>JSON</b>.</div>
+              <div>3. Dán toàn bộ vào ô trên và bấm "Xác Thực & Lưu Ngay".</div>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check-circle-fill"></i> Xác Thực & Lưu Ngay',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#374151',
+        focusConfirm: false,
+        preConfirm: async () => {
+          const val = document.getElementById('swalMessengerCookieInput').value.trim();
+          if (!val) {
+            Swal.showValidationMessage('Vui lòng dán Cookie Facebook vào ô!');
+            return false;
+          }
+          try {
+            const res = await fetch('/api/messenger/update-cookies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cookies: val })
+            });
+            const data = await res.json();
+            if (!data.success) {
+              Swal.showValidationMessage(data.message || 'Lỗi cập nhật cookie Facebook');
+              return false;
+            }
+            return data;
+          } catch (err) {
+            Swal.showValidationMessage('Lỗi kết nối máy chủ: ' + err);
+            return false;
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          Swal.fire('Thành Công!', result.value.message, 'success');
+          loadConfigForm();
+          fetchStatus();
+        }
+      });
     }
 
     // ================= LIVE CONSOLE LOGS & CLOCK =================

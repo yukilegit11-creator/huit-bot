@@ -19,6 +19,12 @@ from zalo_sender import ZaloDispatcher
 import database
 from zlapi.models import Message, Mention, ThreadType
 
+try:
+    from messenger_sender import MessengerDispatcher
+    HAS_MESSENGER = True
+except ImportError:
+    HAS_MESSENGER = False
+
 DB_TARGET = database.IUH_DB_FILE
 
 def load_config():
@@ -168,12 +174,20 @@ def run_bot():
 
     scraper = IUHPortalScraper(phpsessid)
     zalo = ZaloDispatcher(CONFIG_FILE)
+    messenger = MessengerDispatcher(CONFIG_FILE, db_file=DB_TARGET) if HAS_MESSENGER else None
 
     print("🔌 Khởi động kết nối Zalo cho Bot IUH (Kênh 3)...")
     if zalo.connect():
         print("✅ Kết nối Zalo Bot IUH thành công!")
     else:
         print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, Bot IUH vẫn tiếp tục cào và lưu DB.")
+
+    if messenger and config.get("messenger", {}).get("enabled", False):
+        print("🔌 Khởi động kết nối Facebook Messenger cho Bot 3 (IUH)...")
+        if messenger.connect():
+            print("✅ Kết nối Facebook Messenger Bot 3 thành công!")
+        else:
+            print("⚠️ Kết nối Facebook Messenger Bot 3 tạm thời chưa khả dụng.")
 
     database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
     database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot Kênh 3 (IUH) quét tự động.", db_file=DB_TARGET)
@@ -274,6 +288,11 @@ def run_bot():
                     
                     database.log_event("ACTIVITY", f"Phát hiện hoạt động MỚI: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
                     send_zalo_iuh(zalo, act, is_reopened=False)
+                    if messenger and config.get("messenger", {}).get("enabled", False):
+                        try:
+                            messenger.send_activity_alert(act, is_reopened=False, db_file=DB_TARGET, unit_label="Đơn vị tổ chức")
+                        except Exception as me:
+                            print(f"⚠️ [Yuki 3] Lỗi gửi Messenger: {me}")
 
                 if new_count > 0:
                     print(f"🎉 [Chu kỳ #{cycle}] Bắn Zalo thành công {new_count} hoạt động mới!")

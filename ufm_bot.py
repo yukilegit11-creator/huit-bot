@@ -20,6 +20,12 @@ from zalo_sender import ZaloDispatcher, UFMBotZaloClient
 import database
 from zlapi.models import Message, Mention, ThreadType
 
+try:
+    from messenger_sender import MessengerDispatcher
+    HAS_MESSENGER = True
+except ImportError:
+    HAS_MESSENGER = False
+
 DB_TARGET = database.UFM_DB_FILE
 
 def load_config():
@@ -196,6 +202,7 @@ def run_bot():
 
     scraper = UFMPortalScraper(cookies, username, password, config_path=CONFIG_FILE)
     zalo = ZaloDispatcher(CONFIG_FILE, client_class=UFMBotZaloClient, db_file=DB_TARGET)
+    messenger = MessengerDispatcher(CONFIG_FILE, db_file=DB_TARGET) if HAS_MESSENGER else None
 
     print("🔌 Khởi động kết nối Zalo cho Bot UFM (Kênh 4)...")
     if zalo.connect():
@@ -203,6 +210,13 @@ def run_bot():
         zalo.start_listener()
     else:
         print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, Bot UFM vẫn tiếp tục cào và lưu DB.")
+
+    if messenger and config.get("messenger", {}).get("enabled", False):
+        print("🔌 Khởi động kết nối Facebook Messenger cho Bot 4 (UFM)...")
+        if messenger.connect():
+            print("✅ Kết nối Facebook Messenger Bot 4 thành công!")
+        else:
+            print("⚠️ Kết nối Facebook Messenger Bot 4 tạm thời chưa khả dụng.")
 
     database.set_bot_status("bot_state", "running", db_file=DB_TARGET)
     database.log_event("SYSTEM", "🚀 Khởi động tiến trình Bot UFM quét tự động 24/7.", db_file=DB_TARGET)
@@ -279,6 +293,11 @@ def run_bot():
                             database.log_event("ACTIVITY", log_msg, db_file=DB_TARGET)
                             database.add_crawled_activity(act, action_type="REOPENED", is_sent=True, db_file=DB_TARGET)
                             send_zalo_ufm(zalo, act, is_reopened=True)
+                            if messenger and config.get("messenger", {}).get("enabled", False):
+                                try:
+                                    messenger.send_activity_alert(act, is_reopened=True, db_file=DB_TARGET, unit_label="Đơn vị tổ chức")
+                                except Exception as me:
+                                    print(f"⚠️ [Yuki 4] Lỗi gửi Messenger mở slot: {me}")
                         continue
 
                     # Hoạt động MỚI 100%
@@ -290,6 +309,11 @@ def run_bot():
                     print(log_msg)
                     database.log_event("ACTIVITY", log_msg, db_file=DB_TARGET)
                     send_zalo_ufm(zalo, act, is_reopened=False)
+                    if messenger and config.get("messenger", {}).get("enabled", False):
+                        try:
+                            messenger.send_activity_alert(act, is_reopened=False, db_file=DB_TARGET, unit_label="Đơn vị tổ chức")
+                        except Exception as me:
+                            print(f"⚠️ [Yuki 4] Lỗi gửi Messenger bài mới: {me}")
 
                 if new_count > 0 or reopened_count > 0:
                     print(f"✅ [Chu kỳ #{cycle}] Đã xử lý {new_count} bài mới, {reopened_count} bài mở thêm slot.")

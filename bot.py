@@ -21,6 +21,12 @@ import zalo_sender
 from supabase_client import SupabaseDispatcher
 import database
 
+try:
+    from messenger_sender import MessengerDispatcher
+    HAS_MESSENGER = True
+except ImportError:
+    HAS_MESSENGER = False
+
 def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -52,6 +58,7 @@ def run_bot():
     scraper = FacebookCometScraper(fb_cookies)
     zalo = ZaloDispatcher(CONFIG_FILE)
     supabase = SupabaseDispatcher(CONFIG_FILE)
+    messenger = MessengerDispatcher(CONFIG_FILE) if HAS_MESSENGER else None
 
     print("🔌 Khởi động kết nối Zalo...")
     zalo_connected = zalo.connect()
@@ -59,6 +66,13 @@ def run_bot():
         print("✅ Kết nối Zalo thành công!")
     else:
         print("⚠️ Kết nối Zalo tạm thời chưa khả dụng, bot vẫn tiếp tục cào và lưu Web/DB.")
+
+    if messenger and config.get("messenger", {}).get("enabled", False):
+        print("🔌 Khởi động kết nối Facebook Messenger cho Bot 1...")
+        if messenger.connect():
+            print("✅ Kết nối Facebook Messenger Bot 1 thành công!")
+        else:
+            print("⚠️ Kết nối Facebook Messenger tạm thời chưa khả dụng.")
 
     cycle = 0
     total_new_posts = 0
@@ -171,6 +185,13 @@ def run_bot():
                             sent_zalo = zalo.send_alert(p, page_name, matched_kw=matched_kw)
                             if sent_zalo:
                                 database.mark_post_sent_zalo(ident)
+
+                            # Gửi song song qua Facebook Messenger
+                            if messenger and config.get("messenger", {}).get("enabled", False):
+                                try:
+                                    messenger.send_post_alert(p, page_name, matched_kw=matched_kw)
+                                except Exception as me:
+                                    print(f"      ⚠️ [Yuki 1] Lỗi gửi Messenger: {me}")
                         else:
                             print(f"      ⏩ [Yuki 1 (HUIT)] Bỏ qua gửi Zalo (không chứa từ khóa lọc)")
                             database.log_event("FILTER", f"[Yuki 1 (HUIT)] Bỏ qua gửi Zalo (không chứa từ khóa lọc)")

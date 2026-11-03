@@ -511,6 +511,197 @@ def api_master_send_demo_alert():
         err_msg = f"Không thể gửi thông báo vào nhóm demo: {e}"
         return {"status": "error", "success": False, "message": err_msg}
 
+# ==================== UNIFIED MESSENGER INTEGRATION APIS (QUAD-BOT) ====================
+
+ALL_BOT_CONFIG_FILES = [
+    os.path.join(SCRIPT_DIR, "config.json"),
+    os.path.join(SCRIPT_DIR, "config_bot2.json"),
+    os.path.join(SCRIPT_DIR, "config_iuh.json"),
+    os.path.join(SCRIPT_DIR, "config_ufm.json"),
+    os.path.join(SCRIPT_DIR, "vaabot.json"),
+    os.path.join(SCRIPT_DIR, "vaa", "config.json"),
+    os.path.join(SCRIPT_DIR, "vaa", "vaabot.json"),
+    os.path.join(SCRIPT_DIR, "vaa", "ufm", "config.json")
+]
+
+def sync_messenger_config_to_all(messenger_block: dict):
+    for cp in ALL_BOT_CONFIG_FILES:
+        if os.path.exists(cp):
+            try:
+                with open(cp, "r", encoding="utf-8") as f:
+                    c = json.load(f)
+                c["messenger"] = messenger_block
+                with open(cp, "w", encoding="utf-8") as f:
+                    json.dump(c, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                print(f"⚠️ [Messenger Sync] Lỗi cập nhật {cp}: {e}")
+
+@app.get("/api/messenger/status")
+@app.get("/api/bot2/messenger/status")
+@app.get("/api/bot3/messenger/status")
+def api_unified_messenger_status():
+    cfg = get_config()
+    m_cfg = cfg.get("messenger", {})
+    b_status = database.get_all_bot_status()
+    return {
+        "status": "ok",
+        "enabled": m_cfg.get("enabled", False),
+        "cookie_status": b_status.get("messenger_cookie_status", "valid" if m_cfg.get("cookies") else "missing"),
+        "account_uid": b_status.get("messenger_account_uid", "61574475721537"),
+        "last_connected": b_status.get("messenger_last_connected", ""),
+        "target_groups": m_cfg.get("target_groups", []),
+        "has_cookies": bool(m_cfg.get("cookies"))
+    }
+
+@app.post("/api/messenger/toggle")
+@app.post("/api/bot2/messenger/toggle")
+@app.post("/api/bot3/messenger/toggle")
+def api_unified_messenger_toggle():
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": False, "cookies": [], "target_groups": []}
+    new_state = not cfg["messenger"].get("enabled", False)
+    cfg["messenger"]["enabled"] = new_state
+    sync_messenger_config_to_all(cfg["messenger"])
+    save_config(cfg)
+    msg = f"Đã {'BẬT' if new_state else 'TẮT'} kênh thông báo Facebook Messenger cho toàn bộ 4 con bot!"
+    database.log_event("CONFIG", msg)
+    return {"status": "ok", "enabled": new_state, "message": msg}
+
+@app.post("/api/messenger/update-cookies")
+@app.post("/api/bot2/messenger/update-cookies")
+@app.post("/api/bot3/messenger/update-cookies")
+def api_unified_messenger_update_cookies(data: dict):
+    raw_cookies = data.get("cookies")
+    if not raw_cookies:
+        return {"status": "error", "message": "Vui lòng dán chuỗi JSON Cookie Facebook!"}
+
+    parsed = []
+    if isinstance(raw_cookies, str):
+        try:
+            parsed = json.loads(raw_cookies.strip())
+        except Exception as e:
+            return {"status": "error", "message": f"Dữ liệu không phải JSON hợp lệ: {e}"}
+    elif isinstance(raw_cookies, list):
+        parsed = raw_cookies
+    elif isinstance(raw_cookies, dict):
+        for k, v in raw_cookies.items():
+            parsed.append({"name": k, "value": str(v), "domain": ".facebook.com", "path": "/"})
+
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": True, "cookies": [], "target_groups": []}
+    cfg["messenger"]["cookies"] = parsed
+    sync_messenger_config_to_all(cfg["messenger"])
+    save_config(cfg)
+
+    # Thử kết nối
+    try:
+        from messenger_sender import MessengerDispatcher
+        m = MessengerDispatcher(CONFIG_FILE)
+        if m.connect():
+            uid = getattr(m.client, "uid", "unknown")
+            database.log_event("AUTH", f"✅ Đã cập nhật Cookie Facebook Messenger thành công! UID: {uid}")
+            return {"status": "ok", "message": f"Xác thực Cookie Facebook thành công! UID: {uid}", "uid": str(uid)}
+    except Exception as e:
+        print(f"⚠️ [Messenger Connect Check]: {e}")
+
+    return {"status": "ok", "message": "Đã lưu Cookie Facebook và đồng bộ cho cả 4 bot!"}
+
+@app.post("/api/messenger/check-connection")
+@app.post("/api/bot2/messenger/check-connection")
+@app.post("/api/bot3/messenger/check-connection")
+def api_unified_messenger_check_connection():
+    try:
+        from messenger_sender import MessengerDispatcher
+        m = MessengerDispatcher(CONFIG_FILE)
+        if m.connect():
+            uid = getattr(m.client, "uid", "unknown")
+            return {"status": "ok", "success": True, "message": f"Kết nối Facebook Messenger thành công! (UID: {uid})", "uid": str(uid)}
+        else:
+            return {"status": "error", "success": False, "message": "Không thể kết nối Facebook Messenger (Cookie có thể hết hạn)"}
+    except Exception as e:
+        return {"status": "error", "success": False, "message": str(e)}
+
+@app.post("/api/messenger/groups/add")
+@app.post("/api/bot2/messenger/groups/add")
+@app.post("/api/bot3/messenger/groups/add")
+def api_unified_messenger_add_group(data: dict):
+    tid = str(data.get("thread_id", "")).strip()
+    name = str(data.get("name", "")).strip() or f"Nhóm Messenger {tid}"
+    if not tid:
+        return {"status": "error", "message": "Vui lòng nhập Thread ID của nhóm Facebook Messenger!"}
+
+    cfg = get_config()
+    if "messenger" not in cfg:
+        cfg["messenger"] = {"enabled": True, "cookies": [], "target_groups": []}
+    groups = cfg["messenger"].get("target_groups", [])
+
+    for g in groups:
+        if str(g.get("id")) == tid:
+            g["enabled"] = True
+            sync_messenger_config_to_all(cfg["messenger"])
+            save_config(cfg)
+            return {"status": "ok", "message": f"Nhóm {name} ({tid}) đã tồn tại, đã bật lại!"}
+
+    groups.append({
+        "id": tid,
+        "name": name,
+        "type": "GROUP",
+        "enabled": True
+    })
+    cfg["messenger"]["target_groups"] = groups
+    sync_messenger_config_to_all(cfg["messenger"])
+    save_config(cfg)
+    database.log_event("CONFIG", f"Đã thêm nhóm Messenger mới: [{name}] (ID: {tid}) cho cả 4 bot")
+    return {"status": "ok", "message": f"Đã thêm nhóm [{name}] (ID: {tid}) thành công!", "target_groups": groups}
+
+@app.post("/api/messenger/groups/toggle")
+@app.post("/api/bot2/messenger/groups/toggle")
+@app.post("/api/bot3/messenger/groups/toggle")
+def api_unified_messenger_toggle_group(data: dict):
+    tid = str(data.get("thread_id", "")).strip()
+    cfg = get_config()
+    groups = cfg.get("messenger", {}).get("target_groups", [])
+    found = False
+    for g in groups:
+        if str(g.get("id")) == tid:
+            g["enabled"] = not g.get("enabled", False)
+            found = True
+            break
+    if found:
+        sync_messenger_config_to_all(cfg["messenger"])
+        save_config(cfg)
+        return {"status": "ok", "message": f"Đã đổi trạng thái nhóm ID {tid}", "target_groups": groups}
+    return {"status": "error", "message": f"Không tìm thấy nhóm ID {tid}"}
+
+@app.post("/api/messenger/groups/delete")
+@app.post("/api/bot2/messenger/groups/delete")
+@app.post("/api/bot3/messenger/groups/delete")
+def api_unified_messenger_delete_group(data: dict):
+    tid = str(data.get("thread_id", "")).strip()
+    cfg = get_config()
+    groups = cfg.get("messenger", {}).get("target_groups", [])
+    new_groups = [g for g in groups if str(g.get("id")) != tid]
+    cfg["messenger"]["target_groups"] = new_groups
+    sync_messenger_config_to_all(cfg["messenger"])
+    save_config(cfg)
+    database.log_event("CONFIG", f"Đã xóa nhóm Messenger ID {tid} khỏi danh sách")
+    return {"status": "ok", "message": f"Đã xóa nhóm Messenger ID {tid} thành công!", "target_groups": new_groups}
+
+@app.post("/api/messenger/test")
+@app.post("/api/bot2/messenger/test")
+@app.post("/api/bot3/messenger/test")
+def api_unified_messenger_test(data: dict = None):
+    tid = data.get("thread_id") if data else None
+    try:
+        from messenger_sender import MessengerDispatcher
+        m = MessengerDispatcher(CONFIG_FILE)
+        ok, msg = m.send_test_message(target_thread_id=tid)
+        return {"status": "ok" if ok else "error", "success": ok, "message": msg}
+    except Exception as e:
+        return {"status": "error", "success": False, "message": str(e)}
+
 # ==================== MAIN DASHBOARD HTML VIEW ====================
 
 
@@ -1346,6 +1537,59 @@ def dashboard_view():
           </button>
         </div>
       </div>
+
+      <!-- SECTION: FACEBOOK MESSENGER MULTI-BOT CHANNEL -->
+      <div class="bg-white p-6 rounded-2xl border border-blue-200/80 shadow-xs space-y-5">
+        <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+              <i class="fa-brands fa-facebook-messenger"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Kênh Thông Báo Facebook Messenger (Đồng Bộ 4 Bot)</h3>
+              <p class="text-xs text-slate-500">Tự động bắn tin bài mới & hoạt động ĐRL vào nhóm Messenger song song với Zalo.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="msg-cookie-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <i class="fa-solid fa-circle-check"></i> UID: 61574475721537 (Bảo Nhi)
+            </span>
+            <button onclick="toggleMessengerMaster()" id="btn-toggle-messenger" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs">
+              <i class="fa-solid fa-toggle-on text-sm"></i> Đang BẬT
+            </button>
+          </div>
+        </div>
+
+        <!-- LIST OF MESSENGER GROUPS -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Danh Sách Nhóm Messenger Nhận Tin:</h4>
+            <button onclick="testSendMessengerAlert()" class="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-paper-plane"></i> Thử tin Messenger
+            </button>
+          </div>
+          <div id="messenger-groups-list" class="space-y-2 max-h-52 overflow-y-auto">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- ADD NEW MESSENGER GROUP -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+          <h5 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-plus-circle text-blue-600"></i> Thêm Nhóm Messenger Mới (Bằng Thread ID)
+          </h5>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="manual-msg-thread-id" placeholder="Thread ID (vd: 1773570903700841)" class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="manual-msg-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm Demo Messenger)" class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="flex justify-between items-center pt-1">
+            <span class="text-[11px] text-slate-500">Mẹo: Mở nhóm trên web messenger.com/t/<b>ID_NHÓM</b> để copy Thread ID.</span>
+            <button onclick="handleAddManualMessengerGroup()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i> Thêm Vào Cả 4 Bot
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB 4: TARGET MANAGEMENT -->
@@ -2064,9 +2308,144 @@ def dashboard_view():
       }}, 3000);
     }}
 
+    // ================= FACEBOOK MESSENGER SENDER & GROUPS =================
+    let allMessengerGroups = [];
+
+    async function fetchMessengerGroups() {{
+      try {{
+        const res = await fetch('/api/messenger/status');
+        const data = await res.json();
+        allMessengerGroups = data.target_groups || [];
+        renderMessengerGroups(allMessengerGroups);
+        const btn = document.getElementById('btn-toggle-messenger');
+        if (btn) {{
+          if (data.enabled) {{
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs";
+            btn.innerHTML = '<i class="fa-solid fa-toggle-on text-sm"></i> Đang BẬT';
+          }} else {{
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 shadow-xs";
+            btn.innerHTML = '<i class="fa-solid fa-toggle-off text-sm"></i> Đang TẮT';
+          }}
+        }}
+      }} catch (err) {{
+        console.error('Lỗi nạp nhóm Messenger:', err);
+      }}
+    }}
+
+    function renderMessengerGroups(groups) {{
+      const container = document.getElementById('messenger-groups-list');
+      if (!container) return;
+      if (!groups || groups.length === 0) {{
+        container.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">Chưa có nhóm Messenger nào. Hãy dán Thread ID bên dưới để thêm.</div>';
+        return;
+      }}
+      container.innerHTML = groups.map(g => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs hover:border-blue-300 transition">
+          <div class="flex items-center gap-2.5">
+            <input type="checkbox" onchange="handleToggleMessengerGroup('${{g.id}}')" ${{g.enabled ? 'checked' : ''}} class="rounded text-blue-600 border-slate-300 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+            <div>
+              <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                <i class="fa-brands fa-facebook-messenger text-blue-600"></i>
+                <span>${{g.name}}</span>
+              </div>
+              <div class="text-[10px] text-slate-500 font-mono">Thread ID: ${{g.id}}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="testSendMessengerAlert('${{g.id}}')" class="px-2.5 py-1 text-[11px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition" title="Gửi tin thử nghiệm vào nhóm này">
+              <i class="fa-solid fa-paper-plane mr-1"></i> Thử tin
+            </button>
+            <button onclick="handleDeleteMessengerGroup('${{g.id}}')" class="px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 rounded-md transition" title="Xóa nhóm">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }}
+
+    async function toggleMessengerMaster() {{
+      try {{
+        const res = await fetch('/api/messenger/toggle', {{ method: 'POST' }});
+        const data = await res.json();
+        alert(data.message);
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function handleAddManualMessengerGroup() {{
+      const tid = document.getElementById('manual-msg-thread-id').value.trim();
+      const tname = document.getElementById('manual-msg-group-name').value.trim();
+      if (!tid) return alert('Vui lòng nhập Thread ID của nhóm Messenger!');
+
+      try {{
+        const res = await fetch('/api/messenger/groups/add', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: tid, name: tname }})
+        }});
+        const data = await res.json();
+        alert(data.message);
+        document.getElementById('manual-msg-thread-id').value = '';
+        document.getElementById('manual-msg-group-name').value = '';
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function handleToggleMessengerGroup(threadId) {{
+      try {{
+        const res = await fetch('/api/messenger/groups/toggle', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: threadId }})
+        }});
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function handleDeleteMessengerGroup(threadId) {{
+      if (!confirm('Bạn có chắc muốn xóa nhóm Messenger này khỏi danh sách nhận tin?')) return;
+      try {{
+        const res = await fetch('/api/messenger/groups/delete', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: threadId }})
+        }});
+        const data = await res.json();
+        alert(data.message);
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function testSendMessengerAlert(threadId) {{
+      try {{
+        const res = await fetch('/api/messenger/test', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: threadId || null }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          alert('✅ ' + data.message);
+        }} else {{
+          alert('❌ ' + (data.message || 'Lỗi gửi tin thử nghiệm'));
+        }}
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
     renderPosts(allPosts);
     renderTargets(allTargets);
     renderTargetGroups(allTargetGroups);
+    fetchMessengerGroups();
     fetchLogs();
 
     setInterval(fetchLogs, 1000);
@@ -2435,6 +2814,59 @@ def dashboard_view_bot2():
           <button onclick="handleAddManualZaloGroup()" class="w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-2">
             <i class="fa-solid fa-check"></i> Lưu Nhóm Thủ Công
           </button>
+        </div>
+      </div>
+
+      <!-- SECTION: FACEBOOK MESSENGER MULTI-BOT CHANNEL -->
+      <div class="bg-white p-6 rounded-2xl border border-blue-200/80 shadow-xs space-y-5">
+        <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+              <i class="fa-brands fa-facebook-messenger"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Kênh Thông Báo Facebook Messenger (Đồng Bộ 4 Bot)</h3>
+              <p class="text-xs text-slate-500">Tự động bắn tin bài mới & hoạt động ĐRL vào nhóm Messenger song song với Zalo.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="msg-cookie-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <i class="fa-solid fa-circle-check"></i> UID: 61574475721537 (Bảo Nhi)
+            </span>
+            <button onclick="toggleMessengerMaster()" id="btn-toggle-messenger" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs">
+              <i class="fa-solid fa-toggle-on text-sm"></i> Đang BẬT
+            </button>
+          </div>
+        </div>
+
+        <!-- LIST OF MESSENGER GROUPS -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Danh Sách Nhóm Messenger Nhận Tin:</h4>
+            <button onclick="testSendMessengerAlert()" class="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-paper-plane"></i> Thử tin Messenger
+            </button>
+          </div>
+          <div id="messenger-groups-list" class="space-y-2 max-h-52 overflow-y-auto">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- ADD NEW MESSENGER GROUP -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+          <h5 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-plus-circle text-blue-600"></i> Thêm Nhóm Messenger Mới (Bằng Thread ID)
+          </h5>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="manual-msg-thread-id" placeholder="Thread ID (vd: 1773570903700841)" class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="manual-msg-group-name" placeholder="Tên gợi nhớ nhóm (vd: Nhóm Demo Messenger)" class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="flex justify-between items-center pt-1">
+            <span class="text-[11px] text-slate-500">Mẹo: Mở nhóm trên web messenger.com/t/<b>ID_NHÓM</b> để copy Thread ID.</span>
+            <button onclick="handleAddManualMessengerGroup()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i> Thêm Vào Cả 4 Bot
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -3209,9 +3641,144 @@ Hoặc dán: datr=xxx; c_user=1000xxx; xs=yyy; fr=zzz" class="w-full p-3 font-mo
       }}, 3000);
     }}
 
+    // ================= FACEBOOK MESSENGER SENDER & GROUPS =================
+    let allMessengerGroups = [];
+
+    async function fetchMessengerGroups() {{
+      try {{
+        const res = await fetch('/api/messenger/status');
+        const data = await res.json();
+        allMessengerGroups = data.target_groups || [];
+        renderMessengerGroups(allMessengerGroups);
+        const btn = document.getElementById('btn-toggle-messenger');
+        if (btn) {{
+          if (data.enabled) {{
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs";
+            btn.innerHTML = '<i class="fa-solid fa-toggle-on text-sm"></i> Đang BẬT';
+          }} else {{
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 shadow-xs";
+            btn.innerHTML = '<i class="fa-solid fa-toggle-off text-sm"></i> Đang TẮT';
+          }}
+        }}
+      }} catch (err) {{
+        console.error('Lỗi nạp nhóm Messenger:', err);
+      }}
+    }}
+
+    function renderMessengerGroups(groups) {{
+      const container = document.getElementById('messenger-groups-list');
+      if (!container) return;
+      if (!groups || groups.length === 0) {{
+        container.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">Chưa có nhóm Messenger nào. Hãy dán Thread ID bên dưới để thêm.</div>';
+        return;
+      }}
+      container.innerHTML = groups.map(g => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs hover:border-blue-300 transition">
+          <div class="flex items-center gap-2.5">
+            <input type="checkbox" onchange="handleToggleMessengerGroup('${{g.id}}')" ${{g.enabled ? 'checked' : ''}} class="rounded text-blue-600 border-slate-300 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+            <div>
+              <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                <i class="fa-brands fa-facebook-messenger text-blue-600"></i>
+                <span>${{g.name}}</span>
+              </div>
+              <div class="text-[10px] text-slate-500 font-mono">Thread ID: ${{g.id}}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="testSendMessengerAlert('${{g.id}}')" class="px-2.5 py-1 text-[11px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition" title="Gửi tin thử nghiệm vào nhóm này">
+              <i class="fa-solid fa-paper-plane mr-1"></i> Thử tin
+            </button>
+            <button onclick="handleDeleteMessengerGroup('${{g.id}}')" class="px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 rounded-md transition" title="Xóa nhóm">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }}
+
+    async function toggleMessengerMaster() {{
+      try {{
+        const res = await fetch('/api/messenger/toggle', {{ method: 'POST' }});
+        const data = await res.json();
+        alert(data.message);
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function handleAddManualMessengerGroup() {{
+      const tid = document.getElementById('manual-msg-thread-id').value.trim();
+      const tname = document.getElementById('manual-msg-group-name').value.trim();
+      if (!tid) return alert('Vui lòng nhập Thread ID của nhóm Messenger!');
+
+      try {{
+        const res = await fetch('/api/messenger/groups/add', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: tid, name: tname }})
+        }});
+        const data = await res.json();
+        alert(data.message);
+        document.getElementById('manual-msg-thread-id').value = '';
+        document.getElementById('manual-msg-group-name').value = '';
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function handleToggleMessengerGroup(threadId) {{
+      try {{
+        const res = await fetch('/api/messenger/groups/toggle', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: threadId }})
+        }});
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function handleDeleteMessengerGroup(threadId) {{
+      if (!confirm('Bạn có chắc muốn xóa nhóm Messenger này khỏi danh sách nhận tin?')) return;
+      try {{
+        const res = await fetch('/api/messenger/groups/delete', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: threadId }})
+        }});
+        const data = await res.json();
+        alert(data.message);
+        fetchMessengerGroups();
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
+    async function testSendMessengerAlert(threadId) {{
+      try {{
+        const res = await fetch('/api/messenger/test', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ thread_id: threadId || null }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          alert('✅ ' + data.message);
+        }} else {{
+          alert('❌ ' + (data.message || 'Lỗi gửi tin thử nghiệm'));
+        }}
+      }} catch (err) {{
+        alert('Lỗi: ' + err);
+      }}
+    }}
+
     renderPosts(allPosts);
     renderTargets(allTargets);
     renderTargetGroups(allTargetGroups);
+    fetchMessengerGroups();
     fetchLogs();
 
     setInterval(fetchLogs, 1000);
