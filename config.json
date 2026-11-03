@@ -125,28 +125,34 @@
         "enabled": true
       },
       {
+        "id": "3613862296069900465",
+        "name": "Thông báo ‼️",
+        "type": "GROUP",
+        "enabled": true
+      },
+      {
         "id": "6270243835909820050",
         "name": "Huit _CTV BOT tbao Zalo",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "8647983209102501525",
         "name": "TSTD Huit 2027",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "3098651132176283286",
         "name": "Thông báo P. CTSV HUIT 2",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "3777114335248827133",
         "name": "Marketing K26 - HUIT",
         "type": "GROUP",
-        "enabled": true
+        "enabled": false
       },
       {
         "id": "7581087306337796515",

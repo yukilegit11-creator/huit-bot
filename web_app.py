@@ -1588,15 +1588,17 @@ def api_bot3_delete_target_group(group_id: str):
 def api_bot3_test_zalo_alert():
     from iuh_bot import send_zalo_iuh
     zalo = ZaloDispatcher(CONFIG_IUH_FILE)
+    ts = int(time.time())
+    now_vn = datetime.now(timezone(timedelta(hours=7)))
     test_act = {
-        "activity_id": "test_9999",
-        "title": "Hoạt động thử nghiệm kiểm tra kết nối Bot IUH & Bắn Zalo",
+        "activity_id": f"test_{ts}",
+        "title": f"Hoạt động thử nghiệm kiểm tra kết nối Bot IUH & Bắn Zalo (#{ts})",
         "semester": "1/2026 - 2027",
         "points": 3.0,
-        "deadline": datetime.now(timezone(timedelta(hours=7))).strftime("%d-%m-%Y"),
+        "deadline": now_vn.strftime("%d-%m-%Y"),
         "status": "Đang mở",
         "slots": "150/150",
-        "details": "Thời gian: Ngay bây giờ\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tham gia nghiêm túc, đúng giờ."
+        "details": f"Thời gian: {now_vn.strftime('%H:%M:%S %d/%m/%Y')}\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tín hiệu thử nghiệm hoạt động hoàn hảo 100%."
     }
     test_targets = [
         {"id": "7456361874031804652", "name": "demo", "type": "GROUP"},

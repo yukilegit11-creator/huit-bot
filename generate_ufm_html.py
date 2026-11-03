@@ -136,7 +136,7 @@ html_content = r'''<!DOCTYPE html>
     </div>
 
     <!-- 5 KPI STAT CARDS (EXACT MATCH BOT 1 / 2 / 3 STYLE) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Card 1: Hoạt động CSDL -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <div>
@@ -161,17 +161,7 @@ html_content = r'''<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- Card 3: Sinh Viên Đã Nạp -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-        <div>
-          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sinh Viên Đã Nạp</p>
-          <h3 id="stat-total-students" class="text-2xl font-extrabold text-blue-600 mt-1">0</h3>
-          <p id="stat-student-valid-count" class="text-[11px] text-slate-400 mt-0.5">0 phiên hợp lệ</p>
-        </div>
-        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
-          <i class="fa-solid fa-user-graduate"></i>
-        </div>
-      </div>
+      
 
       <!-- Card 4: Cổng UFM & Auto-Login -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
@@ -224,16 +214,7 @@ html_content = r'''<!DOCTYPE html>
         </button>
       </div>
 
-      <div class="flex items-center gap-2">
-        <a href="/ufm/submit-cookie" target="_blank" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-          <i class="fa-solid fa-arrow-up-right-from-square"></i>
-          <span>Mở Form Nạp Sinh Viên</span>
-        </a>
-        <button onclick="copyStudentSubmitLink()" class="px-3 py-2 bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5" title="Sao chép link gửi sinh viên">
-          <i class="fa-solid fa-copy"></i>
-          <span>Sao chép Link</span>
-        </button>
-      </div>
+
     </div>
 
     <!-- NAVIGATION TABS -->
@@ -243,10 +224,7 @@ html_content = r'''<!DOCTYPE html>
         <span>Hoạt Động & ĐRL UFM</span>
       </button>
 
-      <button id="tabBtnStudents" onclick="switchTab('students')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap">
-        <i class="fa-solid fa-user-graduate"></i>
-        <span>Sinh Viên & Săn Slot (<span id="tab-student-badge">0</span>)</span>
-      </button>
+      
 
       <button id="tabBtnLogs" onclick="switchTab('logs')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap">
         <i class="fa-solid fa-terminal"></i>
@@ -295,63 +273,7 @@ html_content = r'''<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- TAB 2: QUẢN LÝ SINH VIÊN & AUTO-ĐĂNG KÝ -->
-    <div id="tabStudents" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="openAddStudentModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-            <i class="fa-solid fa-user-plus"></i>
-            <span>+ Nạp Sinh Viên Mới</span>
-          </button>
-          <button onclick="openBulkImportModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-import"></i>
-            <span>Import Hàng Loạt</span>
-          </button>
-          <button onclick="checkAllStudentsCookie()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-shield-halved"></i>
-            <span>Kiểm Tra Phiên Tất Cả</span>
-          </button>
-          <button onclick="reloginAllStudents()" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Tự Đăng Nhập Lại Tất Cả</span>
-          </button>
-          <button onclick="triggerBatchRegister()" class="px-3.5 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-            <i class="fa-solid fa-bolt"></i>
-            <span>Thực Hiện Auto-Đăng Ký</span>
-          </button>
-        </div>
-
-        <div class="w-full sm:w-64">
-          <input type="text" id="studentSearch" oninput="filterStudents()" placeholder="Tìm theo MSSV, họ tên..." class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-emerald-500 font-mono">
-        </div>
-      </div>
-
-      <!-- Students Table -->
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-600">
-            <thead class="bg-slate-100/80 text-slate-700 font-bold uppercase text-[10px] border-b border-slate-200">
-              <tr>
-                <th class="px-4 py-3">MSSV</th>
-                <th class="px-4 py-3">Họ và Tên</th>
-                <th class="px-4 py-3">Lớp</th>
-                <th class="px-4 py-3">Mật Khẩu (24/7)</th>
-                <th class="px-4 py-3">Phiên Cổng</th>
-                <th class="px-4 py-3">Auto-Apply</th>
-                <th class="px-4 py-3 text-right">Hành Động</th>
-              </tr>
-            </thead>
-            <tbody id="studentsTableBody" class="divide-y divide-slate-100">
-              <tr>
-                <td colspan="7" class="px-4 py-10 text-center text-slate-400">Đang tải danh sách sinh viên...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: LIVE TERMINAL CONSOLE LOG (EXACT SAME CONTROLS AS BOT 1, 2, 3) -->
+    <!-- TAB 2: LIVE TERMINAL CONSOLE LOG (EXACT SAME CONTROLS AS BOT 1, 2, 3) -->
     <div id="tabLogs" class="hidden space-y-4">
       <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
         <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80">
@@ -616,62 +538,6 @@ html_content = r'''<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL: THÊM SINH VIÊN MỚI -->
-  <div id="add-student-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-2xl max-w-md w-full p-6 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-        <h3 class="font-bold text-sm text-slate-900">Thêm Sinh Viên Mới</h3>
-        <button onclick="closeAddStudentModal()" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Mã Số Sinh Viên (MSSV) *</label>
-          <input type="text" id="modal-st-mssv" placeholder="2621008460" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-emerald-500 font-mono">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Mật Khẩu Cổng UFM (Để tự đăng nhập 24/7)</label>
-          <input type="password" id="modal-st-pwd" placeholder="Mật khẩu cổng hoatdong.ufm.edu.vn" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-emerald-500">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Họ Và Tên</label>
-          <input type="text" id="modal-st-name" placeholder="Nguyễn Văn A" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-emerald-500">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Lớp Sinh Hoạt</label>
-          <input type="text" id="modal-st-class" placeholder="22DTA01" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-emerald-500 font-mono">
-        </div>
-
-        <button onclick="saveNewStudentFromModal()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition mt-2">
-          Xác Thực & Lưu Sinh Viên
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: IMPORT HÀNG LOẠT -->
-  <div id="bulk-import-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-2xl max-w-lg w-full p-6 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-        <h3 class="font-bold text-sm text-slate-900">Import Danh Sách Sinh Viên Hàng Loạt</h3>
-        <button onclick="closeBulkImportModal()" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="space-y-3">
-        <p class="text-xs text-slate-500">Mỗi dòng một sinh viên theo định dạng: <code class="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-mono">MSSV | Mật khẩu | Họ tên</code></p>
-        <textarea id="bulk-import-text" rows="7" placeholder="2621008460 | focusoncareer2111!!! | Đàm Anh Duy&#10;2621008461 | pass123 | Nguyễn Văn B" class="w-full p-3 text-xs border border-slate-300 rounded-xl focus:outline-emerald-500 font-mono"></textarea>
-        
-        <button onclick="submitBulkImport()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-xs transition">
-          Bắt Đầu Import & Xác Thực
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL: CẬP NHẬT COOKIE ZALO -->
   <div id="zalo-cookie-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-2xl max-w-lg w-full p-6 space-y-4">
@@ -696,8 +562,7 @@ html_content = r'''<!DOCTYPE html>
   <!-- JAVASCRIPT LOGIC -->
   <script>
     let allActivities = [];
-    let allStudents = [];
-    let currentConfig = {};
+        let currentConfig = {};
     let currentLogUfmScope = 'UFM';
     let currentQuadBot = 'bot4';
     let quadBotsData = {};
@@ -705,7 +570,7 @@ html_content = r'''<!DOCTYPE html>
 
     // ================= TAB SWITCHER =================
     function switchTab(tab) {
-      const tabs = ['activities', 'students', 'logs', 'channels', 'history', 'config'];
+      const tabs = ['activities', 'logs', 'channels', 'history', 'config'];
       tabs.forEach(t => {
         const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
         const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -719,8 +584,7 @@ html_content = r'''<!DOCTYPE html>
       if (activeBtn) activeBtn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow-xs transition flex items-center gap-2 whitespace-nowrap";
 
       if (tab === 'activities') fetchActivities();
-      else if (tab === 'students') fetchStudents();
-      else if (tab === 'logs') fetchLogs();
+            else if (tab === 'logs') fetchLogs();
       else if (tab === 'channels') renderAllActiveChannels();
       else if (tab === 'history') fetchHistory();
       else if (tab === 'config') loadConfigForm();
@@ -734,10 +598,7 @@ html_content = r'''<!DOCTYPE html>
         
         document.getElementById('stat-total-activities').innerText = data.stats.total_activities || 0;
         document.getElementById('stat-total-zalo').innerText = data.stats.total_zalo_sent || 0;
-        document.getElementById('stat-total-students').innerText = data.student_stats.total_students || 0;
-        document.getElementById('tab-student-badge').innerText = data.student_stats.total_students || 0;
-        document.getElementById('stat-student-valid-count').innerText = (data.student_stats.valid_sessions || 0) + ' phiên hợp lệ';
-        document.getElementById('stat-last-scan').innerText = data.last_scan_time || 'Chưa quét';
+                                document.getElementById('stat-last-scan').innerText = data.last_scan_time || 'Chưa quét';
         document.getElementById('stat-scan-cycle').innerText = 'Chu kỳ: #' + (data.total_scans || 0);
 
         // Bot toggle button UI
@@ -966,205 +827,11 @@ html_content = r'''<!DOCTYPE html>
                 <span>Vào Cổng</span> <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </a>
 
-              <div class="flex items-center gap-1.5">
-                <button onclick="quickBatchRegister('${a.activity_id}')" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tự đăng ký hoạt động này cho toàn bộ sinh viên đã nạp">
-                  <i class="fa-solid fa-bolt text-xs"></i> <span>Auto-Apply</span>
-                </button>
-              </div>
+              
             </div>
           </div>
         `;
       }).join('');
-    }
-
-    // ================= STUDENTS TAB =================
-    async function fetchStudents() {
-      try {
-        const res = await fetch('/api/students');
-        const data = await res.json();
-        allStudents = data.students || [];
-        document.getElementById('tab-student-badge').innerText = allStudents.length;
-        filterStudents();
-      } catch (e) {
-        console.error('Lỗi tải sinh viên:', e);
-      }
-    }
-
-    function filterStudents() {
-      const query = (document.getElementById('studentSearch')?.value || '').toLowerCase().trim();
-      let list = allStudents;
-      if (query) {
-        list = list.filter(s => (s.mssv || '').toLowerCase().includes(query) || (s.full_name || '').toLowerCase().includes(query));
-      }
-      renderStudents(list);
-    }
-
-    function renderStudents(students) {
-      const tbody = document.getElementById('studentsTableBody');
-      if (!students || students.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Chưa có sinh viên nào trong danh sách. Hãy nhấn "+ Nạp Sinh Viên Mới" hoặc "Import Hàng Loạt".</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = students.map(st => {
-        const isValid = st.session_status === 'valid';
-        const sessionBadge = isValid ?
-          `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Hợp Lệ</span>` :
-          `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">Cần Sửa</span>`;
-
-        const hasPwd = Boolean(st.password);
-        const pwdBadge = hasPwd ?
-          `<span class="text-emerald-600 font-bold flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Đã lưu</span>` :
-          `<span class="text-slate-400 italic">Chưa có</span>`;
-
-        return `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="px-4 py-3 font-mono font-bold text-slate-900">${st.mssv}</td>
-            <td class="px-4 py-3 font-medium text-slate-800">${st.full_name || st.mssv}</td>
-            <td class="px-4 py-3 font-mono text-slate-500">${st.class_name || '-'}</td>
-            <td class="px-4 py-3">${pwdBadge}</td>
-            <td class="px-4 py-3">${sessionBadge}</td>
-            <td class="px-4 py-3">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" ${st.is_active ? 'checked' : ''} onchange="toggleStudentActive('${st.mssv}', this.checked)" class="sr-only peer">
-                <div class="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
-            </td>
-            <td class="px-4 py-3 text-right space-x-1">
-              <button onclick="deleteStudent('${st.mssv}')" class="px-2 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="Xóa sinh viên">
-                <i class="fa-regular fa-trash-can"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    async function toggleStudentActive(mssv, active) {
-      try {
-        await fetch('/api/student/toggle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mssv: mssv, is_active: active })
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    async function deleteStudent(mssv) {
-      const ans = await Swal.fire({
-        title: 'Xóa sinh viên?',
-        text: `Bạn có chắc muốn xóa sinh viên MSSV ${mssv} khỏi hệ thống?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#e11d48',
-        confirmButtonText: 'Xóa Ngay',
-        cancelButtonText: 'Hủy'
-      });
-      if (!ans.isConfirmed) return;
-
-      try {
-        const res = await fetch('/api/student/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mssv: mssv })
-        });
-        const data = await res.json();
-        Swal.fire('Đã xóa!', data.message, 'success');
-        fetchStudents();
-        fetchStatus();
-      } catch (e) {
-        Swal.fire('Lỗi', e.message, 'error');
-      }
-    }
-
-    async function checkAllStudentsCookie() {
-      Swal.fire({
-        title: 'Đang kiểm tra phiên tất cả sinh viên...',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-      });
-      try {
-        const res = await fetch('/api/students/check-all', { method: 'POST' });
-        const data = await res.json();
-        Swal.fire('Hoàn tất!', data.message, 'info');
-        fetchStudents();
-        fetchStatus();
-      } catch (e) {
-        Swal.fire('Lỗi', e.message, 'error');
-      }
-    }
-
-    async function reloginAllStudents() {
-      Swal.fire({
-        title: 'Đang tự động đăng nhập lại tất cả sinh viên...',
-        text: 'Hệ thống dùng mật khẩu đã lưu để cấp lại phiên cookie mới...',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-      });
-      try {
-        const res = await fetch('/api/students/relogin-all', { method: 'POST' });
-        const data = await res.json();
-        Swal.fire('Hoàn tất!', data.message, 'success');
-        fetchStudents();
-        fetchStatus();
-      } catch (e) {
-        Swal.fire('Lỗi', e.message, 'error');
-      }
-    }
-
-    async function quickBatchRegister(actId) {
-      const ans = await Swal.fire({
-        title: '⚡ Auto-Đăng Ký Hoạt Động?',
-        text: `Tự động đăng ký Hoạt động #${actId} cho tất cả các sinh viên đang BẬT?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: '🚀 Bắt Đầu Đăng Ký',
-        cancelButtonText: 'Hủy'
-      });
-      if (!ans.isConfirmed) return;
-
-      try {
-        const res = await fetch('/api/students/batch-register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activity_id: actId })
-        });
-        const data = await res.json();
-        Swal.fire('Thông báo', data.message, 'info');
-        switchTab('logs');
-      } catch (e) {
-        Swal.fire('Lỗi', e.message, 'error');
-      }
-    }
-
-    async function triggerBatchRegister() {
-      const { value: actId } = await Swal.fire({
-        title: '⚡ Nhập Mã Hoạt Động Cần Đăng Ký',
-        input: 'text',
-        inputLabel: 'Activity ID (Ví dụ: 1245 hoặc lấy từ bảng hoạt động)',
-        inputPlaceholder: 'Nhập ID hoạt động...',
-        showCancelButton: true,
-        confirmButtonText: 'Bắt Đầu Đăng Ký'
-      });
-      if (actId) {
-        quickBatchRegister(actId);
-      }
-    }
-
-    function copyStudentSubmitLink() {
-      const url = window.location.origin + '/ufm/submit-cookie';
-      navigator.clipboard.writeText(url).then(() => {
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'success',
-          title: 'Đã sao chép link nạp sinh viên!',
-          showConfirmButton: false,
-          timer: 2500
-        });
-      });
     }
 
     // ================= TERMINAL CONSOLE LOG (EXACT SAME AS BOT 1, 2, 3) =================
@@ -1671,78 +1338,6 @@ html_content = r'''<!DOCTYPE html>
     }
 
     // ================= MODAL HANDLERS =================
-    function openAddStudentModal() {
-      document.getElementById('add-student-modal').classList.remove('hidden');
-    }
-    function closeAddStudentModal() {
-      document.getElementById('add-student-modal').classList.add('hidden');
-    }
-    async function saveNewStudentFromModal() {
-      const mssv = document.getElementById('modal-st-mssv').value.trim();
-      const pwd = document.getElementById('modal-st-pwd').value.trim();
-      const name = document.getElementById('modal-st-name').value.trim();
-      const cls = document.getElementById('modal-st-class').value.trim();
-
-      if (!mssv) {
-        Swal.fire('Lưu ý', 'Vui lòng nhập MSSV!', 'warning');
-        return;
-      }
-
-      Swal.fire({ title: 'Đang xác thực...', didOpen: () => { Swal.showLoading(); } });
-      try {
-        const res = await fetch('/api/student/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mssv: mssv, password: pwd, full_name: name, class_name: cls })
-        });
-        const data = await res.json();
-        closeAddStudentModal();
-        if (data.success) {
-          Swal.fire('Thành công!', data.message, 'success');
-        } else {
-          Swal.fire('Chưa hoàn tất', data.message, 'warning');
-        }
-        fetchStudents();
-        fetchStatus();
-      } catch (e) {
-        Swal.fire('Lỗi', e.message, 'error');
-      }
-    }
-
-    function openBulkImportModal() {
-      document.getElementById('bulk-import-modal').classList.remove('hidden');
-    }
-    function closeBulkImportModal() {
-      document.getElementById('bulk-import-modal').classList.add('hidden');
-    }
-    async function submitBulkImport() {
-      const text = document.getElementById('bulk-import-text').value.trim();
-      if (!text) {
-        Swal.fire('Lưu ý', 'Vui lòng dán danh sách tài khoản!', 'warning');
-        return;
-      }
-
-      Swal.fire({ title: 'Đang xử lý import...', didOpen: () => { Swal.showLoading(); } });
-      try {
-        const res = await fetch('/api/students/bulk-import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text_data: text })
-        });
-        const data = await res.json();
-        closeBulkImportModal();
-        if (data.success) {
-          Swal.fire('Hoàn tất!', data.message, 'success');
-        } else {
-          Swal.fire('Chưa hoàn tất', data.message, 'warning');
-        }
-        fetchStudents();
-        fetchStatus();
-      } catch (e) {
-        Swal.fire('Lỗi', e.message, 'error');
-      }
-    }
-
     function openZaloCookieModal() {
       document.getElementById('zalo-cookie-modal').classList.remove('hidden');
     }
@@ -1804,7 +1399,6 @@ html_content = r'''<!DOCTYPE html>
     document.addEventListener('DOMContentLoaded', () => {
       fetchStatus();
       fetchActivities();
-      fetchStudents();
       fetchLogs();
       setInterval(fetchStatus, 5000);
       setInterval(fetchLogs, 3000);
