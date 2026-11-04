@@ -38,7 +38,7 @@ BOT_META = {
         "name": "Bot 5 - OU (Yuki 5 ĐRL)",
         "school": "Trường ĐH Mở TP.HCM (OU)",
         "portal_name": "Cổng Điểm rèn luyện OU",
-        "portal_url": "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien",
+        "portal_url": "https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien",
         "config_file": "config_ou.json"
     }
 }
@@ -278,7 +278,7 @@ def _capture_ou(meta: dict, out_path: str, base_dir: str = None) -> dict:
             cookie_list.append({
                 "name": c.name,
                 "value": c.value,
-                "domain": c.domain or "diemrl.ou.edu.vn",
+                "domain": c.domain or "renluyensv.ou.edu.vn",
                 "path": c.path or "/"
             })
     except Exception as e:
@@ -287,7 +287,7 @@ def _capture_ou(meta: dict, out_path: str, base_dir: str = None) -> dict:
             cookie_list.append({
                 "name": k,
                 "value": v,
-                "domain": "diemrl.ou.edu.vn",
+                "domain": "renluyensv.ou.edu.vn",
                 "path": "/"
             })
 

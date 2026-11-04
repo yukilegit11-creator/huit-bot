@@ -29,17 +29,23 @@
   },
   "ou_portal": {
     "enabled": true,
-    "base_url": "https://diemrl.ou.edu.vn/test",
-    "login_url": "https://diemrl.ou.edu.vn/test/auth/ousso/login",
-    "events_url": "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien",
-    "thongbao_url": "https://diemrl.ou.edu.vn/test/diemrl/thongbao",
+    "base_url": "https://renluyensv.ou.edu.vn/20261",
+    "login_url": "https://renluyensv.ou.edu.vn/auth/ousso/login?nhhk=20261",
+    "events_url": "https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien",
+    "thongbao_url": "https://renluyensv.ou.edu.vn/20261/diemrl/thongbao",
     "username": "2654092020",
     "password": "079308035034",
     "student_name": "Phan Thị Thu Phương",
     "auto_relogin": true,
     "keep_alive": true,
     "keep_alive_interval_seconds": 120,
-    "cookies": {}
+    "cookies": {
+      "XSRF-TOKEN": "eyJpdiI6IlNaaFB4M0FTWGthXC83YjFvb1pudzBnPT0iLCJ2YWx1ZSI6Ik51WW5wMXM5QVkrSXJrdmRxYzZ0ejBRaG9mMTJTRUkwN3BhakxmUlM5bk5laUwrRFZaNVRwRHM1QU5HaysyTEtyRUNUQ29aTmRWK1RMMStMVDdFeFZBPT0iLCJtYWMiOiI2ZjIwODdhZTFmODk1MjA4ZmEzNTU5YTU5NTQ0NmEzMTlmNTk3ZTljMmNlNWE3YjE0ODIzYzRmNmM3MTc3MmQwIn0%3D",
+      "hcmcoudrl_session": "eyJpdiI6Ik05NTFiT2swY1B4ZVFFS3RPQ3VSa2c9PSIsInZhbHVlIjoiSUQ1QWVqbUZFNlhBM3IxSHhBblc5RTlKbXVMYXdWanJBWEt1ckJySkhLNUNXaEFNUFpVdGJOY0NDdTkveTI3dENTRlJNZ2pUeFViaDBqMmpqd2VoN3ZhQVZMczdTOUlHcVFQclFaangramp1S1lvWjdYUTgwNUczSjM2anVReTIiLCJtYWMiOiIwYzI0Mzg5ZjQ1YTZhMTlkZTlhOWM5MWE1MTIzMzRhN2JjODFkMWFiMTdjNzUwYjg3YTQ1NzgzYzQzMGNjYjFkIiwidGFnIjoiIn0%3D",
+      "sso_tenant_nhhk": "eyJpdiI6InZ5dXZ6c0REeXA3d0oybnc1bzFOM2c9PSIsInZhbHVlIjoiZ1R5UkF5bnZzT0doWjJoeWFsL2JDRFg2U2E3QnM0K2dIZG95QndIcU5ETklxd2U4cno2SGl5bWxNdDd5czhXZSIsIm1hYyI6IjcyNTMyZmI1ZmI2YjI3NTdjMDYxYjBmZDEwMjhkYjhiM2Y1ZjAxNTA5MzJiNTA1MTI4YjQ2NmZkMGVkYjU4ZTIiLCJ0YWciOiIifQ%3D%3D",
+      "laravel_session": "eyJpdiI6IjljQXI0Q3FDV2FiNEl2RjM2ZWQ1UXc9PSIsInZhbHVlIjoibjVxZnVIUU94YkRVdlN2YmVaQzVFRHR0U0YxMXVZdmpPZ1RSMGZMVForb0FBSVwvbFNSWURIaHN4ZDlUWTZQVmR3cEEzZW9OZ0VQS2tcL2I4Y0srZXhFQT09IiwibWFjIjoiMzA3ZDFlNzY0OWJmMzFlZTY4N2MyZDA1NDUxMThmY2Q3Zjk5NzNmNzJkNmJjZTY3YzFhMWI2ZmY3ZTY1OTQ0OCJ9"
+    },
+    "nhhk": "20261"
   },
   "zalo": {
     "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",

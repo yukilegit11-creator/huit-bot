@@ -470,7 +470,7 @@ def dashboard_view_bot5():
             <button onclick="testCookieAlert()" class="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
               <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Test Bắn Cảnh Báo Cookie (Nhóm demo)
             </button>
-            <a href="https://diemrl.ou.edu.vn/test/diemrl/dangkysukien" target="_blank" class="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
+            <a href="https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien" target="_blank" class="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở Cổng Đăng Ký Sự Kiện OU
             </a>
           </div>

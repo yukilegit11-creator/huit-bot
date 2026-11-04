@@ -14,7 +14,7 @@ flowchart TD
         SRC_VAA["Bot 2: 11 Fanpages & Groups VAA"]
         SRC_IUH["Bot 3: Cổng ĐRL IUH (doantn.iuh.edu.vn)"]
         SRC_UFM["Bot 4: Cổng Hoạt Động UFM (hoatdong.ufm.edu.vn)"]
-        SRC_OU["Bot 5: FB diemrenluyenou & Cổng diemrl.ou.edu.vn"]
+        SRC_OU["Bot 5: FB diemrenluyenou & Cổng renluyensv.ou.edu.vn"]
     end
 
     subgraph CLOUD_VPS["🖥️ CLOUD SERVER (Ubuntu 180.93.125.40 - Service: huit-bot)"]
@@ -82,7 +82,7 @@ flowchart TD
 | **Trường** | ĐH Công Thương TP.HCM | Học viện Hàng Không VN | ĐH Công Nghiệp TP.HCM | ĐH Tài chính - Marketing | ĐH Mở TP.HCM |
 | **File thực thi** | `bot.py` | `vaabot.py` | `iuh_bot.py` | `ufm_bot.py` (và `vaa/ufm/bot.py`) | `ou_bot.py` |
 | **File cấu hình** | `config.json` | `config_bot2.json`, `vaabot.json`, `vaa/config.json` | `config_iuh.json` | `config_ufm.json`, `vaa/ufm/config.json` | `config_ou.json` |
-| **Nguồn cào** | 16 Fanpages/Groups HUIT | 11 Fanpages/Groups VAA | `doantn.iuh.edu.vn/doanvien.html` | Duy nhất: `hoatdong.ufm.edu.vn/DangKy` | FB `diemrenluyenou` & Cổng `diemrl.ou.edu.vn` |
+| **Nguồn cào** | 16 Fanpages/Groups HUIT | 11 Fanpages/Groups VAA | `doantn.iuh.edu.vn/doanvien.html` | Duy nhất: `hoatdong.ufm.edu.vn/DangKy` | FB `diemrenluyenou` & Cổng `renluyensv.ou.edu.vn` |
 | **Cơ chế xác thực** | Cookie Facebook Desktop | Cookie Facebook Desktop | Session Cookie + OCR Captcha (`ddddocr`) | Form Auth + Session Cookie (`focusoncareer2111`) | Cookie FB + SSO Captcha AI (`2654092020`) |
 | **Database** | `seen_posts.db` | `seen_posts.db` (`bot2_posts`) | `seen_posts.db` (`iuh_posts`) | `ufm_bot.db` | `ou_bot.db` |
 | **Chu kỳ quét** | 60 giây | 60 giây | 120 giây | 180 giây | 25 - 30 giây |

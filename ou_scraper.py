@@ -58,12 +58,10 @@ def parse_ou_timestamp(val):
     return None
 
 class OUPortalScraper:
-    BASE_URL = "https://diemrl.ou.edu.vn/test"
-    LOGIN_URL = "https://diemrl.ou.edu.vn/test/auth/ousso/login"
-    EVENTS_URL = "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien"
-    THONGBAO_URL = "https://diemrl.ou.edu.vn/test/diemrl/thongbao"
+    DOMAIN = "https://renluyensv.ou.edu.vn"
+    DEFAULT_NHHK = "20261"
 
-    def __init__(self, username="2654092020", password="079308035034", config_path=None, auto_relogin=True, cookies=None):
+    def __init__(self, username="2654092020", password="079308035034", config_path=None, auto_relogin=True, cookies=None, nhhk=None):
         self.username = str(username).strip()
         self.password = str(password).strip()
         self.config_path = config_path
@@ -75,9 +73,39 @@ class OUPortalScraper:
         self.cookie_expired = False
         self.student_name = "Phan Thị Thu Phương"
         
+        self.nhhk = str(nhhk).strip() if nhhk else self.get_current_nhhk()
+        self.update_endpoints(self.nhhk)
+        
         if cookies and isinstance(cookies, dict):
             for k, v in cookies.items():
-                self.session.cookies.set(k, v, domain="diemrl.ou.edu.vn")
+                self.session.cookies.set(k, v, domain="ou.edu.vn")
+
+    def get_current_nhhk(self) -> str:
+        if self.config_path and os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                val = cfg.get("ou_portal", {}).get("nhhk")
+                if val:
+                    return str(val).strip()
+            except Exception:
+                pass
+        try:
+            r = requests.get(self.DOMAIN, headers=DESKTOP_HEADERS, verify=False, timeout=8)
+            m = re.search(r"href=[\"']/(\d{5})[\"']", r.text)
+            if m:
+                return m.group(1)
+        except Exception:
+            pass
+        return self.DEFAULT_NHHK
+
+    def update_endpoints(self, nhhk: str):
+        self.nhhk = nhhk or self.DEFAULT_NHHK
+        self.BASE_URL = f"https://renluyensv.ou.edu.vn/{self.nhhk}"
+        self.LOGIN_URL = f"https://renluyensv.ou.edu.vn/auth/ousso/login?nhhk={self.nhhk}"
+        self.EVENTS_URL = f"https://renluyensv.ou.edu.vn/{self.nhhk}/diemrl/dangkysukien"
+        self.THONGBAO_URL = f"https://renluyensv.ou.edu.vn/{self.nhhk}/diemrl/thongbao"
+        self.REGISTER_URL = f"https://renluyensv.ou.edu.vn/{self.nhhk}/diemrl/sv_dkthamgiask" 
 
     def auto_login(self, max_attempts: int = 5) -> tuple:
         """
@@ -143,14 +171,14 @@ class OUPortalScraper:
                 is_success = (
                     "dangkysukien" in r2.url
                     or "diemrl/home" in r2.url
-                    or "diemrl.ou.edu.vn" in r2.url
-                    or any("diemrl.ou.edu.vn" in h.url for h in r2.history)
+                    or "renluyensv.ou.edu.vn" in r2.url
+                    or any("renluyensv.ou.edu.vn" in h.url for h in r2.history)
                 )
 
                 if is_success:
                     # Kiểm tra lại bằng cách gọi thẳng trang sự kiện
                     r_verify = s.get(self.EVENTS_URL, verify=False, timeout=15)
-                    if r_verify.status_code == 200 and "DiemRL" in r_verify.text:
+                    if r_verify.status_code == 200 and ("DiemRL" in r_verify.text or "data-page" in r_verify.text):
                         self.session = s
                         self.is_logged_in = True
                         self.cookie_expired = False
@@ -175,6 +203,10 @@ class OUPortalScraper:
                                 with open(self.config_path, "r", encoding="utf-8") as f_cfg:
                                     cdata = json.load(f_cfg)
                                 cdata.setdefault("ou_portal", {})["cookies"] = cookie_dict
+                                cdata["ou_portal"]["nhhk"] = self.nhhk
+                                cdata["ou_portal"]["base_url"] = self.BASE_URL
+                                cdata["ou_portal"]["login_url"] = self.LOGIN_URL
+                                cdata["ou_portal"]["events_url"] = self.EVENTS_URL
                                 if self.student_name:
                                     cdata["ou_portal"]["student_name"] = self.student_name
                                 with open(self.config_path, "w", encoding="utf-8") as f_cfg:
@@ -261,6 +293,14 @@ class OUPortalScraper:
 
             events = []
             bdg = props.get("bdg", {})
+            kqdg = props.get("kqdg", [])
+            registered_cauhoi_ids = set()
+            if isinstance(kqdg, list):
+                for item in kqdg:
+                    if isinstance(item, dict):
+                        cid = item.get("IDCAUHOI") or item.get("idcauhoi")
+                        if cid:
+                            registered_cauhoi_ids.add(str(cid))
 
             if isinstance(bdg, dict):
                 bdg_items = list(bdg.values())
@@ -353,6 +393,7 @@ class OUPortalScraper:
                             "is_open": is_open,
                             "is_upcoming": is_upcoming,
                             "is_closed": is_closed,
+                            "is_registered": str(qid) in registered_cauhoi_ids,
                             "register_url": self.EVENTS_URL,
                             "first_seen": datetime.now(VN_TZ).strftime("%H:%M:%S %d/%m/%Y")
                         })
@@ -391,7 +432,7 @@ class OUPortalScraper:
             for cookie in s.cookies:
                 if cookie.name == "XSRF-TOKEN":
                     xsrf_token = urllib.parse.unquote(cookie.value)
-                    if "diemrl.ou.edu.vn" in getattr(cookie, "domain", ""):
+                    if "ou.edu.vn" in getattr(cookie, "domain", ""):
                         break
 
             iddieu = event.get("iddieu") or 1
@@ -417,7 +458,7 @@ class OUPortalScraper:
             if xsrf_token:
                 headers["X-XSRF-TOKEN"] = xsrf_token
 
-            reg_url = f"{self.BASE_URL}/diemrl/sv_dkthamgiask"
+            reg_url = self.REGISTER_URL
             r_post = s.post(reg_url, json=payload, headers=headers, verify=False, timeout=15)
 
             if r_post.status_code in (200, 302, 303):

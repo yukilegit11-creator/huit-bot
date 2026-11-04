@@ -125,7 +125,7 @@ def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", aut
     event_time = event.get("event_time", "Theo thông báo trên cổng")
     reg_time = event.get("reg_time", "Xem chi tiết trên cổng")
     target_courses = event.get("target_courses", "Tất cả các khóa")
-    reg_url = event.get("register_url", "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien")
+    reg_url = event.get("register_url", "https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien")
     dieu = event.get("dieu", "")
 
     is_reg_ok = auto_reg_result[0] if auto_reg_result else False
@@ -178,7 +178,7 @@ def format_ou_upcoming_event_message(event: dict, bot_name: str = "Yuki 5 (OU Đ
     reg_start_str = event.get("reg_start_str") or "Theo thông báo trên cổng"
     reg_end_str = event.get("reg_end_str") or ""
     target_courses = event.get("target_courses", "Tất cả các khóa")
-    reg_url = event.get("register_url", "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien")
+    reg_url = event.get("register_url", "https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien")
     dieu = event.get("dieu", "")
 
     lines = [
@@ -215,7 +215,7 @@ def format_ou_registered_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)"
     unit = event.get("unit", "Trường ĐH Mở TP.HCM")
     points = event.get("points", 0)
     event_time = event.get("event_time", "")
-    reg_url = event.get("register_url", "https://diemrl.ou.edu.vn/test/diemrl/dangkysukien")
+    reg_url = event.get("register_url", "https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien")
     dieu = event.get("dieu", "")
 
     header = "🎉 [OU - TỰ ĐỘNG ĐĂNG KÝ THÀNH CÔNG] 🎉" if is_success else "⚠️ [OU - KẾT QUẢ TỰ ĐỘNG ĐĂNG KÝ] ⚠️"
@@ -242,7 +242,7 @@ def format_ou_announcement_message(ann: dict, bot_name: str = "Yuki 5 (OU ĐRL)"
     cat = ann.get("category", "Thông báo")
     content = ann.get("content", "")
     created_at = ann.get("created_at", "Vừa xong")
-    url = ann.get("url", "https://diemrl.ou.edu.vn/test/diemrl/thongbao")
+    url = ann.get("url", "https://renluyensv.ou.edu.vn/20261/diemrl/thongbao")
 
     lines = [
         f"📢 [OU - THÔNG BÁO CỔNG ĐRL: {cat.upper()}] 📢",
@@ -337,7 +337,7 @@ def dispatch_zalo_message(zalo_inst: ZaloDispatcher, message_text: str, item_id:
                     post_title="Thông báo điểm rèn luyện OU",
                     source_page="Điểm rèn luyện OU",
                     author="OU Bot",
-                    post_url="https://diemrl.ou.edu.vn/test/diemrl/dangkysukien",
+                    post_url="https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien",
                     content_snippet=message_text[:120],
                     has_form=1 if "LINK ĐIỀN FORM" in message_text else 0,
                     matched_keyword="DRL OU",
@@ -358,7 +358,7 @@ def dispatch_zalo_message(zalo_inst: ZaloDispatcher, message_text: str, item_id:
                     post_title="Thông báo điểm rèn luyện OU",
                     source_page="Điểm rèn luyện OU",
                     author="OU Bot",
-                    post_url="https://diemrl.ou.edu.vn/test/diemrl/dangkysukien",
+                    post_url="https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien",
                     content_snippet=message_text[:120],
                     has_form=1 if "LINK ĐIỀN FORM" in message_text else 0,
                     matched_keyword="DRL OU",
@@ -538,7 +538,7 @@ def main():
                 else:
                     print("⚠️ [FB OU] Không tải được nội dung HTML của Fanpage.")
 
-            # --- 3. QUÉT CỔNG ĐIỂM RÈN LUYỆN OU (https://diemrl.ou.edu.vn/test/diemrl/dangkysukien) ---
+            # --- 3. QUÉT CỔNG ĐIỂM RÈN LUYỆN OU (https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien) ---
             if fresh_cfg.get("ou_portal", {}).get("enabled", True):
                 print(f"🔎 [Cổng ĐRL OU] Đang quét: {portal_scraper.EVENTS_URL}...")
                 ok_ev, events, msg_ev = portal_scraper.fetch_events()
@@ -580,8 +580,12 @@ def main():
 
                                 elif is_open:
                                     # TRƯỜNG HỢP 2: SỰ KIỆN ĐÃ MỞ ĐĂNG KÝ NGAY KHI PHÁT HIỆN
-                                    print(f"⚡ [Tự động đăng ký OU] Sự kiện đang mở đăng ký: {title}...")
-                                    ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                    if ev.get("is_registered", False):
+                                        print(f"ℹ️ [OU] Sự kiện đã được sinh viên đăng ký trên cổng: {title}")
+                                        ok_reg, msg_reg = True, "Sinh viên đã đăng ký tham gia thành công trên cổng"
+                                    else:
+                                        print(f"⚡ [Tự động đăng ký OU] Sự kiện đang mở đăng ký: {title}...")
+                                        ok_reg, msg_reg = portal_scraper.register_event(ev)
                                     reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
                                     print(f"  -> {reg_status_log}")
                                     database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
