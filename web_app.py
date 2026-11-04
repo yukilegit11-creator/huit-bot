@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import hashlib
 from datetime import datetime, timezone, timedelta
+VN_TZ = timezone(timedelta(hours=7))
 
 import database
 from zalo_sender import ZaloDispatcher
