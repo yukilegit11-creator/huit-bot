@@ -90,7 +90,7 @@ class TelegramController:
             logger.error(f"Telegram sendMessage error: {e}")
             return False
 
-    def send_photo(self, chat_id: str, photo_path: str, caption: str = "", parse_mode: str = "HTML") -> bool:
+    def send_photo(self, chat_id: str, photo_path: str, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None) -> bool:
         if not self.token or not os.path.exists(photo_path):
             return False
         url = f"{self.api_base}/sendPhoto"
@@ -102,6 +102,8 @@ class TelegramController:
                     "caption": caption[:1024],
                     "parse_mode": parse_mode
                 }
+                if reply_markup:
+                    data["reply_markup"] = json.dumps(reply_markup)
                 r = requests.post(url, data=data, files=files, timeout=30)
                 return r.status_code == 200
         except Exception as e:
@@ -547,7 +549,7 @@ class TelegramController:
                 f"👤 {res.get('account_info')}\n"
                 f"⏰ Lúc: {res.get('captured_at')}"
             )
-            self.send_photo(chat_id, img_path, caption=caption)
+            self.send_photo(chat_id, img_path, caption=caption, reply_markup=self.get_dashboard_keyboard())
         except Exception as e:
             self.send_message(chat_id, f"❌ <b>Lỗi hệ thống khi chụp ảnh:</b> {e}")
 

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone, timedelta
 import os
 import re
 import json
@@ -22,11 +23,29 @@ class IUHPortalScraper:
     TARGET_URL = "https://doantn.iuh.edu.vn/doanvien.html"
 
     def __init__(self, cookie_raw=None, username=None, password=None, config_path=None, auto_relogin=True):
+        self.config_path = config_path
+        self.auto_relogin = bool(auto_relogin)
+        self.student_name = ""
+
+        # Tự động nạp thông tin từ file config nếu chưa được cung cấp
+        if self.config_path and os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, "r", encoding="utf-8") as f_cfg:
+                    cfg_init = json.load(f_cfg)
+                p_init = cfg_init.get("portal", {})
+                if not cookie_raw:
+                    cookie_raw = p_init.get("phpsessid", "")
+                if not username:
+                    username = p_init.get("username", "")
+                if not password:
+                    password = p_init.get("password", "")
+                self.student_name = p_init.get("student_name", "")
+            except Exception:
+                pass
+
         self.phpsessid = self.extract_phpsessid(cookie_raw)
         self.username = str(username).strip() if username else ""
         self.password = str(password).strip() if password else ""
-        self.config_path = config_path
-        self.auto_relogin = bool(auto_relogin)
         self.session = requests.Session()
         if self.phpsessid:
             self.session.cookies.set("PHPSESSID", self.phpsessid, domain="doantn.iuh.edu.vn")
@@ -91,9 +110,10 @@ class IUHPortalScraper:
             self.session.cookies.set("PHPSESSID", self.phpsessid, domain="doantn.iuh.edu.vn")
         self.last_touch_time = time.time()
 
-    def auto_login(self, max_attempts: int = 5) -> tuple:
+    def auto_login(self, max_attempts: int = 12) -> tuple:
         """
         Tự động giải mã Captcha bằng AI OCR (ddddocr) và đăng nhập vào portal IUH.
+        Lưu cookies PHPSESSID và thông tin sinh viên vào config_iuh.json.
         Trả về (success: bool, message: str, new_phpsessid: str)
         """
         if not HAS_DDDDOCR:
@@ -121,7 +141,7 @@ class IUHPortalScraper:
                 cap_code = re.sub(r"[^a-zA-Z0-9]", "", cap_raw).strip()
 
                 if len(cap_code) != 5:
-                    time.sleep(0.4)
+                    time.sleep(0.3)
                     continue
 
                 # 3. Gửi thông tin đăng nhập
@@ -135,38 +155,55 @@ class IUHPortalScraper:
 
                 # 4. Kiểm tra trang cá nhân
                 r_portal = s.get(self.TARGET_URL, verify=False, timeout=12)
-                if "doanvien.html@profile" in r_portal.text or "KẾT QUẢ TRA CỨU" in r_portal.text or "Đăng xuất" in r_portal.text:
-                    new_sid = s.cookies.get("PHPSESSID")
+                if any(k in r_portal.text for k in ["doanvien.html@profile", "KẾT QUẢ TRA CỨU", "Đăng xuất", "tblDoanvien", "MSSV:"]):
+                    new_sid = s.cookies.get("PHPSESSID") or s.cookies.get_dict().get("PHPSESSID")
+                    if not new_sid:
+                        for c in s.cookies:
+                            if c.name == "PHPSESSID":
+                                new_sid = c.value
+                                break
+
+                    m_name = re.search(r"Sinh viên:\s*([^	\n\r<]+)", r_portal.text)
+                    if m_name:
+                        self.student_name = m_name.group(1).strip()
+
                     if new_sid:
                         self.phpsessid = new_sid
                         self.session = s
                         self.session.cookies.set("PHPSESSID", new_sid, domain="doantn.iuh.edu.vn")
                         self.last_touch_time = time.time()
-                        # Lưu tự động vào file config_iuh.json nếu có
+
+                        # Lưu tự động vào file config_iuh.json
                         if self.config_path and os.path.exists(self.config_path):
                             try:
                                 with open(self.config_path, "r", encoding="utf-8") as f:
                                     cdata = json.load(f)
                                 cdata.setdefault("portal", {})["phpsessid"] = new_sid
+                                if self.student_name:
+                                    cdata["portal"]["student_name"] = self.student_name
+                                cdata["portal"]["last_login"] = datetime.now(timezone(timedelta(hours=7))).strftime("%H:%M:%S %d/%m/%Y")
                                 with open(self.config_path, "w", encoding="utf-8") as f:
                                     json.dump(cdata, f, ensure_ascii=False, indent=2)
-                            except Exception:
-                                pass
-                        return True, f"Tự giải captcha '{cap_code}' và đăng nhập thành công (lần thử #{attempt})", new_sid
-                time.sleep(0.4)
+                                print(f"💾 [IUH Scraper] Đã lưu Cookies mới ({new_sid[:8]}...) vào {self.config_path}!")
+                            except Exception as e_save:
+                                print(f"⚠️ Lỗi lưu config IUH: {e_save}")
+
+                        st_info = f" ({self.student_name})" if self.student_name else ""
+                        return True, f"Tự giải captcha '{cap_code}' và đăng nhập thành công{st_info} (lần thử #{attempt})", new_sid
+                time.sleep(0.3)
             except Exception:
-                time.sleep(0.4)
+                time.sleep(0.3)
 
         return False, f"Tự đăng nhập không thành công sau {max_attempts} lần giải captcha", ""
 
     def keep_alive(self) -> tuple:
         """
         Gửi yêu cầu heartbeat ping nhẹ tới cổng portal IUH để reset idle timer của PHP session.
-        Trả về (True, 'Alive') nếu session hợp lệ, hoặc (False, 'Expired/Error') nếu session chết.
+        Nếu session hết hạn hoặc bị đăng xuất, tự động gọi auto_login() ngay lập tức để lấy cookie mới và lưu config!
         """
         if not self.phpsessid:
             if self.auto_relogin and self.username and self.password and HAS_DDDDOCR:
-                ok, msg, _ = self.auto_login()
+                ok, msg, sid = self.auto_login()
                 if ok:
                     return True, f"Đã tự khởi tạo phiên mới thành công: {msg}"
             return False, "Chưa thiết lập Cookie PHPSESSID"
@@ -174,17 +211,27 @@ class IUHPortalScraper:
             r = self.session.get(self.TARGET_URL, headers=self.headers, verify=False, timeout=15)
             self.last_touch_time = time.time()
             if r.status_code != 200:
-                return False, f"Heartbeat HTTP error: {r.status_code}"
-            html = r.text
-            if "login.html" in html and ("<meta http-equiv='refresh'" in html or "URL=login.html" in html):
-                # Tự động đăng nhập lại nếu có tài khoản
-                if self.auto_relogin and self.username and self.password and HAS_DDDDOCR:
+                if self.auto_relogin and HAS_DDDDOCR:
                     ok, msg, _ = self.auto_login()
                     if ok:
                         return True, f"Phiên đã được tự động phục hồi qua AI Auto-Login ({msg})"
+                return False, f"Heartbeat HTTP error: {r.status_code}"
+
+            html = r.text
+            if ("login.html" in html and ("<meta http-equiv='refresh'" in html or "URL=login.html" in html)) or ("KẾT QUẢ TRA CỨU" not in html and "tblDoanvien" not in html and "Đăng xuất" not in html):
+                print("⚠️ Session Cổng IUH đã hết hạn. Đang tự động đăng nhập lại và lưu cookies...")
+                if self.auto_relogin and self.username and self.password and HAS_DDDDOCR:
+                    ok, msg, sid = self.auto_login()
+                    if ok:
+                        return True, f"Phiên đã được tự động phục hồi và lưu cookies ({msg})"
                 return False, "Cookie PHPSESSID đã hết hạn hoặc bị đăng xuất"
+
             return True, "Session PHP vẫn sống và hợp lệ (Keep-Alive OK)"
         except Exception as e:
+            if self.auto_relogin and HAS_DDDDOCR:
+                ok, msg, _ = self.auto_login()
+                if ok:
+                    return True, f"Tự động kết nối lại thành công sau lỗi: {msg}"
             return False, f"Lỗi kết nối heartbeat: {e}"
 
     def fetch_activities(self, retries: int = 2) -> tuple:

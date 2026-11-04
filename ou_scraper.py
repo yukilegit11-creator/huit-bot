@@ -75,6 +75,23 @@ class OUPortalScraper:
         
         self.nhhk = str(nhhk).strip() if nhhk else self.get_current_nhhk()
         self.update_endpoints(self.nhhk)
+
+        # Tự động nạp cookies và cấu hình từ config_path nếu chưa truyền cookies
+        if (not cookies) and self.config_path and os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r', encoding='utf-8') as f_cfg:
+                    cfg_data = json.load(f_cfg)
+                p_cfg = cfg_data.get('ou_portal', {})
+                if not cookies:
+                    cookies = p_cfg.get('cookies', {})
+                if not self.username:
+                    self.username = str(p_cfg.get('username', '2654092020')).strip()
+                if not self.password:
+                    self.password = str(p_cfg.get('password', '079308035034')).strip()
+                if p_cfg.get('student_name'):
+                    self.student_name = p_cfg.get('student_name')
+            except Exception:
+                pass
         
         if cookies and isinstance(cookies, dict):
             for k, v in cookies.items():
@@ -112,14 +129,22 @@ class OUPortalScraper:
         Tự động giải mã Captcha bằng AI OCR (ddddocr) và đăng nhập vào cổng HCMCOU SSO / Điểm rèn luyện OU.
         Trả về (success: bool, message: str, cookies_dict: dict)
         """
-        global _global_ocr
+        global _global_ocr, HAS_DDDDOCR
         if not HAS_DDDDOCR:
-            return False, "Thiếu thư viện ddddocr để giải mã Captcha SSO OU", {}
+            try:
+                import ddddocr
+                HAS_DDDDOCR = True
+            except Exception as e_imp:
+                return False, f"Không thể nạp thư viện ddddocr: {e_imp}", {}
         if not self.username or not self.password:
             return False, "Chưa cấu hình tài khoản/mật khẩu sinh viên OU", {}
 
         if _global_ocr is None:
-            _global_ocr = ddddocr.DdddOcr(show_ad=False)
+            try:
+                import ddddocr
+                _global_ocr = ddddocr.DdddOcr(show_ad=False)
+            except Exception as e_init:
+                return False, f"Lỗi khởi tạo AI OCR: {e_init}", {}
         ocr = _global_ocr
 
         for attempt in range(1, max_attempts + 1):

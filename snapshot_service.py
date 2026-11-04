@@ -84,10 +84,10 @@ def capture_portal_view(bot_query: str, base_dir: str = None, force: bool = Fals
 
     try:
         from playwright.sync_api import sync_playwright
-    except ImportError:
+    except Exception as e_pw:
         return {
             "status": "error",
-            "message": "Môi trường thiếu thư viện playwright. Cần: pip install playwright && playwright install chromium"
+            "message": f"Khởi tạo trình duyệt Playwright chưa sẵn sàng ({e_pw}). Vui lòng bấm thử lại sau 3-5 giây!"
         }
 
     result = None
