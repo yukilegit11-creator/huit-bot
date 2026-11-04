@@ -309,9 +309,8 @@ def api_get_portal_snapshot(bot_name: str, force: bool = False):
     """Chụp ảnh góc nhìn màn hình của bot (POV) theo thời gian thực trên Cổng ĐRL."""
     import snapshot_service
     res = snapshot_service.capture_portal_view(bot_name, base_dir=SCRIPT_DIR, force=force)
-    if not res or res.get("status") != "success":
-        err = res.get("message", "Chụp ảnh màn hình thất bại") if res else "Không phản hồi"
-        raise HTTPException(status_code=500, detail=err)
+    if not res:
+        return {"status": "error", "message": "Không nhận được phản hồi từ dịch vụ chụp ảnh"}
     return res
 
 @app.get("/api/snapshot/{bot_name}/image")
@@ -6113,7 +6112,7 @@ async function loadSnapshot(botId, force = false) {{
       if (titleEl) titleEl.innerText = data.page_title || '--';
       if (accEl) accEl.innerText = data.account_info || '--';
     }} else {{
-      alert(data.message || 'Không thể chụp ảnh màn hình.');
+      alert(data.message || data.detail || 'Không thể chụp ảnh màn hình.');
     }}
   }} catch (e) {{
     alert('Lỗi chụp góc nhìn thực tế: ' + e);
