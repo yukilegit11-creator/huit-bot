@@ -25,20 +25,17 @@ def run_proc(cmd, name):
         time.sleep(5)
 
 def run_telegram():
-    while True:
-        try:
-            from telegram_bot import get_telegram_bot
-            tg_bot = get_telegram_bot()
-            if tg_bot.is_configured():
-                print("📱 [Khởi động Telegram Controller]...")
-                tg_bot.broadcast_admin("🚀 <b>Hệ thống Penta-Bot đã khởi động và sẵn sàng nhận lệnh!</b>")
-                tg_bot.poll_updates()
-            else:
-                # Chưa bật Telegram, ngủ 30s rồi kiểm tra lại (để nhận cấu hình nóng mà không cần restart bot)
-                time.sleep(30)
-        except Exception as e:
-            print(f"⚠️ Lỗi tiến trình Telegram Controller: {e}")
-            time.sleep(10)
+    try:
+        from telegram_bot import get_telegram_bot
+        tg_bot = get_telegram_bot()
+        while not tg_bot.is_configured():
+            time.sleep(15)
+            
+        print("📱 [Khởi động Telegram Controller]...")
+        tg_bot.broadcast_admin("🚀 <b>Hệ thống Penta-Bot đã khởi động và sẵn sàng nhận lệnh!</b>")
+        tg_bot.poll_updates()
+    except Exception as e:
+        print(f"⚠️ Lỗi tiến trình Telegram Controller: {e}")
 
 def main():
     print("=" * 60)

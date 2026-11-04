@@ -1,7 +1,9 @@
 {
-  "enabled": false,
-  "bot_token": "",
-  "admin_chat_ids": [],
+  "enabled": true,
+  "bot_token": "9164688841:AAF5IfxMiwhDFFa0WLdRsqjitvtaMK21KMQ",
+  "admin_chat_ids": [
+    "6073211713"
+  ],
   "notify_new_activities": true,
   "notify_auto_register": true,
   "notify_system_errors": true

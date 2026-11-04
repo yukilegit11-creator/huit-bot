@@ -43,15 +43,19 @@ class TelegramController:
     """
     def __init__(self, config_path: str = CONFIG_FILE):
         self.config_path = config_path
-        self.config = load_telegram_config()
-        self.token = self.config.get("bot_token", "").strip()
-        self.admin_chat_ids = [str(x) for x in self.config.get("admin_chat_ids", []) if str(x).strip()]
-        self.api_base = f"https://api.telegram.org/bot{self.token}"
+        self.reload_config()
         self.running = False
         self.last_update_id = 0
         self.thread = None
 
+    def reload_config(self):
+        self.config = load_telegram_config()
+        self.token = self.config.get("bot_token", "").strip()
+        self.admin_chat_ids = [str(x) for x in self.config.get("admin_chat_ids", []) if str(x).strip()]
+        self.api_base = f"https://api.telegram.org/bot{self.token}"
+
     def is_configured(self) -> bool:
+        self.reload_config()
         return bool(self.token and self.config.get("enabled", False))
 
     def send_message(self, chat_id: str, text: str, reply_markup: dict = None, parse_mode: str = "HTML") -> bool:
@@ -68,6 +72,8 @@ class TelegramController:
             payload["reply_markup"] = reply_markup
         try:
             r = requests.post(url, json=payload, timeout=12)
+            if r.status_code != 200:
+                logger.error(f"Telegram sendMessage failed ({r.status_code}): {r.text}")
             return r.status_code == 200
         except Exception as e:
             logger.error(f"Telegram sendMessage error: {e}")
@@ -100,7 +106,7 @@ class TelegramController:
             if photo_path and os.path.exists(photo_path):
                 ok = self.send_photo(cid, photo_path, caption=text)
             else:
-                ok = self.send_message(cid, text)
+                ok = self.send_message(cid, text, reply_markup=self.get_dashboard_keyboard())
             if ok:
                 success_count += 1
         return success_count
@@ -141,15 +147,17 @@ class TelegramController:
 
         if cmd in ["/start", "/help", "menu"]:
             welcome = (
-                f"👋 <b>Xin chào {first_name}!</b>\n"
+                f"👋 <b>Xin chào {first_name}!</b>\n\n"
                 f"🤖 <b>HỆ THỐNG ĐIỀU HÀNH PENTA-BOT 24/7</b>\n"
                 f"<i>(HUIT • VAA • IUH • UFM • OU)</i>\n\n"
-                f"📌 <b>Các lệnh điều khiển nhanh:</b>\n"
-                f"• <code>/status</code> - Xem trạng thái hoạt động & tài nguyên VPS\n"
-                f"• <code>/pov [bot3/bot4/bot5]</code> - Chụp màn hình góc nhìn thực tế\n"
+                f"📌 <b>Bảng điều khiển nhanh:</b>\n"
+                f"• <code>/status</code> - Xem tình trạng 5 bot & tài nguyên VPS\n"
+                f"• <code>/pov iuh</code> - Chụp ảnh POV thực tế Cổng IUH\n"
+                f"• <code>/pov ufm</code> - Chụp ảnh POV thực tế Cổng UFM\n"
+                f"• <code>/pov ou</code> - Chụp ảnh POV thực tế Cổng OU\n"
                 f"• <code>/toggle_ou</code> - Bật / Tắt tự động đăng ký Bot 5 (OU)\n"
                 f"• <code>/id</code> - Xem Chat ID Telegram của bạn\n\n"
-                f"👇 <i>Hoặc sử dụng các nút tương tác bên dưới:</i>"
+                f"👇 <i>Bạn có thể bấm trực tiếp các nút bên dưới:</i>"
             )
             self.send_message(chat_id, welcome, reply_markup=self.get_dashboard_keyboard())
 
@@ -204,7 +212,7 @@ class TelegramController:
         
         # Đọc cấu hình các bot
         ou_cfg = os.path.join(SCRIPT_DIR, "config_ou.json")
-        ou_auto = "TẮT"
+        ou_auto = "TẮT ⏸️"
         if os.path.exists(ou_cfg):
             try:
                 with open(ou_cfg, "r", encoding="utf-8") as f:
@@ -216,14 +224,14 @@ class TelegramController:
         status_text = (
             f"📊 <b>BÁO CÁO TRẠNG THÁI HỆ THỐNG PENTA-BOT</b>\n"
             f"⏰ <i>Thời điểm: {now_str}</i>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
             f"🟢 <b>Bot 1 (HUIT):</b> Quét 16 Fanpage (chu kỳ 30s)\n"
             f"🟢 <b>Bot 2 (VAA):</b> Quét 11 Fanpage (chu kỳ 30s)\n"
             f"🟢 <b>Bot 3 (IUH):</b> Cổng ĐRL doantn.iuh.edu.vn (chu kỳ 25s)\n"
             f"🟢 <b>Bot 4 (UFM):</b> Cổng ĐRL hoatdong.ufm.edu.vn (chu kỳ 25s)\n"
             f"🟢 <b>Bot 5 (OU):</b> Cổng ĐRL & Fanpage OU (chu kỳ 25s)\n"
             f"   └─ <i>Tự động đăng ký OU:</i> <b>{ou_auto}</b>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
             f"🛡️ <i>Cơ chế chống spam:</i> <b>Đang kích hoạt</b>\n"
             f"🌐 <i>Web Dashboard:</i> <code>http://180.93.125.40:8000</code>"
         )
@@ -290,6 +298,7 @@ class TelegramController:
 
     def poll_updates(self):
         """Vòng lặp Long-polling nhận lệnh từ Telegram."""
+        self.running = True
         logger.info("Telegram long-polling loop started.")
         while self.running:
             try:
