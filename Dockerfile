@@ -3,11 +3,13 @@ FROM python:3.11-slim
 # Múi giờ chuẩn Việt Nam GMT+7 (Render mặc định chạy UTC)
 ENV TZ=Asia/Ho_Chi_Minh
 
-# Cài đặt các gói hệ thống cơ bản
+# Cài đặt các gói hệ thống cơ bản và thư viện đồ họa cho OCR
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     tzdata \
+    libgl1 \
+    libglib2.0-0 \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 

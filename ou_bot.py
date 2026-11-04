@@ -271,11 +271,14 @@ def send_cookie_error_alert(zalo_inst: ZaloDispatcher, error_source: str, error_
         return
     last_cookie_alert_time = now_ts
 
+    import socket
+    hostname = socket.gethostname()
     now_vn = datetime.now(VN_TZ).strftime("%H:%M:%S %d/%m/%Y")
     warn_text = (
         "⚠️ [Yuki 5 (OU ĐRL) - CẢNH BÁO LỖI COOKIE] ⚠️\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         f"🚨 Nguồn lỗi: {error_source}\n"
+        f"💻 Máy chủ phát hiện: {hostname}\n"
         f"❌ Chi tiết sự cố: {error_detail}\n"
         "🌐 Hệ thống: Đã bật chế độ tự phục hồi / Ẩn danh (Guest Mode).\n"
         f"⏰ Thời gian phát hiện: {now_vn}\n"
