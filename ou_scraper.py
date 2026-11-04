@@ -314,6 +314,10 @@ class OUPortalScraper:
 
             props = self._extract_page_props(r)
             if not props and "DiemRL" not in r.text and "auth/login" in r.url:
+                if self.auto_relogin:
+                    ok_re, msg_re, _ = self.auto_login()
+                    if ok_re:
+                        return self.fetch_events()
                 return False, [], "Session hết hạn khi tải sự kiện ĐRL OU"
 
             events = []
