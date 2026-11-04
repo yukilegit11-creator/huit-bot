@@ -462,12 +462,34 @@ class OUPortalScraper:
             r_post = s.post(reg_url, json=payload, headers=headers, verify=False, timeout=15)
 
             if r_post.status_code in (200, 302, 303):
-                props = self._extract_page_props(r_post)
-                flash = props.get("flash", {})
-                if flash.get("error"):
-                    return False, f"Cổng phản hồi: {flash.get('error')}"
-                success_msg = flash.get("success") or "Đăng ký thành công!"
-                return True, success_msg
+                # 3. Đối soát thực tế trên cổng để chắc chắn sự kiện đã được lưu vào danh sách đăng ký
+                time.sleep(1)
+                r_check = s.get(self.EVENTS_URL, verify=False, timeout=15)
+                props_check = self._extract_page_props(r_check)
+                kqdg_check = props_check.get("kqdg", [])
+                reg_ids = set()
+                if isinstance(kqdg_check, list):
+                    for item in kqdg_check:
+                        if isinstance(item, dict):
+                            cid = item.get("IDCAUHOI") or item.get("idcauhoi")
+                            if cid:
+                                reg_ids.add(str(cid))
+
+                if str(idcauhoi) in reg_ids:
+                    return True, "Cổng trường đã xác nhận: Đăng ký tham gia thành công!"
+                
+                # Nếu không có trong kqdg -> Kiểm tra thông điệp lỗi từ flash hoặc portal
+                props_post = self._extract_page_props(r_post)
+                flash_post = props_post.get("flash", {}) if isinstance(props_post, dict) else {}
+                flash_check = props_check.get("flash", {}) if isinstance(props_check, dict) else {}
+                err_msg = (
+                    flash_post.get("error") 
+                    or flash_check.get("error") 
+                    or flash_post.get("message") 
+                    or flash_check.get("message")
+                    or "Cổng không ghi nhận đăng ký (có thể do hết suất, trùng lịch hoặc ca đăng ký đã đầy)"
+                )
+                return False, f"Cổng từ chối: {err_msg}"
             elif r_post.status_code == 419:
                 if self.auto_relogin:
                     self.auto_login()

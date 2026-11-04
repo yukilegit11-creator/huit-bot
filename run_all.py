@@ -24,6 +24,22 @@ def run_proc(cmd, name):
             print(f"❌ Lỗi tiến trình [{name}]: {e}")
         time.sleep(5)
 
+def run_telegram():
+    while True:
+        try:
+            from telegram_bot import get_telegram_bot
+            tg_bot = get_telegram_bot()
+            if tg_bot.is_configured():
+                print("📱 [Khởi động Telegram Controller]...")
+                tg_bot.broadcast_admin("🚀 <b>Hệ thống Penta-Bot đã khởi động và sẵn sàng nhận lệnh!</b>")
+                tg_bot.poll_updates()
+            else:
+                # Chưa bật Telegram, ngủ 30s rồi kiểm tra lại (để nhận cấu hình nóng mà không cần restart bot)
+                time.sleep(30)
+        except Exception as e:
+            print(f"⚠️ Lỗi tiến trình Telegram Controller: {e}")
+            time.sleep(10)
+
 def main():
     print("=" * 60)
     print("🌟 HỆ THỐNG ĐIỀU HÀNH PENTA-BOT 24/7 (HUIT + VAA + IUH + UFM + OU ĐRL)")
@@ -35,6 +51,7 @@ def main():
     t3 = threading.Thread(target=run_proc, args=("iuh_bot.py", "Bot 3 (IUH - Yuki 3 ĐRL)"), daemon=True)
     t4 = threading.Thread(target=run_proc, args=("ufm_bot.py", "Bot 4 (UFM - Yuki 4 ĐRL)"), daemon=True)
     t5 = threading.Thread(target=run_proc, args=("ou_bot.py", "Bot 5 (OU - Yuki 5 ĐRL)"), daemon=True)
+    t_tg = threading.Thread(target=run_telegram, daemon=True)
 
     t1.start()
     time.sleep(2)
@@ -45,6 +62,8 @@ def main():
     t4.start()
     time.sleep(2)
     t5.start()
+    time.sleep(1)
+    t_tg.start()
 
     try:
         while True:

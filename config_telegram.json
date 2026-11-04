@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "bot_token": "",
+  "admin_chat_ids": [],
+  "notify_new_activities": true,
+  "notify_auto_register": true,
+  "notify_system_errors": true
+}
