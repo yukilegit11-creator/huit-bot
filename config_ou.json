@@ -39,14 +39,9 @@
     "auto_relogin": true,
     "keep_alive": true,
     "keep_alive_interval_seconds": 120,
-    "cookies": {
-      "XSRF-TOKEN": "eyJpdiI6Ik16RHFKQWxmd1FnWHFhSlF2QzBnWVE9PSIsInZhbHVlIjoiMDZnQTJDVGdwSEVuVmRPY24waUpNR2JKR2FOSzVRaEtHRjVEOUZxck1nYzFRRlYxdjV0SUtxU2RYXC8zWkZZclR5dU56UkY1R3FyUzRncjRaaUxLT3pBPT0iLCJtYWMiOiIyN2Q5ZmRkNWZlMTU2MTk0ZTM4M2U4ZjIwN2FkNDZjMzA1YTMxZDkyY2MzNWJkODRmNTMzNzA3MjViZDAxZTNlIn0%3D",
-      "hcmcoudrl_session": "eyJpdiI6ImMrNXpFbnFBejY1QmMxUnZXVC9xMGc9PSIsInZhbHVlIjoickJMMmtOTWJEVUhVSGUvajlqdDRLeHBPaTZ1V0pQNy9IcmtLVi9PQkRGUWxQZHVpZTB6NnlNRzZ6L05Rem1OV0FoV0wrRW9GTXd0aTl2TlA0WUlFTHpUUndLUTNoOFRHSXlCWEhsL2NiaFBXbDlSaXhLcDVHZjR1WDNSeUpJdGMiLCJtYWMiOiI3YzcyY2RiNGQ3OTdmNjYwMTY2NTJlYThhZWQwYmNlNjEyZGU1NjQyM2RkNzljZjcxMzRjY2FjYjczMzFmMDk3IiwidGFnIjoiIn0%3D",
-      "sso_tenant_nhhk": "eyJpdiI6Ik5oMG9QVXVZeFRsWU4reE9OWVhQMlE9PSIsInZhbHVlIjoiOUpqVnFtK2taOTYxRTQ0MlBKSkFjcGd5dEFoUGFKR3ZwY1gxM3FrOTE2OEVXR1J5Q2NZbDc5QzZUQmp6RmlxRyIsIm1hYyI6ImQxYWJhODk2ZTM5NDJmZjRmOWNmMTlkNTBiMjMyNTk3NDA5ZTNkZmEyNTc3NDRkYWI1Y2RkMDg2MTNlMzUwOGQiLCJ0YWciOiIifQ%3D%3D",
-      "laravel_session": "eyJpdiI6InpreVRMdFNVUkRxUmlMOUkzNW1pTGc9PSIsInZhbHVlIjoibmk5dnY0OFwvN1RWUXQ3ZDlhNm1mRDRKVUp3aVFcLzJxTCs5TVlEM0gyUGdpZDBBOFI4SkhlR0x4b254d1Y5QnZaSUpuVFJ3dTdPR0t0OVQ1bENzaER1UT09IiwibWFjIjoiZjA2NDE5ZWI2NzFlYjFhMTc2Njg1ZmZjZTI1MDY0NTQzMWE2N2FhMGQ3NjE0NTMzYWVlOGEzNmYzZTg0NjU1YiJ9"
-    },
+    "cookies": {},
     "nhhk": "20261",
-    "auto_register": false
+    "auto_register": true
   },
   "zalo": {
     "imei": "95fee95e-a59c-4c93-a4ab-394e79b4c4f4-a16ddaab909d2cf27fce353f26dd2ff2",
@@ -105,5 +100,6 @@
   "dashboard_auth": {
     "enabled": true,
     "password": "YUKILEGIT0"
-  }
+  },
+  "auto_register": true
 }

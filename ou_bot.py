@@ -1,3 +1,7 @@
+try:
+    from telegram_bot import send_telegram_alert
+except Exception:
+    send_telegram_alert = None
 import os
 import sys
 import time
@@ -118,10 +122,10 @@ def format_ou_fb_message(post: dict, bot_name: str = "Yuki 5 (OU ĐRL)") -> str:
     return "\n".join(lines)
 
 
-def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", auto_reg_result: tuple = None, student_name: str = "Phan Thị Thu Phương") -> str:
+def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", auto_reg_result: tuple = None, student_name: str = "Phan Thị Thu Phương", session_name: str = "", points_reg: float = 0) -> str:
     title = event.get("title", "Sự kiện rèn luyện")
     unit = event.get("unit", "Trường ĐH Mở TP.HCM")
-    points = event.get("points", 0)
+    points = points_reg if points_reg > 0 else event.get("points", 0)
     event_time = event.get("event_time", "Theo thông báo trên cổng")
     reg_time = event.get("reg_time", "Xem chi tiết trên cổng")
     target_courses = event.get("target_courses", "Tất cả các khóa")
@@ -139,14 +143,16 @@ def format_ou_event_message(event: dict, bot_name: str = "Yuki 5 (OU ĐRL)", aut
             f"✅ Trạng thái: {reg_msg}",
             "━━━━━━━━━━━━━━━━━━━━",
             f"📌 Sự kiện: {title}",
-            f"🏢 Đơn vị tổ chức: {unit}"
+            f"🏢 Đơn vị: {unit}"
         ]
+        if session_name:
+            lines.append(f"📝 Mục / Ca đã đăng ký: {session_name}")
     else:
         lines = [
             "🔥 [OU - SỰ KIỆN MỞ ĐĂNG KÝ ĐRL MỚI] 🔥",
             "━━━━━━━━━━━━━━━━━━━━",
             f"📌 Sự kiện: {title}",
-            f"🏢 Đơn vị tổ chức: {unit}"
+            f"🏢 Đơn vị: {unit}"
         ]
         if reg_msg:
             lines.append(f"ℹ️ Đăng ký tự động: {reg_msg}")
@@ -601,12 +607,18 @@ def main():
                                 elif is_open:
                                     # TRƯỜNG HỢP 2: SỰ KIỆN ĐÃ MỞ ĐĂNG KÝ NGAY KHI PHÁT HIỆN
                                     if auto_reg_enabled:
+                                        sess_name, pts_reg = "", ev.get("points", 0)
                                         if ev.get("is_registered", False):
                                             print(f"ℹ️ [OU] Sự kiện đã được sinh viên đăng ký trên cổng: {title}")
                                             ok_reg, msg_reg = True, "Sinh viên đã đăng ký tham gia thành công trên cổng"
                                         else:
                                             print(f"⚡ [Tự động đăng ký OU] Sự kiện đang mở đăng ký: {title}...")
-                                            ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                            reg_res = portal_scraper.register_event(ev)
+                                            ok_reg = reg_res[0]
+                                            msg_reg = reg_res[1]
+                                            sess_name = reg_res[2] if len(reg_res) > 2 else ""
+                                            pts_reg = reg_res[3] if len(reg_res) > 3 else ev.get("points", 0)
+
                                         reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
                                         print(f"  -> {reg_status_log}")
                                         database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
@@ -622,9 +634,16 @@ def main():
                                             ev, 
                                             bot_name=bot_name, 
                                             auto_reg_result=(ok_reg, msg_reg),
-                                            student_name=portal_scraper.student_name
+                                            student_name=portal_scraper.student_name,
+                                            session_name=sess_name,
+                                            points_reg=pts_reg
                                         )
                                         dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
+                                        if ok_reg and send_telegram_alert:
+                                            try:
+                                                send_telegram_alert(ev_msg)
+                                            except Exception:
+                                                pass
                                     else:
                                         print(f"ℹ️ [OU] Tự động đăng ký đang TẮT. Chỉ gửi thông báo sự kiện mới: {title}")
                                         database.log_event("EVENT_OPEN", f"Phát hiện sự kiện mới: {title[:50]} (Tự động đăng ký: TẮT)", db_file=DB_FILE)
@@ -649,7 +668,12 @@ def main():
                                 if cur_status == "UPCOMING_NOTIFIED" and is_open:
                                     if auto_reg_enabled:
                                         print(f"🔔 [Đến giờ mở ĐK OU] Kích hoạt tự động đăng ký cho {portal_scraper.student_name}: {title}...")
-                                        ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                        reg_res = portal_scraper.register_event(ev)
+                                        ok_reg = reg_res[0]
+                                        msg_reg = reg_res[1]
+                                        sess_name = reg_res[2] if len(reg_res) > 2 else ""
+                                        pts_reg = reg_res[3] if len(reg_res) > 3 else ev.get("points", 0)
+
                                         reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
                                         print(f"  -> {reg_status_log}")
                                         database.log_event("AUTO_REGISTER", f"Đến giờ mở ĐK '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
@@ -668,6 +692,11 @@ def main():
                                             is_success=ok_reg
                                         )
                                         dispatch_zalo_message(zalo_disp, reg_msg_zalo, item_id=f"{eid}_REGISTERED")
+                                        if ok_reg and send_telegram_alert:
+                                            try:
+                                                send_telegram_alert(reg_msg_zalo)
+                                            except Exception:
+                                                pass
                                     else:
                                         print(f"🔔 [Đến giờ mở ĐK OU] Tự động đăng ký đang TẮT. Gửi thông báo mở ĐK cho: {title}...")
                                         database.update_activity_status(eid, status="OPEN_NOTIFIED", is_sent=True, db_file=DB_FILE)

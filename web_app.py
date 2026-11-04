@@ -799,32 +799,51 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
 
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
+@app.post("/api/zalo/ping-all-demo")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
-    # 1. Ưu tiên gửi từ UFM Dispatcher
-    try:
-        from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
-        ufm_cfg = os.path.join(SCRIPT_DIR, "config_ufm.json")
-        ufm_db = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
-        dispatcher = UFMDispatcher(ufm_cfg, db_file=ufm_db)
-        ok, msg = dispatcher.send_demo_group_alert(db_file=ufm_db)
-        if ok:
-            return {"status": "ok", "success": True, "message": msg}
-    except Exception as e:
-        print(f"⚠️ [UFM Demo Alert] Lỗi Dispatcher UFM: {e}")
-
-    # 2. Thử gửi từ Master Dispatcher
-    try:
-        dispatcher = ZaloDispatcher(CONFIG_FILE)
-        if hasattr(dispatcher, "send_demo_group_alert"):
-            ok, msg = dispatcher.send_demo_group_alert()
-            return {"status": "ok" if ok else "error", "success": ok, "message": msg}
-        else:
-            return api_test_zalo_alert()
-    except Exception as e:
-        err_msg = f"Không thể gửi thông báo vào nhóm demo: {e}"
-        return {"status": "error", "success": False, "message": err_msg}
-
+    """Gửi tin nhắn kiểm tra nhanh từ tất cả 5 bot vào nhóm demo (ID: 475259879796859360)."""
+    configs = [
+        ("Bot 1 (HUIT)", os.path.join(SCRIPT_DIR, "config.json")),
+        ("Bot 2 (VAA)", os.path.join(SCRIPT_DIR, "vaabot.json")),
+        ("Bot 3 (IUH)", os.path.join(SCRIPT_DIR, "config_iuh.json")),
+        ("Bot 4 (UFM)", os.path.join(SCRIPT_DIR, "config_ufm.json")),
+        ("Bot 5 (OU)", os.path.join(SCRIPT_DIR, "config_ou.json")),
+    ]
+    demo_group_id = "475259879796859360"
+    now_str = datetime.now(VN_TZ).strftime("%H:%M:%S %d/%m/%Y")
+    results = []
+    
+    from zlapi.models import Message, ThreadType
+    for name, cfg_path in configs:
+        if not os.path.exists(cfg_path):
+            results.append({"bot": name, "success": False, "message": "Thiếu file cấu hình"})
+            continue
+        try:
+            disp = ZaloDispatcher(config_file=cfg_path)
+            if not disp.connect() or not disp.client:
+                results.append({"bot": name, "success": False, "message": "Cookie Zalo hết hạn hoặc lỗi kết nối"})
+                continue
+            
+            ping_text = (
+                "🔔 [TEST KẾT NỐI ZALO DEMO] 🔔\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"🤖 {name}\n"
+                f"⏰ Thời gian: {now_str}\n"
+                "✅ Cookie Zalo hoạt động ổn định 100%!"
+            )
+            disp.client.send(Message(text=ping_text), thread_id=demo_group_id, thread_type=ThreadType.GROUP)
+            results.append({"bot": name, "success": True, "message": "Đã gửi vào nhóm Demo thành công"})
+        except Exception as e:
+            results.append({"bot": name, "success": False, "message": str(e)[:80]})
+            
+    success_count = sum(1 for r in results if r["success"])
+    return {
+        "status": "ok" if success_count > 0 else "error",
+        "success": success_count > 0,
+        "success_count": success_count,
+        "total": len(configs),
+        "results": results
+    }
 # ==================== UNIFIED MESSENGER INTEGRATION APIS (QUAD-BOT) ====================
 
 ALL_BOT_CONFIG_FILES = [
@@ -983,30 +1002,49 @@ async def api_send_test_all_groups(req: Request):
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
-    # 1. Ưu tiên gửi từ UFM Dispatcher
-    try:
-        from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
-        ufm_cfg = os.path.join(SCRIPT_DIR, "config_ufm.json")
-        ufm_db = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
-        dispatcher = UFMDispatcher(ufm_cfg, db_file=ufm_db)
-        ok, msg = dispatcher.send_demo_group_alert(db_file=ufm_db)
-        if ok:
-            return {"status": "ok", "success": True, "message": msg}
-    except Exception as e:
-        print(f"⚠️ [UFM Demo Alert] Lỗi Dispatcher UFM: {e}")
-
-    # 2. Thử gửi từ Master Dispatcher
-    try:
-        dispatcher = ZaloDispatcher(CONFIG_FILE)
-        if hasattr(dispatcher, "send_demo_group_alert"):
-            ok, msg = dispatcher.send_demo_group_alert()
-            return {"status": "ok" if ok else "error", "success": ok, "message": msg}
-        else:
-            return api_test_zalo_alert()
-    except Exception as e:
-        return {"status": "error", "success": False, "message": str(e)}
-
+    """Gửi tin nhắn kiểm tra nhanh từ tất cả 5 bot vào nhóm demo (ID: 475259879796859360)."""
+    configs = [
+        ("Bot 1 (HUIT)", os.path.join(SCRIPT_DIR, "config.json")),
+        ("Bot 2 (VAA)", os.path.join(SCRIPT_DIR, "vaabot.json")),
+        ("Bot 3 (IUH)", os.path.join(SCRIPT_DIR, "config_iuh.json")),
+        ("Bot 4 (UFM)", os.path.join(SCRIPT_DIR, "config_ufm.json")),
+        ("Bot 5 (OU)", os.path.join(SCRIPT_DIR, "config_ou.json")),
+    ]
+    demo_group_id = "475259879796859360"
+    now_str = datetime.now(VN_TZ).strftime("%H:%M:%S %d/%m/%Y")
+    results = []
+    
+    from zlapi.models import Message, ThreadType
+    for name, cfg_path in configs:
+        if not os.path.exists(cfg_path):
+            results.append({"bot": name, "success": False, "message": "Thiếu file cấu hình"})
+            continue
+        try:
+            disp = ZaloDispatcher(config_file=cfg_path)
+            if not disp.connect() or not disp.client:
+                results.append({"bot": name, "success": False, "message": "Cookie Zalo hết hạn hoặc lỗi kết nối"})
+                continue
+            
+            ping_text = (
+                "🔔 [TEST KẾT NỐI ZALO DEMO] 🔔\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"🤖 {name}\n"
+                f"⏰ Thời gian: {now_str}\n"
+                "✅ Cookie Zalo hoạt động ổn định 100%!"
+            )
+            disp.client.send(Message(text=ping_text), thread_id=demo_group_id, thread_type=ThreadType.GROUP)
+            results.append({"bot": name, "success": True, "message": "Đã gửi vào nhóm Demo thành công"})
+        except Exception as e:
+            results.append({"bot": name, "success": False, "message": str(e)[:80]})
+            
+    success_count = sum(1 for r in results if r["success"])
+    return {
+        "status": "ok" if success_count > 0 else "error",
+        "success": success_count > 0,
+        "success_count": success_count,
+        "total": len(configs),
+        "results": results
+    }
 @app.get("/api/messenger/status")
 @app.get("/api/bot2/messenger/status")
 @app.get("/api/bot3/messenger/status")
@@ -1429,44 +1467,49 @@ Chúc các bạn theo dõi thuận lợi!""",
 @app.post("/api/zalo/send-demo-alert")
 @app.post("/api/ufm/send-demo-alert")
 def api_master_send_demo_alert():
-    """Gửi bài viết/hoạt động thông báo vào nhóm demo (ID: 475259879796859360)."""
-    # 1. Ưu tiên gửi từ UFM Dispatcher
-    try:
-        from vaa.ufm.zalo_sender import ZaloDispatcher as UFMDispatcher
-        ufm_cfg = os.path.join(SCRIPT_DIR, "config_ufm.json")
-        ufm_db = os.path.join(SCRIPT_DIR, "vaa", "ufm", "ufm_bot.db")
-        dispatcher = UFMDispatcher(ufm_cfg, db_file=ufm_db)
-        ok, msg = dispatcher.send_demo_group_alert(db_file=ufm_db)
-        if ok:
-            return {"status": "ok", "success": True, "message": msg}
-    except Exception as e:
-        print(f"⚠️ [UFM Demo Alert] Lỗi Dispatcher UFM: {e}")
-
-    # 2. Thử gửi từ Master Dispatcher
-    try:
-        dispatcher = ZaloDispatcher(CONFIG_FILE)
-        if hasattr(dispatcher, "send_demo_group_alert"):
-            ok, msg = dispatcher.send_demo_group_alert()
-            return {"status": "ok" if ok else "error", "success": ok, "message": msg}
-        else:
-            return api_test_zalo_alert()
-    except Exception as e:
-        err_msg = f"Không thể gửi thông báo vào nhóm demo: {e}"
-        return {"status": "error", "success": False, "message": err_msg}
-
-def get_config_iuh():
-    with open(CONFIG_IUH_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def save_config_iuh(cfg):
-    with open(CONFIG_IUH_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, ensure_ascii=False, indent=2)
-    try:
-        import github_sync
-        github_sync.push_async(commit_message="🔄 Auto-sync: Cập nhật cấu hình Bot 3 (IUH)")
-    except Exception:
-        pass
-
+    """Gửi tin nhắn kiểm tra nhanh từ tất cả 5 bot vào nhóm demo (ID: 475259879796859360)."""
+    configs = [
+        ("Bot 1 (HUIT)", os.path.join(SCRIPT_DIR, "config.json")),
+        ("Bot 2 (VAA)", os.path.join(SCRIPT_DIR, "vaabot.json")),
+        ("Bot 3 (IUH)", os.path.join(SCRIPT_DIR, "config_iuh.json")),
+        ("Bot 4 (UFM)", os.path.join(SCRIPT_DIR, "config_ufm.json")),
+        ("Bot 5 (OU)", os.path.join(SCRIPT_DIR, "config_ou.json")),
+    ]
+    demo_group_id = "475259879796859360"
+    now_str = datetime.now(VN_TZ).strftime("%H:%M:%S %d/%m/%Y")
+    results = []
+    
+    from zlapi.models import Message, ThreadType
+    for name, cfg_path in configs:
+        if not os.path.exists(cfg_path):
+            results.append({"bot": name, "success": False, "message": "Thiếu file cấu hình"})
+            continue
+        try:
+            disp = ZaloDispatcher(config_file=cfg_path)
+            if not disp.connect() or not disp.client:
+                results.append({"bot": name, "success": False, "message": "Cookie Zalo hết hạn hoặc lỗi kết nối"})
+                continue
+            
+            ping_text = (
+                "🔔 [TEST KẾT NỐI ZALO DEMO] 🔔\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"🤖 {name}\n"
+                f"⏰ Thời gian: {now_str}\n"
+                "✅ Cookie Zalo hoạt động ổn định 100%!"
+            )
+            disp.client.send(Message(text=ping_text), thread_id=demo_group_id, thread_type=ThreadType.GROUP)
+            results.append({"bot": name, "success": True, "message": "Đã gửi vào nhóm Demo thành công"})
+        except Exception as e:
+            results.append({"bot": name, "success": False, "message": str(e)[:80]})
+            
+    success_count = sum(1 for r in results if r["success"])
+    return {
+        "status": "ok" if success_count > 0 else "error",
+        "success": success_count > 0,
+        "success_count": success_count,
+        "total": len(configs),
+        "results": results
+    }
 # ==================== BOT 3 (IUH) API ENDPOINTS ====================
 @app.get("/api/bot3/activities")
 def api_bot3_get_activities(limit: int = 50, search: Optional[str] = None):

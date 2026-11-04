@@ -379,6 +379,7 @@ class OUPortalScraper:
                             "raw_id": str(qid),
                             "iddieu": iddieu,
                             "answer_id": chosen_ans_id,
+                            "answers": ans_list,
                             "dieu": f"Điều {dieu_no}" if dieu_no else "",
                             "title": clean_title,
                             "unit": tenkhoa,
@@ -405,8 +406,10 @@ class OUPortalScraper:
 
     def register_event(self, event: dict) -> tuple:
         """
-        Tự động thực hiện đăng ký tham gia sự kiện trên cổng ĐRL OU:
-        POST https://diemrl.ou.edu.vn/test/diemrl/sv_dkthamgiask
+        Tự động thực hiện đăng ký tham gia sự kiện trên cổng ĐRL OU.
+        Duyệt qua tất cả các ca/buổi/phiên (TRALOI) cho đến khi tìm được mục còn chỗ và đăng ký thành công.
+        Đối soát thực tế 100% bằng danh sách xác nhận (kqdg) của cổng trường.
+        Trả về: (success: bool, message: str, registered_session_name: str, points: float)
         """
         import urllib.parse
         try:
@@ -437,15 +440,18 @@ class OUPortalScraper:
 
             iddieu = event.get("iddieu") or 1
             idcauhoi = event.get("raw_id") or event.get("id")
-            idtraloi = event.get("answer_id") or 1
-            diem = event.get("points") or 0
 
-            payload = {
-                "iddieu": iddieu,
-                "idcauhoi": idcauhoi,
-                "idtraloi": idtraloi,
-                "d": diem
-            }
+            answers = event.get("answers", [])
+            if not answers:
+                ans_dict = event.get("TRALOI", {})
+                answers = list(ans_dict.values()) if isinstance(ans_dict, dict) else ans_dict
+
+            if not answers:
+                answers = [{
+                    "ID": event.get("answer_id") or 1,
+                    "DIEM": event.get("points") or 0,
+                    "NOIDUNG": event.get("title", "")
+                }]
 
             headers = {
                 "X-Inertia": "true",
@@ -459,47 +465,75 @@ class OUPortalScraper:
                 headers["X-XSRF-TOKEN"] = xsrf_token
 
             reg_url = self.REGISTER_URL
-            r_post = s.post(reg_url, json=payload, headers=headers, verify=False, timeout=15)
+            last_err_msg = ""
 
-            if r_post.status_code in (200, 302, 303):
-                # 3. Đối soát thực tế trên cổng để chắc chắn sự kiện đã được lưu vào danh sách đăng ký
-                time.sleep(1)
-                r_check = s.get(self.EVENTS_URL, verify=False, timeout=15)
-                props_check = self._extract_page_props(r_check)
-                kqdg_check = props_check.get("kqdg", [])
-                reg_ids = set()
-                if isinstance(kqdg_check, list):
-                    for item in kqdg_check:
-                        if isinstance(item, dict):
-                            cid = item.get("IDCAUHOI") or item.get("idcauhoi")
-                            if cid:
-                                reg_ids.add(str(cid))
+            for idx, a in enumerate(answers, 1):
+                if not isinstance(a, dict):
+                    continue
+                aid = a.get("ID") or a.get("id")
+                if not aid:
+                    continue
+                noidung = BeautifulSoup(str(a.get("NOIDUNG") or ""), "html.parser").get_text(strip=True)
+                diem = float(a.get("DIEM") or event.get("points") or 0)
 
-                if str(idcauhoi) in reg_ids:
-                    return True, "Cổng trường đã xác nhận: Đăng ký tham gia thành công!"
-                
-                # Nếu không có trong kqdg -> Kiểm tra thông điệp lỗi từ flash hoặc portal
-                props_post = self._extract_page_props(r_post)
-                flash_post = props_post.get("flash", {}) if isinstance(props_post, dict) else {}
-                flash_check = props_check.get("flash", {}) if isinstance(props_check, dict) else {}
-                err_msg = (
-                    flash_post.get("error") 
-                    or flash_check.get("error") 
-                    or flash_post.get("message") 
-                    or flash_check.get("message")
-                    or "Cổng không ghi nhận đăng ký (có thể do hết suất, trùng lịch hoặc ca đăng ký đã đầy)"
-                )
-                return False, f"Cổng từ chối: {err_msg}"
-            elif r_post.status_code == 419:
-                if self.auto_relogin:
-                    self.auto_login()
-                    return self.register_event(event)
-                return False, "Phiên đăng ký hết hạn (419 Page Expired)"
-            else:
-                return False, f"Mã trạng thái {r_post.status_code}: {r_post.text[:150]}"
+                payload = {
+                    "iddieu": iddieu,
+                    "idcauhoi": idcauhoi,
+                    "idtraloi": aid,
+                    "d": diem
+                }
+
+                r_post = s.post(reg_url, json=payload, headers=headers, verify=False, timeout=15)
+
+                if r_post.status_code in (200, 302, 303):
+                    props_post = self._extract_page_props(r_post)
+                    flash_post = props_post.get("flash", {}) if isinstance(props_post, dict) else {}
+                    err_post = flash_post.get("error") or flash_post.get("message")
+
+                    if err_post and any(k in err_post.lower() for k in ["đầy", "tối đa", "hết", "trùng"]):
+                        last_err_msg = err_post
+                        continue
+
+                    # 3. Đối soát thực tế trên cổng để chắc chắn sự kiện đã được lưu vào kqdg
+                    time.sleep(1)
+                    r_check = s.get(self.EVENTS_URL, verify=False, timeout=15)
+                    props_check = self._extract_page_props(r_check)
+                    kqdg_check = props_check.get("kqdg", [])
+                    reg_ids = set()
+                    if isinstance(kqdg_check, list):
+                        for item in kqdg_check:
+                            if isinstance(item, dict):
+                                cid = item.get("IDCAUHOI") or item.get("idcauhoi")
+                                if cid:
+                                    reg_ids.add(str(cid))
+
+                    if str(idcauhoi) in reg_ids:
+                        session_name = noidung if noidung else f"Mục #{aid}"
+                        return True, f"Cổng trường xác nhận đăng ký thành công: {session_name}", session_name, diem
+
+                    flash_check = props_check.get("flash", {}) if isinstance(props_check, dict) else {}
+                    err_msg = (
+                        flash_post.get("error")
+                        or flash_check.get("error")
+                        or flash_post.get("message")
+                        or flash_check.get("message")
+                        or "Cổng không ghi nhận đăng ký"
+                    )
+                    last_err_msg = err_msg
+                    continue
+                elif r_post.status_code == 419:
+                    if self.auto_relogin:
+                        self.auto_login()
+                        return self.register_event(event)
+                    return False, "Phiên đăng ký hết hạn (419 Page Expired)", "", 0
+                else:
+                    last_err_msg = f"HTTP {r_post.status_code}: {r_post.text[:100]}"
+                    continue
+
+            return False, f"Tất cả {len(answers)} ca/mục đều không thể đăng ký ({last_err_msg or 'Kín chỗ hoặc đã đóng'})", "", 0
 
         except Exception as e:
-            return False, f"Lỗi ngoại lệ khi đăng ký sự kiện: {e}"
+            return False, f"Lỗi ngoại lệ khi đăng ký sự kiện: {e}", "", 0
 
     def fetch_announcements(self) -> tuple:
         """
