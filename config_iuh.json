@@ -38,6 +38,12 @@
         "name": "Trần Lê Phát",
         "type": "USER",
         "enabled": true
+      },
+      {
+        "id": "2816394046923623789",
+        "name": "IUH TEST",
+        "type": "GROUP",
+        "enabled": true
       }
     ],
     "cookies": {

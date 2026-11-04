@@ -47,6 +47,12 @@
         "name": "Trần Lê Phát",
         "type": "USER",
         "enabled": true
+      },
+      {
+        "id": "2822305020545364562",
+        "name": "UFM TEST",
+        "type": "GROUP",
+        "enabled": true
       }
     ],
     "cookies": {

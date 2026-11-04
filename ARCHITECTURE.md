@@ -117,8 +117,10 @@ flowchart TD
 | **Bot 2 (VAA)** | `TBao Skien , ĐRL Vaa -` | `387016397668099110` | `GROUP` |
 | **Bot 3 (IUH)** | `TB điểm rèn luyện IUH` | `6906603484437051809` | `GROUP` |
 | **Bot 3 (IUH)** | `IUH-TBAO DRL` | `4567863637705237532` | `GROUP` |
+| **Bot 3 (IUH)** | `IUH TEST` | `2816394046923623789` | `GROUP` |
 | **Bot 4 (UFM)** | `Tbao , đky sự kiện UFM` | `3790417084788199906` | `GROUP` |
 | **Bot 4 (UFM)** | `Ufm và canh bạc drl` | `2349841347887711204` | `GROUP` |
+| **Bot 4 (UFM)** | `UFM TEST` | `2822305020545364562` | `GROUP` |
 | **Bot 5 (OU)** | `Thu Phương` | `2565765564417722339` | `USER` |
 
 ### 3.4. Danh sách các nhóm & Target đã bị xóa vĩnh viễn (KHÔNG BAO GIỜ THÊM LẠI)
