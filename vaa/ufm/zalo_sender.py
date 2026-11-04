@@ -1,8 +1,7 @@
+import json
 import os
 import sys
-import json
 import time
-from datetime import datetime, timezone, timedelta
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -12,53 +11,107 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 from zlapi import ZaloAPI
+from zlapi import ZaloAPI
 from zlapi.models import Message, Mention, ThreadType
-import database
+import re
+import hashlib
+from datetime import datetime, timezone, timedelta
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
-def format_ufm_message(act: dict, is_reopened: bool = False, auto_tag_all: bool = True, bot_name: str = "Yuki 4 (UFM ĐRL)") -> str:
-    tag_str = "@All\n" if auto_tag_all else ""
-    header = "⚡ [UFM - HOẠT ĐỘNG MỞ THÊM SLOT] ⚡" if is_reopened else "🔥 [UFM - THÔNG BÁO HOẠT ĐỘNG & ĐRL MỚI] 🔥"
-
-    raw_id = act.get("raw_id", "")
-    id_prefix = f"[{raw_id}] " if raw_id and not act.get("title", "").startswith(f"[{raw_id}]") else ""
-    title = f"{id_prefix}{act.get('title', 'Không có tiêu đề')}"
-    unit = act.get("unit", "Chưa rõ đơn vị")
-    event_time = act.get("event_time", "Xem chi tiết tại cổng")
-    status = act.get("status", "Đang mở")
-    points = float(act.get("points", 0) or 0)
-    ctxh = float(act.get("ctxh", 0) or 0)
-    reg_url = act.get("register_url") or "https://hoatdong.ufm.edu.vn/DangKy"
-
-    lines = [
-        f"{tag_str}{header}",
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"📌 Hoạt động: {title}",
-        f"🏢 Đơn vị tổ chức: {unit}"
+def extract_form_links(text: str) -> list:
+    if not text:
+        return []
+    patterns = [
+        r'https?://forms\.gle/[a-zA-Z0-9_\-]+',
+        r'https?://docs\.google\.com/forms/[^\s\)\"\'>]+',
+        r'https?://docs\.google\.com/document/[^\s\)\"\'>]+',
+        r'https?://docs\.google\.com/spreadsheets/[^\s\)\"\'>]+',
+        r'https?://forms\.office\.com/[^\s\)\"\'>]+',
+        r'https?://(?:bit\.ly|tinyurl\.com|shorturl\.at)/[a-zA-Z0-9_\-]+',
     ]
+    found = []
+    for pat in patterns:
+        matches = re.findall(pat, text, re.IGNORECASE)
+        for m in matches:
+            clean_m = m.rstrip('.,;:)')
+            if clean_m not in found:
+                found.append(clean_m)
+    return found
 
-    points_str_list = []
-    if points > 0:
-        points_str_list.append(f"+{points:g} ĐRL")
-    if ctxh > 0:
-        points_str_list.append(f"+{ctxh:g} CTXH")
-    if points_str_list:
-        lines.append(f"🎯 Điểm: {' • '.join(points_str_list)}")
+def extract_post_title(text: str, max_len: int = 150) -> str:
+    if not text:
+        return "Thông báo mới"
+    lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+    if not lines:
+        return "Thông báo mới"
+    first_line = lines[0]
+    if len(first_line) < 15 and len(lines) > 1:
+        first_line = f"{first_line} - {lines[1]}"
+    if len(first_line) > max_len:
+        first_line = first_line[:max_len].rsplit(" ", 1)[0] + "..."
+    return first_line
 
-    if event_time and event_time != "Chưa rõ thời gian":
-        lines.append(f"📅 Thời gian: {event_time}")
+def parse_zalo_cookie_input(raw: str) -> dict:
+    """Chuyển đổi chuỗi Cookie Zalo bất kỳ (JSON Array từ Cookie Editor, JSON Dict, hoặc Cookie Header) thành Dict chuẩn."""
+    if not raw or not isinstance(raw, str):
+        return {}
+    raw_str = raw.strip()
+    if not raw_str:
+        return {}
+    # 1. Thử JSON (Array hoặc Object)
+    try:
+        data = json.loads(raw_str)
+        if isinstance(data, list):
+            res = {}
+            for item in data:
+                if isinstance(item, dict) and "name" in item and "value" in item:
+                    res[str(item["name"]).strip()] = str(item["value"]).strip()
+            if res:
+                return res
+        elif isinstance(data, dict):
+            return {str(k).strip(): str(v).strip() for k, v in data.items()}
+    except Exception:
+        pass
 
-    lines.append(f"👥 Trạng thái: {status}")
+    # 2. Thử chuỗi key=val; key2=val2
+    res = {}
+    for part in raw_str.split(";"):
+        if "=" in part:
+            k, v = part.strip().split("=", 1)
+            if k.strip():
+                res[k.strip()] = v.strip()
+    return res
 
-    lines.extend([
-        "━━━━━━━━━━━━━━━━━━━━",
-        "👉 Vào cổng đăng ký ngay:",
-        reg_url
-    ])
+MAX_POST_AGE_MINUTES = 10.0
 
-    return "\n".join(lines)
+def is_post_fresh_within_10_minutes(post_data: dict) -> tuple:
+    """
+    CHỐT CHẶN TRUNG TÂM - Chỉ cho phép gửi Zalo khi đây là BÀI MỚI THẬT SỰ:
+      - Phải có nội dung thật (không rỗng).
+      - Phải có creation_time dạng số do Facebook trả về (không đoán, không giả lập).
+      - Bài đăng cách hiện tại <= 10 phút.
+    Ngoại lệ duy nhất: người dùng bấm nút "Gửi thử" trên Web (is_manual_test=True).
+    Trả về (is_fresh: bool, reason: str)
+    """
+    if post_data.get("is_manual_test") is True:
+        return True, "Tin thử nghiệm do người dùng bấm thủ công trên Web"
 
+    if not str(post_data.get("content") or "").strip():
+        return False, "Bài viết rỗng, không phải bài mới thật sự"
+
+    c_time = post_data.get("creation_time")
+    if isinstance(c_time, bool) or not isinstance(c_time, (int, float)) or c_time <= 0:
+        return False, "Không có mốc thời gian đăng thật từ Facebook -> không xác minh được là bài mới"
+
+    if c_time > 1e11:
+        c_time = c_time / 1000.0
+    age_minutes = (time.time() - c_time) / 60.0
+    if age_minutes < -5.0:
+        return False, f"Mốc thời gian bất thường (tương lai {abs(age_minutes):.1f} phút)"
+    if age_minutes > MAX_POST_AGE_MINUTES:
+        return False, f"Đã trôi qua {age_minutes:.1f} phút (> {MAX_POST_AGE_MINUTES:.0f} phút quy định)"
+    return True, f"Mới đăng cách đây {max(age_minutes, 0):.1f} phút (<= {MAX_POST_AGE_MINUTES:.0f} phút)"
 
 class UFMBotZaloClient(ZaloAPI):
     def __init__(self, *args, db_file=None, bot_name="Yuki 4 (UFM ĐRL)", **kwargs):
@@ -139,7 +192,7 @@ class UFMBotZaloClient(ZaloAPI):
 
         # 2.5 Lệnh bắn thông báo thử nghiệm vào nhóm demo
         if lower_txt in ("/demo", "/testdemo", "bắn demo", "gửi demo", "demo alert", "/senddemo"):
-            dispatcher = ZaloDispatcher(self.config_path, db_file=self.db_file)
+            dispatcher = ZaloDispatcher(db_file=self.db_file)
             dispatcher.client = self
             dispatcher.bot_name = self.bot_name
             ok_demo, msg_demo = dispatcher.send_demo_group_alert(db_file=self.db_file)
@@ -359,53 +412,34 @@ class ZaloDispatcher:
         with open(self.config_file, "r", encoding="utf-8") as f:
             self.full_cfg = json.load(f)
             self.zalo_cfg = self.full_cfg.get("zalo", {})
-            self.bot_name = self.full_cfg.get("bot_name", "Yuki 4 (UFM)")
+            self.bot_name = self.full_cfg.get("bot_name") or ("Yuki 4 (UFM ĐRL)" if "ufm" in str(self.config_file).lower() else ("Yuki 2 (VAA)" if "bot2" in str(self.config_file) else "Yuki 1 (HUIT)"))
 
-    def connect(self) -> bool:
+    def connect(self):
         self.load_config()
         cookies = self.zalo_cfg.get("cookies")
         imei = self.zalo_cfg.get("imei")
         if not cookies or not imei:
             print("⚠️ Chưa có cookies hoặc imei Zalo trong config.json")
-            try:
-                database.set_bot_status("zalo_cookie_status", "missing", db_file=self.db_file)
-                database.set_bot_status("zalo_cookie_error", "Chưa có cookies hoặc IMEI trong config.json", db_file=self.db_file)
-            except Exception:
-                pass
             return False
 
         cls = self.client_class or ZaloAPI
         try:
-            print("🔄 Đang kết nối tới Zalo Bot UFM...")
+            print("🔄 Đang kết nối tới Zalo Web...")
             try:
                 self.client = cls(phone="", password="", imei=imei, cookies=cookies)
             except TypeError:
                 self.client = cls(phone="", password="", imei=imei, session_cookies=cookies)
-
+            
             if hasattr(self.client, "db_file") and self.db_file:
                 self.client.db_file = self.db_file
             if hasattr(self.client, "bot_name") and self.bot_name:
                 self.client.bot_name = self.bot_name
 
             uid = self.client.uid() if callable(self.client.uid) else self.client.uid
-            print(f"✅ Đăng nhập Zalo Bot UFM thành công! UID: {uid}")
-            try:
-                database.set_bot_status("zalo_cookie_status", "valid", db_file=self.db_file)
-                database.set_bot_status("zalo_cookie_error", "", db_file=self.db_file)
-                database.set_bot_status("zalo_account_uid", str(uid), db_file=self.db_file)
-                database.set_bot_status("zalo_last_connected", database.get_vn_now_str(), db_file=self.db_file)
-            except Exception:
-                pass
+            print(f"✅ Đăng nhập Zalo Bot thành công! UID: {uid}")
             return True
         except Exception as e:
-            err_msg = str(e)
-            print(f"❌ Lỗi kết nối Zalo UFM: {err_msg}")
-            try:
-                database.set_bot_status("zalo_cookie_status", "expired", db_file=self.db_file)
-                database.set_bot_status("zalo_cookie_error", err_msg, db_file=self.db_file)
-                database.log_event("WARN", f"Cookie Zalo hết hạn hoặc bị hủy: {err_msg}", db_file=self.db_file)
-            except Exception:
-                pass
+            print(f"❌ Lỗi kết nối Zalo: {e}")
             self.client = None
             return False
 
@@ -427,172 +461,352 @@ class ZaloDispatcher:
         self.listener_thread.start()
         return True
 
-    def send_activity_alert(self, act: dict, is_reopened: bool = False, db_file=None) -> bool:
-        self.load_config()
-        configured_groups = self.zalo_cfg.get("target_groups")
-        if configured_groups is not None:
-            target_list = [t for t in configured_groups if t.get("enabled") is True or str(t.get("enabled", "")).lower() in ("true", "1")]
-            if not target_list:
-                print("⏸️ [UFM] Tất cả nhóm Zalo nhận tin đều đang ở trạng thái TẮT. Không gửi thông báo.")
-                return False
-        else:
-            fallback_id = self.zalo_cfg.get("target_thread_id")
-            target_list = [{"id": fallback_id, "name": self.zalo_cfg.get("target_group_name", "demo"), "type": self.zalo_cfg.get("target_type", "GROUP"), "enabled": True}] if fallback_id else []
+    def get_groups(self):
+        if not self.client:
+            if not self.connect():
+                return []
+        try:
+            groups = self.client.fetchAllGroups()
+            group_list = []
+            if hasattr(groups, "gridVerMap"):
+                for gid in groups.gridVerMap.keys():
+                    info = self.client.fetchGroupInfo(gid)
+                    gname = ""
+                    if hasattr(info, "gridInfoMap") and gid in info.gridInfoMap:
+                        gname = info.gridInfoMap[gid].get("name", "")
+                    elif hasattr(info, "name"):
+                        gname = info.name
+                    group_list.append({"id": str(gid), "name": gname or "Nhóm không tên"})
+            return group_list
+        except Exception as e:
+            print(f"⚠️ Lỗi lấy danh sách nhóm Zalo: {e}")
+            return []
 
-        if not target_list:
+    def format_message(self, post_data: dict, page_name: str) -> tuple:
+        posted_time = post_data.get("posted_time", "").strip() or "Vừa xong"
+        text = post_data.get("content", "").strip()
+        url = post_data.get("post_url", "").strip()
+        title = extract_post_title(text)
+
+        form_links = extract_form_links(text)
+        tag_str = "@All " if self.zalo_cfg.get("auto_tag_all", True) else ""
+
+        lines = []
+        if form_links:
+            # Khi phát hiện có link form: Ưu tiên nhấn mạnh vào form đăng ký sự kiện
+            lines.append(f"{tag_str}🔥 [CÓ FORM ĐĂNG KÝ SỰ KIỆN] 🔥")
+            lines.append(f"📰 Tiêu đề: {title}")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append("🎯 LINK FORM ĐĂNG KÝ SỰ KIỆN:")
+            for flink in form_links:
+                lines.append(f"👉 {flink}")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"📌 Tên nhóm đăng: {page_name}")
+            lines.append(f"🕒 Thời gian đăng: {posted_time}")
+        else:
+            # Thông báo bài viết thường
+            lines.append(f"{tag_str}📢 [THÔNG BÁO MỚI]")
+            lines.append(f"📰 Tiêu đề: {title}")
+            lines.append(f"📌 Tên nhóm đăng: {page_name}")
+            lines.append(f"🕒 Thời gian đăng: {posted_time}")
+
+        # Link bài viết
+        if url:
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"🔗 Link bài viết: {url}")
+
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        # Câu xin lỗi nếu làm phiền
+        lines.append("🙏 Xin lỗi nếu thông báo này đã làm phiền các bạn!")
+        bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
+        lines.append(f"🤖 {bot_label}")
+
+        formatted_text = "\n".join(lines)
+        return formatted_text, form_links
+
+    def send_alert(self, post_data: dict, page_name: str, target_thread_id: str = None, matched_kw: str = "") -> bool:
+        # 0. CHỐT CHẶN: Cấm tự động gửi khi không phải bài mới thật sự
+        is_fresh, fresh_reason = is_post_fresh_within_10_minutes(post_data)
+        if not is_fresh:
+            bot_label = getattr(self, "bot_name", "Yuki Bot")
+            msg = f"⛔ [{bot_label}] CHẶN gửi Zalo: {fresh_reason}"
+            print(msg)
+            try:
+                import database
+                cfg_lower = str(self.config_file).lower()
+                if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                    db_g = database.BOT2_DB_FILE
+                elif "iuh" in cfg_lower:
+                    db_g = database.IUH_DB_FILE
+                else:
+                    db_g = database.DB_FILE
+                database.log_event("FILTER", msg, db_file=db_g)
+            except Exception:
+                pass
             return False
 
         if not self.client:
             if not self.connect():
+                bot_label = getattr(self, "bot_name", "Yuki Bot")
+                err_msg = f"❌ [{bot_label}] Kết nối Zalo thất bại (Cookie hết hạn hoặc phiên bị hủy). Bỏ qua gửi tin!"
+                print(err_msg)
+                try:
+                    import database
+                    cfg_lower = str(self.config_file).lower()
+                    db_target = database.BOT2_DB_FILE if ("bot2" in cfg_lower or "vaa" in cfg_lower) else (database.IUH_DB_FILE if "iuh" in cfg_lower else database.DB_FILE)
+                    database.log_event("ERROR", err_msg, db_file=db_target)
+                except Exception:
+                    pass
                 return False
 
-        auto_tag_all = self.zalo_cfg.get("auto_tag_all", True)
-        formatted_msg = format_ufm_message(act, is_reopened=is_reopened, auto_tag_all=auto_tag_all, bot_name=self.bot_name)
-        any_success = False
-
-        for target in target_list:
-            tid = str(target.get("id"))
-            tname = target.get("name", tid)
-            is_user = str(target.get("type", "GROUP")).upper() == "USER"
-            t_type = ThreadType.USER if is_user else ThreadType.GROUP
-
-            clean_text = formatted_msg
-            if clean_text.startswith("@All\n"):
-                clean_text = clean_text[5:]
-            elif clean_text.startswith("@All "):
-                clean_text = clean_text[5:]
-
-            if is_user:
-                msg_obj = Message(text=clean_text)
+        self.load_config()
+        # Xác định danh sách các nhóm đích
+        target_list = []
+        if target_thread_id:
+            tid_str = str(target_thread_id).strip()
+            found_g = next((g for g in self.zalo_cfg.get("target_groups", []) if str(g.get("id")).strip() == tid_str), None)
+            if found_g:
+                target_list = [dict(found_g)]
             else:
-                if auto_tag_all and formatted_msg.startswith("@All"):
-                    mention = Mention(uid="-1", length=len("@All"), offset=0)
-                    msg_obj = Message(text=formatted_msg, mention=mention)
-                else:
-                    msg_obj = Message(text=clean_text)
-
-            # Kiểm tra chống gửi trùng lặp tuyệt đối
-            if database.is_activity_already_sent_zalo(str(act.get("activity_id", "")), title=act.get("title"), target_id=tid, db_file=db_file):
-                print(f"🛑 [Chống lặp UFM] Hoạt động [{act.get('title')}] đã được gửi tới {tname} ({tid}) trước đó, bỏ qua!")
-                continue
-
-            try:
-                self.client.send(msg_obj, thread_id=tid, thread_type=t_type)
-                kind_str = "cá nhân" if is_user else "nhóm"
-                log_str = f"[{self.bot_name}] Đã gửi thông báo tới {kind_str} [{tname}] (ID: {tid})"
-                print(f"📨 [Zalo] {log_str}")
-                database.log_event("ZALO", log_str, db_file=db_file)
-                database.record_delivery(
-                    post_id=act.get("activity_id", ""),
-                    post_title=act.get("title", ""),
-                    source_page=act.get("source", "UFM Portal"),
-                    author=act.get("unit", "UFM"),
-                    post_url=act.get("detail_url", "https://hoatdong.ufm.edu.vn/DangKy"),
-                    content_snippet=clean_text[:3000],
-                    has_form=1,
-                    matched_keyword=f"+{act.get('points', 0)} ĐRL",
-                    zalo_target_id=tid,
-                    zalo_target_name=tname,
-                    target_type=target.get("type", "GROUP"),
-                    status="SUCCESS",
-                    crawled_at=database.get_vn_now_str(),
-                    db_file=db_file
-                )
-                any_success = True
-            except Exception as e:
-                err_str = f"Lỗi gửi tin tới {tname} ({tid}): {e}"
-                print(f"❌ [Zalo] {err_str}")
-                database.log_event("ERROR", err_str, db_file=db_file)
-                err_lower = str(e).lower()
-                if any(w in err_lower for w in ["session", "expire", "auth", "login", "cookie", "token", "unauthorized", "invalid", "1001", "1002", "logout", "logged out"]):
+                target_list = [{
+                    "id": tid_str,
+                    "name": "Yuki" if tid_str == "7662918962461429024" else "Mục chỉ định",
+                    "type": "USER" if tid_str == "7662918962461429024" else "GROUP"
+                }]
+        else:
+            configured_groups = self.zalo_cfg.get("target_groups")
+            if configured_groups is not None:
+                # Có danh sách nhóm được cấu hình: CHỈ gửi các nhóm có enabled rõ ràng là True
+                enabled_groups = [
+                    g for g in configured_groups
+                    if g.get("enabled") is True or str(g.get("enabled", "")).lower() in ("true", "1")
+                ]
+                if not enabled_groups:
+                    bot_label = getattr(self, "bot_name", "Yuki Bot")
+                    warn_msg = f"⏸️ [{bot_label}] Tất cả các nhóm Zalo đều đang ở trạng thái TẮT. Bỏ qua gửi tin."
+                    print(warn_msg)
                     try:
-                        database.set_bot_status("zalo_cookie_status", "expired", db_file=db_file)
-                        database.set_bot_status("zalo_cookie_error", f"Phiên Zalo hết hạn hoặc bị hủy: {e}", db_file=db_file)
+                        import database
+                        cfg_lower = str(self.config_file).lower()
+                        db_target = database.BOT2_DB_FILE if ("bot2" in cfg_lower or "vaa" in cfg_lower) else (database.IUH_DB_FILE if "iuh" in cfg_lower else database.DB_FILE)
+                        database.log_event("FILTER", warn_msg, db_file=db_target)
                     except Exception:
                         pass
-                database.record_delivery(
-                    post_id=act.get("activity_id", ""),
-                    post_title=act.get("title", ""),
-                    source_page=act.get("source", "UFM Portal"),
-                    author=act.get("unit", "UFM"),
-                    post_url=act.get("detail_url", "https://hoatdong.ufm.edu.vn/DangKy"),
-                    content_snippet=str(err_str)[:1000],
-                    has_form=1,
-                    matched_keyword=f"+{act.get('points', 0)} ĐRL",
-                    zalo_target_id=tid,
-                    zalo_target_name=tname,
-                    target_type=target.get("type", "GROUP"),
-                    status="FAILED",
-                    crawled_at=database.get_vn_now_str(),
-                    db_file=db_file
+                    return False
+                target_list = enabled_groups
+            else:
+                # Chỉ khi file cấu hình hoàn toàn không có target_groups (legacy)
+                fallback_id = str(self.zalo_cfg.get("target_thread_id", ""))
+                if fallback_id:
+                    target_list = [{
+                        "id": fallback_id,
+                        "name": self.zalo_cfg.get("target_group_name", "Mục mặc định")
+                    }]
+
+        if not target_list:
+            print("⚠️ Chưa có nhóm Zalo nào được kích hoạt để gửi tin!")
+            return False
+
+        # 1. Khử trùng lặp nhóm đích (chỉ gửi mỗi nhóm 1 lần duy nhất)
+        seen_gids = set()
+        clean_targets = []
+        for g in target_list:
+            gid = str(g.get("id")).strip()
+            if gid not in seen_gids:
+                seen_gids.add(gid)
+                clean_targets.append(g)
+        target_list = clean_targets
+
+        # 2. Bộ nhớ đệm chống gửi trùng bài viết trong phiên chạy (tránh gửi 2 lần)
+        if not hasattr(self, "_sent_cache"):
+            self._sent_cache = {}
+        now_ts = time.time()
+        self._sent_cache = {k: v for k, v in self._sent_cache.items() if now_ts - v < 86400}
+
+        pid = str(post_data.get("post_id", ""))
+        content_key = post_data.get("content", "").strip()[:80]
+        post_ident = f"{pid}_{content_key}"
+        if post_ident in self._sent_cache:
+            print(f"🛑 [Chống lặp tuyệt đối] Bài viết '{content_key[:30]}...' đã gửi trước đó trong phiên, nghiêm cấm gửi lần 2!")
+            return True
+
+        # 3. Kiểm tra trực tiếp cơ sở dữ liệu SQLite: Nghiêm cấm gửi lại bài đã gửi thành công
+        cfg_lower = str(self.config_file).lower()
+        try:
+            import database
+            if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                db_chk = database.BOT2_DB_FILE
+            elif "iuh" in cfg_lower:
+                db_chk = database.IUH_DB_FILE
+            else:
+                db_chk = database.DB_FILE
+
+            if target_thread_id:
+                if database.is_post_already_sent_zalo(pid, post_data.get("content", ""), target_id=str(target_thread_id), db_file=db_chk):
+                    print(f"🛑 [Chống lặp tuyệt đối] Bài viết ID {pid} ('{content_key[:30]}...') đã được gửi tới target {target_thread_id} trước đó.")
+                    return True
+            else:
+                all_sent = len(target_list) > 0 and all(
+                    database.is_post_already_sent_zalo(pid, post_data.get("content", ""), target_id=str(g["id"]), db_file=db_chk)
+                    for g in target_list
                 )
+                if all_sent:
+                    print(f"🛑 [Chống lặp tuyệt đối] Bài viết ID {pid} ('{content_key[:30]}...') đã được gửi tới TOÀN BỘ nhóm nhận tin trước đó. Nghiêm cấm gửi lại!")
+                    self._sent_cache[post_ident] = now_ts
+                    return True
+        except Exception as ex_db_chk:
+            print(f"Lỗi kiểm tra trùng lặp DB: {ex_db_chk}")
+
+        # 4. KIỂM TRA QUY ĐỊNH 10 PHÚT: Cấm gửi bài nếu đã đăng quá 10 phút hoặc không có thời gian thực sự
+        is_fresh, fresh_reason = is_post_fresh_within_10_minutes(post_data)
+        if not is_fresh:
+            bot_label = getattr(self, "bot_name", "Yuki Bot")
+            print(f"⏳ [{bot_label}] Bỏ qua không gửi Zalo: {fresh_reason} (Bài: '{content_key[:40]}...')")
+            try:
+                import database
+                db_log = database.BOT2_DB_FILE if ("bot2" in cfg_lower or "vaa" in cfg_lower) else (database.IUH_DB_FILE if "iuh" in cfg_lower else database.DB_FILE)
+                database.log_event("FILTER", f"⏳ Bỏ qua không gửi Zalo vì không phải bài mới thực sự trong 10 phút: {fresh_reason}", db_file=db_log)
+            except Exception:
+                pass
+            return False
+
+        formatted_text, form_links = self.format_message(post_data, page_name)
+        target_type_str = self.zalo_cfg.get("target_type", "GROUP").upper()
+        thread_type = ThreadType.GROUP if target_type_str == "GROUP" else ThreadType.USER
+
+        any_success = False
+        for g in target_list:
+            gid = str(g["id"]).strip()
+            gname = g.get("name", gid)
+
+            # 4. Kiểm tra nhóm này đã từng nhận bài này chưa
+            try:
+                import database
+                if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                    db_target = database.BOT2_DB_FILE
+                elif "iuh" in cfg_lower:
+                    db_target = database.IUH_DB_FILE
+                else:
+                    db_target = database.DB_FILE
+
+                if database.is_post_already_sent_zalo(pid, post_data.get("content", ""), target_id=gid, db_file=db_target):
+                    print(f"🛑 [Chống lặp nhóm] Bài viết đã từng gửi tới nhóm [{gname}] (ID: {gid}) trước đó, bỏ qua!")
+                    continue
+            except Exception:
+                pass
+
+            target_type = str(g.get("type") or self.zalo_cfg.get("target_type", "GROUP")).upper()
+            is_user = (target_type == "USER")
+            t_type = ThreadType.USER if is_user else ThreadType.GROUP
+
+            # Nếu gửi cá nhân thì bỏ @All, nếu gửi nhóm và bật auto_tag thì đính kèm mention @All
+            if is_user:
+                clean_text = formatted_text
+                if clean_text.startswith("@All "):
+                    clean_text = clean_text[5:]
+                msg_obj = Message(text=clean_text)
+            else:
+                auto_tag = self.zalo_cfg.get("auto_tag_all", True)
+                if auto_tag and formatted_text.startswith("@All"):
+                    mention = Mention(uid="-1", length=len("@All"), offset=0)
+                    msg_obj = Message(text=formatted_text, mention=mention)
+                else:
+                    clean_text = formatted_text[5:] if formatted_text.startswith("@All ") else formatted_text
+                    msg_obj = Message(text=clean_text)
+
+            target_kind = "cá nhân" if is_user else "nhóm"
+            try:
+                res = self.client.send(
+                    msg_obj,
+                    thread_id=gid,
+                    thread_type=t_type
+                )
+                bot_label = getattr(self, "bot_name", "Yuki 1 (HUIT)")
+                form_info = f" (Kèm {len(form_links)} link form GG Doc)" if form_links else ""
+                print(f"📨 [Zalo] [{bot_label}] Bắn tin thành công tới {target_kind} [{gname}] (ID: {gid}){form_info}")
+                try:
+                    import database
+                    cfg_lower = str(self.config_file).lower()
+                    if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                        db_target = database.BOT2_DB_FILE
+                    elif "iuh" in cfg_lower:
+                        db_target = database.IUH_DB_FILE
+                    else:
+                        db_target = database.DB_FILE
+                    title = extract_post_title(post_data.get("content", ""))
+                    database.record_delivery(
+                        post_id=post_data.get("post_id") or hashlib.md5(post_data.get("content", "")[:150].encode("utf-8")).hexdigest(),
+                        post_title=title,
+                        source_page=page_name,
+                        author=post_data.get("author", "Ẩn danh"),
+                        post_url=post_data.get("post_url") or post_data.get("url", ""),
+                        content_snippet=post_data.get("content", "")[:300],
+                        has_form=1 if form_links else 0,
+                        matched_keyword=matched_kw or "Mặc định",
+                        zalo_target_id=gid,
+                        zalo_target_name=gname,
+                        target_type=target_type,
+                        status="SUCCESS",
+                        crawled_at=post_data.get("posted_time", ""),
+                        db_file=db_target
+                    )
+                    database.log_event("ZALO", f"[{bot_label}] Đã gửi bài của [{page_name}] tới {target_kind} [{gname}]{form_info}", db_file=db_target)
+                except Exception as ex_db:
+                    print(f"Lỗi ghi DB: {ex_db}")
+                any_success = True
+            except Exception as e:
+                print(f"⚠️ Lỗi gửi tin vào {target_kind} {gname}: {e}")
+                try:
+                    import database
+                    cfg_lower = str(self.config_file).lower()
+                    if "bot2" in cfg_lower or "vaa" in cfg_lower:
+                        db_target = database.BOT2_DB_FILE
+                    elif "iuh" in cfg_lower:
+                        db_target = database.IUH_DB_FILE
+                    else:
+                        db_target = database.DB_FILE
+                    title = extract_post_title(post_data.get("content", ""))
+                    database.record_delivery(
+                        post_id=post_data.get("post_id") or hashlib.md5(post_data.get("content", "")[:150].encode("utf-8")).hexdigest(),
+                        post_title=title,
+                        source_page=page_name,
+                        author=post_data.get("author", "Ẩn danh"),
+                        post_url=post_data.get("post_url") or post_data.get("url", ""),
+                        content_snippet=post_data.get("content", "")[:300],
+                        has_form=1 if form_links else 0,
+                        matched_keyword=matched_kw or "Mặc định",
+                        zalo_target_id=gid,
+                        zalo_target_name=gname,
+                        target_type=target_type,
+                        status=f"FAILED: {e}",
+                        crawled_at=post_data.get("posted_time", ""),
+                        db_file=db_target
+                    )
+                except Exception:
+                    pass
+            time.sleep(1.0)
+
+        if any_success:
+            self._sent_cache[post_ident] = now_ts
 
         return any_success
 
-    def send_test_message(self, target_thread_id=None, db_file=None) -> tuple:
-        if not self.client:
-            if not self.connect():
-                return False, "Không thể kết nối tới Zalo Web (Cookie đã hết hạn hoặc bị hủy)"
-
-        test_act = {
-            "activity_id": f"TEST_{int(time.time())}",
-            "raw_id": "TEST",
-            "title": "Hoạt động Thử Nghiệm Hệ Thống Bot UFM",
-            "unit": "Phòng Công tác sinh viên - Đại học Tài chính - Marketing (UFM)",
-            "event_time": database.get_vn_now_str(),
-            "location": "Trường ĐH Tài chính - Marketing (Cơ sở Long Trường)",
-            "group_criteria": "3.a.1 - Rèn luyện thể chất & kỹ năng sinh viên",
-            "points": 5.0,
-            "ctxh": 10.0,
-            "status": "Đang mở đăng ký (Thử nghiệm)",
-            "detail_url": "https://hoatdong.ufm.edu.vn/DangKy",
-            "register_url": "https://hoatdong.ufm.edu.vn/DangKy",
-            "source": "Thử nghiệm từ Web Dashboard UFM"
-        }
-
-        # Nếu có target_thread_id cụ thể:
-        if target_thread_id:
-            tid = str(target_thread_id)
-            msg_text = format_ufm_message(test_act, is_reopened=False, auto_tag_all=False, bot_name=self.bot_name)
-            try:
-                self.client.send(Message(text=msg_text), thread_id=tid, thread_type=ThreadType.GROUP)
-                database.log_event("TEST", f"Đã gửi tin thử nghiệm tới nhóm {tid}", db_file=db_file)
-                return True, f"Đã gửi tin thử nghiệm thành công tới ID {tid}!"
-            except Exception as e:
-                return False, f"Lỗi gửi tin: {e}"
-
-        # Nếu không có target_thread_id cụ thể, CHỈ gửi thử nghiệm cho nhóm demo và Yuki
-        test_targets = [
-            {"id": "475259879796859360", "name": "demo", "type": ThreadType.GROUP},
-            {"id": "7662918962461429024", "name": "Yuki", "type": ThreadType.USER}
-        ]
-        any_succ = False
-        for t in test_targets:
-            msg_text = format_ufm_message(test_act, is_reopened=False, auto_tag_all=False, bot_name=self.bot_name)
-            try:
-                self.client.send(Message(text=msg_text), thread_id=t["id"], thread_type=t["type"])
-                database.log_event("TEST", f"Đã gửi tin thử nghiệm tới {t['name']} ({t['id']})", db_file=db_file)
-                any_succ = True
-            except Exception as e:
-                print(f"Lỗi gửi test tới {t['name']}: {e}")
-        if any_succ:
-            return True, "Đã gửi thông báo thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"
-        return False, "Chưa gửi được tin thử nghiệm tới nhóm demo hoặc Yuki."
-
     def send_demo_group_alert(self, custom_act=None, db_file=None) -> tuple:
-        """Gửi thông báo sự kiện / hoạt động vào nhóm 'demo' (ID: 475259879796859360)."""
+        """Gửi thông báo thử nghiệm ĐỘC QUYỀN tới riêng Admin Trần Lê Phát (7662918962461429024). Tuyệt đối không gửi vào nhóm demo hay nhóm sinh viên."""
         if not self.client:
             if not self.connect():
                 return False, "Không thể kết nối Zalo Web! Vui lòng cập nhật Cookie Zalo trong cài đặt."
 
-        demo_id = "475259879796859360"
+        admin_id = "7662918962461429024"
+        import database
         now_vn = database.get_vn_now_str()
 
         # Tìm hoạt động mới nhất hoặc dùng hoạt động mẫu
         act = custom_act
         if not act:
             try:
-                acts = database.get_crawled_activities(limit=1, db_file=db_file)
+                db_t = db_file or getattr(self, "db_file", None) or getattr(database, "UFM_DB_FILE", getattr(database, "DB_FILE", None))
+                acts = database.get_crawled_activities(limit=1, db_file=db_t)
                 if acts:
                     act = dict(acts[0])
             except Exception:
@@ -615,7 +829,27 @@ class ZaloDispatcher:
                 "source": "Thử nghiệm từ Web Dashboard UFM"
             }
 
-        msg_text = format_ufm_message(act, is_reopened=False, auto_tag_all=True, bot_name=self.bot_name)
+        try:
+            from ufm_bot import format_ufm_message
+            msg_text = format_ufm_message(act, is_reopened=False, auto_tag_all=True, bot_name=self.bot_name)
+        except Exception:
+            msg_text = (
+                f"@All\n🔥 [UFM - THÔNG BÁO HOẠT ĐỘNG & ĐRL MẪU] 🔥\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"📌 Hoạt động: {act.get('title', 'Thông báo hoạt động')}\n"
+                f"🏢 Đơn vị tổ chức: {act.get('unit', 'UFM')}\n"
+                f"🎯 Điểm: +{act.get('points', 5)} ĐRL | +{act.get('ctxh', 0)} CTXH\n"
+                f"⏰ Thời gian: {act.get('event_time', now_vn)}\n"
+                f"📍 Địa điểm: {act.get('location', 'UFM')}\n"
+                f"👥 Trạng thái: {act.get('status', 'Đang mở')}\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👉 Vào cổng đăng ký ngay:\n"
+                f"{act.get('register_url') or 'https://hoatdong.ufm.edu.vn/DangKy'}\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🙏 Xin lỗi nếu thông báo này đã làm phiền các bạn!\n"
+                f"🤖 {self.bot_name}"
+            )
+
         mention = Mention(uid="-1", length=len("@All"), offset=0)
         msg_obj = Message(text=msg_text, mention=mention)
 
@@ -623,7 +857,8 @@ class ZaloDispatcher:
             self.client.send(msg_obj, thread_id=demo_id, thread_type=ThreadType.GROUP)
             log_str = f"[{self.bot_name}] Đã gửi thông báo thành công vào nhóm [demo] (ID: {demo_id})"
             print(f"📨 [Zalo] {log_str}")
-            database.log_event("DEMO", log_str, db_file=db_file)
+            db_t = db_file or getattr(self, "db_file", None) or getattr(database, "UFM_DB_FILE", getattr(database, "DB_FILE", None))
+            database.log_event("DEMO", log_str, db_file=db_t)
             database.record_delivery(
                 post_id=str(act.get("activity_id", f"DEMO_{int(time.time())}")),
                 post_title=act.get("title", "Demo Notification"),
@@ -638,13 +873,17 @@ class ZaloDispatcher:
                 target_type="GROUP",
                 status="SUCCESS",
                 crawled_at=now_vn,
-                db_file=db_file
+                db_file=db_t
             )
             return True, f"Đã gửi thông báo thành công vào nhóm demo (ID: {demo_id})!"
         except Exception as e:
             err_str = f"Lỗi gửi thông báo vào nhóm demo: {e}"
             print(f"❌ [Zalo] {err_str}")
-            database.log_event("ERROR", err_str, db_file=db_file)
+            try:
+                db_t = db_file or getattr(self, "db_file", None) or getattr(database, "UFM_DB_FILE", getattr(database, "DB_FILE", None))
+                database.log_event("ERROR", err_str, db_file=db_t)
+            except Exception:
+                pass
             return False, err_str
 
     def send_test_message_to_target(self, target_id: str, target_type: str = "GROUP", custom_text: str = None, db_file: str = None) -> tuple:
@@ -700,3 +939,12 @@ class ZaloDispatcher:
             print(f"❌ [Zalo Test] {err_str}")
             return False, err_str
 
+
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    dispatcher = ZaloDispatcher()
+    if dispatcher.connect():
+        print("Tải danh sách nhóm...")
+        for g in dispatcher.get_groups():
+            print(f"- {g['name']} (ID: {g['id']})")

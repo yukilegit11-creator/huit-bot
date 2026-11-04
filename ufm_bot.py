@@ -317,8 +317,8 @@ def run_bot():
 
                 if seen_total == 0 and activities:
                     for act in activities:
-                        database.record_seen_activity(act, is_sent=False, db_file=DB_TARGET)
-                        database.add_crawled_activity(act, action_type="BASELINE", is_sent=False, db_file=DB_TARGET)
+                        database.record_seen_activity(act, is_sent=True, db_file=DB_TARGET)
+                        database.add_crawled_activity(act, action_type="BASELINE", is_sent=True, db_file=DB_TARGET)
                     msg_bl = f"📌 [Baseline] Đã ghi nhận {len(activities)} hoạt động hiện có trên cổng UFM (không bắn Zalo)."
                     print(msg_bl)
                     database.log_event("SYSTEM", msg_bl, db_file=DB_TARGET)
@@ -354,21 +354,7 @@ def run_bot():
                         is_now_open = ("mở" in new_status or "còn slot" in new_status) and not new_is_full
                         was_previously_open = ("mở" in old_status or "còn slot" in old_status) and not old_is_full
 
-                        # 1. Trước đó chưa gửi thông báo (Baseline) mà bây giờ ĐANG MỞ ĐĂNG KÝ
-                        if not old_is_sent and is_now_open:
-                            log_msg = f"🎉 Phát hiện hoạt động MỚI MỞ ĐĂNG KÝ: {act['title']} (+{act['points']} ĐRL)"
-                            print(log_msg)
-                            database.log_event("ACTIVITY", log_msg, db_file=DB_TARGET)
-                            ok = send_zalo_ufm(zalo, act, is_reopened=False)
-                            if ok:
-                                database.update_seen_is_sent(matched_id, is_sent=True, db_file=DB_TARGET)
-                                database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=DB_TARGET)
-                            if messenger and config.get("messenger", {}).get("enabled", False):
-                                try:
-                                    messenger.send_activity_alert(act, is_reopened=False, db_file=DB_TARGET, unit_label="Đơn vị tổ chức")
-                                except Exception as me:
-                                    print(f"⚠️ [Yuki 4] Lỗi gửi Messenger: {me}")
-                            continue
+# Baseline activities are marked is_sent=True and never re-sent.
 
                         # 2. Trước đó đã đầy (old_is_full == True) và bây giờ mở thêm slot (new_is_full == False)
                         if old_is_full and is_now_open:

@@ -279,23 +279,15 @@ def send_cookie_error_alert(zalo_inst: ZaloDispatcher, error_source: str, error_
 
     try:
         if zalo_inst and zalo_inst.client:
-            # 1. Gửi về nhóm demo (475259879796859360)
-            demo_group_id = "475259879796859360"
-            try:
-                zalo_inst.client.send(Message(text=warn_text), thread_id=demo_group_id, thread_type=ThreadType.GROUP)
-                print(f"🚨 [OU] Đã gửi thông báo lỗi cookie vào Nhóm demo ({demo_group_id})")
-            except Exception as e_demo:
-                print(f"⚠️ [OU] Lỗi gửi tin tới Nhóm demo: {e_demo}")
-
-            # 2. Gửi về Admin Yuki (7662918962461429024)
+            # Gửi duy nhất về Admin Trần Lê Phát (7662918962461429024)
             admin_uid = "7662918962461429024"
             try:
                 zalo_inst.client.send(Message(text=warn_text), thread_id=admin_uid, thread_type=ThreadType.USER)
-                print(f"🚨 [OU] Đã gửi thông báo lỗi cookie tới Admin Yuki ({admin_uid})")
+                print(f"🚨 [OU] Đã gửi thông báo lỗi cookie tới Admin Trần Lê Phát ({admin_uid})")
             except Exception as e_adm:
-                print(f"⚠️ [OU] Lỗi gửi tin tới Admin Yuki: {e_adm}")
+                print(f"⚠️ [OU] Lỗi gửi tin tới Admin: {e_adm}")
 
-            database.log_event("WARN", f"Đã gửi cảnh báo lỗi cookie [{error_source}] tới Nhóm demo & Admin.", db_file=DB_FILE)
+            database.log_event("WARN", f"Đã gửi cảnh báo lỗi cookie [{error_source}] tới Admin Trần Lê Phát.", db_file=DB_FILE)
     except Exception as e:
         print(f"⚠️ [OU] Lỗi trong hàm send_cookie_error_alert: {e}")
 
@@ -326,6 +318,11 @@ def dispatch_zalo_message(zalo_inst: ZaloDispatcher, message_text: str, item_id:
             continue
 
         ttype = ThreadType.USER if ttype_str == "USER" else ThreadType.GROUP
+
+        # Kiểm tra chống lặp nghiêm ngặt từng người nhận
+        if item_id and database.is_activity_already_sent_zalo(str(item_id), target_id=tid, db_file=DB_FILE):
+            print(f"🛑 [Chống lặp OU] Mục [{item_id}] đã được gửi tới {tname} ({tid}) trước đó, bỏ qua!")
+            continue
 
         try:
             res = zalo_inst.client.send(Message(text=message_text), thread_id=tid, thread_type=ttype)
@@ -548,6 +545,29 @@ def main():
                     else:
                         print(f"  -> Tìm thấy {len(events)} sự kiện trên cổng!")
                         new_ev_count = 0
+
+                        # CHẾ ĐỘ BASELINE: Lần quét đầu tiên khi DB chưa có sự kiện nào
+                        try:
+                            _conn = database.get_connection(DB_FILE)
+                            seen_total = _conn.execute("SELECT COUNT(*) FROM seen_activities").fetchone()[0]
+                            _conn.close()
+                        except Exception:
+                            seen_total = 1
+
+                        if seen_total == 0 and events:
+                            for ev in events:
+                                eid = ev.get("activity_id") or ev.get("id")
+                                ev_rec = dict(ev)
+                                ev_rec["status"] = "BASELINE"
+                                database.record_seen_activity(ev_rec, is_sent=True, db_file=DB_FILE)
+                                database.add_crawled_activity(ev_rec, action_type="BASELINE", is_sent=True, db_file=DB_FILE)
+                            msg_bl = f"📌 [OU Baseline] Đã ghi nhận {len(events)} sự kiện hiện có trên cổng ĐRL OU (không gửi Zalo, không đăng ký)."
+                            print(msg_bl)
+                            database.log_event("SYSTEM", msg_bl, db_file=DB_FILE)
+                            events = []
+
+                        auto_reg_enabled = fresh_cfg.get("ou_portal", {}).get("auto_register", False)
+
                         for ev in events:
                             eid = ev.get("activity_id") or ev.get("id")
                             title = ev.get("title", "Sự kiện")
@@ -580,30 +600,46 @@ def main():
 
                                 elif is_open:
                                     # TRƯỜNG HỢP 2: SỰ KIỆN ĐÃ MỞ ĐĂNG KÝ NGAY KHI PHÁT HIỆN
-                                    if ev.get("is_registered", False):
-                                        print(f"ℹ️ [OU] Sự kiện đã được sinh viên đăng ký trên cổng: {title}")
-                                        ok_reg, msg_reg = True, "Sinh viên đã đăng ký tham gia thành công trên cổng"
+                                    if auto_reg_enabled:
+                                        if ev.get("is_registered", False):
+                                            print(f"ℹ️ [OU] Sự kiện đã được sinh viên đăng ký trên cổng: {title}")
+                                            ok_reg, msg_reg = True, "Sinh viên đã đăng ký tham gia thành công trên cổng"
+                                        else:
+                                            print(f"⚡ [Tự động đăng ký OU] Sự kiện đang mở đăng ký: {title}...")
+                                            ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                        reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
+                                        print(f"  -> {reg_status_log}")
+                                        database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+
+                                        # Ghi nhận vào DB
+                                        ev_rec = dict(ev)
+                                        ev_rec["status"] = "REGISTERED" if ok_reg else "OPEN_NOTIFIED"
+                                        database.record_seen_activity(ev_rec, is_sent=True, db_file=DB_FILE)
+                                        database.add_crawled_activity(ev_rec, action_type="AUTO_REGISTER" if ok_reg else "OPEN", is_sent=True, db_file=DB_FILE)
+
+                                        # Gửi thông báo kết quả đăng ký về Zalo
+                                        ev_msg = format_ou_event_message(
+                                            ev, 
+                                            bot_name=bot_name, 
+                                            auto_reg_result=(ok_reg, msg_reg),
+                                            student_name=portal_scraper.student_name
+                                        )
+                                        dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
                                     else:
-                                        print(f"⚡ [Tự động đăng ký OU] Sự kiện đang mở đăng ký: {title}...")
-                                        ok_reg, msg_reg = portal_scraper.register_event(ev)
-                                    reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
-                                    print(f"  -> {reg_status_log}")
-                                    database.log_event("AUTO_REGISTER", f"Sự kiện '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+                                        print(f"ℹ️ [OU] Tự động đăng ký đang TẮT. Chỉ gửi thông báo sự kiện mới: {title}")
+                                        database.log_event("EVENT_OPEN", f"Phát hiện sự kiện mới: {title[:50]} (Tự động đăng ký: TẮT)", db_file=DB_FILE)
+                                        ev_rec = dict(ev)
+                                        ev_rec["status"] = "OPEN_NOTIFIED"
+                                        database.record_seen_activity(ev_rec, is_sent=True, db_file=DB_FILE)
+                                        database.add_crawled_activity(ev_rec, action_type="OPEN", is_sent=True, db_file=DB_FILE)
 
-                                    # Ghi nhận vào DB
-                                    ev_rec = dict(ev)
-                                    ev_rec["status"] = "REGISTERED" if ok_reg else "OPEN_NOTIFIED"
-                                    database.record_seen_activity(ev_rec, is_sent=True, db_file=DB_FILE)
-                                    database.add_crawled_activity(ev_rec, action_type="AUTO_REGISTER" if ok_reg else "OPEN", is_sent=True, db_file=DB_FILE)
-
-                                    # Gửi thông báo kết quả đăng ký về Zalo
-                                    ev_msg = format_ou_event_message(
-                                        ev, 
-                                        bot_name=bot_name, 
-                                        auto_reg_result=(ok_reg, msg_reg),
-                                        student_name=portal_scraper.student_name
-                                    )
-                                    dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
+                                        ev_msg = format_ou_event_message(
+                                            ev, 
+                                            bot_name=bot_name, 
+                                            auto_reg_result=None,
+                                            student_name=portal_scraper.student_name
+                                        )
+                                        dispatch_zalo_message(zalo_disp, ev_msg, item_id=eid)
 
                             else:
                                 # Sự kiện đã từng được thấy trước đó
@@ -611,26 +647,37 @@ def main():
                                 # Nếu sự kiện trước đó ở trạng thái UPCOMING_NOTIFIED (chờ giờ mở đăng ký)
                                 # và hiện tại đã đến giờ mở đăng ký (is_open == True):
                                 if cur_status == "UPCOMING_NOTIFIED" and is_open:
-                                    print(f"🔔 [Đến giờ mở ĐK OU] Kích hoạt tự động đăng ký cho {portal_scraper.student_name}: {title}...")
-                                    ok_reg, msg_reg = portal_scraper.register_event(ev)
-                                    reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
-                                    print(f"  -> {reg_status_log}")
-                                    database.log_event("AUTO_REGISTER", f"Đến giờ mở ĐK '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
+                                    if auto_reg_enabled:
+                                        print(f"🔔 [Đến giờ mở ĐK OU] Kích hoạt tự động đăng ký cho {portal_scraper.student_name}: {title}...")
+                                        ok_reg, msg_reg = portal_scraper.register_event(ev)
+                                        reg_status_log = f"✅ Đăng ký thành công: {msg_reg}" if ok_reg else f"⚠️ Kết quả đăng ký: {msg_reg}"
+                                        print(f"  -> {reg_status_log}")
+                                        database.log_event("AUTO_REGISTER", f"Đến giờ mở ĐK '{title[:50]}': {reg_status_log}", db_file=DB_FILE)
 
-                                    if ok_reg:
-                                        database.update_activity_status(eid, status="REGISTERED", is_sent=True, db_file=DB_FILE)
+                                        if ok_reg:
+                                            database.update_activity_status(eid, status="REGISTERED", is_sent=True, db_file=DB_FILE)
+                                        else:
+                                            database.update_activity_status(eid, status="AUTO_REG_FAILED", is_sent=True, db_file=DB_FILE)
+
+                                        # Gửi thông báo kết quả đăng ký chính thức về Zalo Thu Phương
+                                        reg_msg_zalo = format_ou_registered_message(
+                                            ev,
+                                            bot_name=bot_name,
+                                            reg_msg=msg_reg,
+                                            student_name=portal_scraper.student_name,
+                                            is_success=ok_reg
+                                        )
+                                        dispatch_zalo_message(zalo_disp, reg_msg_zalo, item_id=f"{eid}_REGISTERED")
                                     else:
-                                        print(f"  -> Đăng ký chưa hoàn tất: {msg_reg}. Sẽ thử lại chu kỳ sau nếu cổng còn mở.")
-
-                                    # Gửi thông báo kết quả đăng ký chính thức về Zalo Thu Phương
-                                    reg_msg_zalo = format_ou_registered_message(
-                                        ev,
-                                        bot_name=bot_name,
-                                        reg_msg=msg_reg,
-                                        student_name=portal_scraper.student_name,
-                                        is_success=ok_reg
-                                    )
-                                    dispatch_zalo_message(zalo_disp, reg_msg_zalo, item_id=f"{eid}_REGISTERED")
+                                        print(f"🔔 [Đến giờ mở ĐK OU] Tự động đăng ký đang TẮT. Gửi thông báo mở ĐK cho: {title}...")
+                                        database.update_activity_status(eid, status="OPEN_NOTIFIED", is_sent=True, db_file=DB_FILE)
+                                        open_msg = format_ou_event_message(
+                                            ev,
+                                            bot_name=bot_name,
+                                            auto_reg_result=None,
+                                            student_name=portal_scraper.student_name
+                                        )
+                                        dispatch_zalo_message(zalo_disp, open_msg, item_id=f"{eid}_NOW_OPEN")
 
                         if new_ev_count > 0:
                             print(f"🎉 [Cổng ĐRL OU] Đã phát hiện và gửi {new_ev_count} sự kiện mới!")

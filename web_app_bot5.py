@@ -65,6 +65,7 @@ def api_bot5_get_stats():
         "total_activities": len(database.get_activities(limit=500, db_file=DB_FILE)),
         "student_account": portal_cfg.get("username", "2654092020"),
         "student_name": portal_cfg.get("student_name", "Phan Thị Thu Phương"),
+        "auto_register": portal_cfg.get("auto_register", False),
         "stats": stats
     }
 
@@ -193,23 +194,16 @@ def api_bot5_test_cookie_alert():
         "🤖 Hệ thống điều hành Yuki Multi-Bot 24/7"
     )
 
-    demo_id = "475259879796859360"
     admin_id = "7662918962461429024"
     results = []
 
     try:
-        zalo_disp.client.send(Message(text=warn_text), thread_id=demo_id, thread_type=ThreadType.GROUP)
-        results.append(f"Nhóm demo ({demo_id}): Thành công")
-    except Exception as e:
-        results.append(f"Nhóm demo ({demo_id}): Thất bại ({e})")
-
-    try:
         zalo_disp.client.send(Message(text=warn_text), thread_id=admin_id, thread_type=ThreadType.USER)
-        results.append(f"Admin Yuki ({admin_id}): Thành công")
+        results.append(f"Admin Tran Le Phat ({admin_id}): Thanh cong")
+        database.log_event("TEST", "Da gui canh bao loi cookie test toi Admin Tran Le Phat.", db_file=DB_FILE)
     except Exception as e:
-        results.append(f"Admin Yuki ({admin_id}): Thất bại ({e})")
-
-    database.log_event("TEST", "Đã gửi tin nhắn test cảnh báo lỗi cookie vào Nhóm demo.", db_file=DB_FILE)
+        results.append(f"Admin Tran Le Phat ({admin_id}): That bai ({e})")
+        database.log_event("TEST_ERR", f"Loi gui test toi Admin: {e}", db_file=DB_FILE)
     return {"status": "ok", "message": " | ".join(results)}
 
 
@@ -468,7 +462,7 @@ def dashboard_view_bot5():
               <i class="fa-solid fa-robot text-blue-600"></i> Giải Captcha & Đăng nhập lại Portal OU
             </button>
             <button onclick="testCookieAlert()" class="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
-              <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Test Bắn Cảnh Báo Cookie (Nhóm demo)
+              <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Test Bắn Cảnh Báo Cookie (Trần Lê Phát)
             </button>
             <a href="https://renluyensv.ou.edu.vn/20261/diemrl/dangkysukien" target="_blank" class="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở Cổng Đăng Ký Sự Kiện OU
@@ -519,7 +513,7 @@ def dashboard_view_bot5():
     }}
 
     async function testCookieAlert() {{
-      if (!confirm('Gửi tin nhắn cảnh báo lỗi cookie thử nghiệm vào Nhóm demo (475259879796859360)?')) return;
+      if (!confirm('Gửi tin nhắn cảnh báo lỗi cookie thử nghiệm tới riêng Admin Trần Lê Phát (7662918962461429024)?')) return;
       try {{
         const res = await fetch('/api/bot5/test_cookie_alert', {{ method: 'POST' }});
         const data = await res.json();

@@ -308,8 +308,8 @@ def run_bot():
                     seen_total = 1
                 if seen_total == 0 and activities:
                     for act in activities:
-                        database.record_seen_activity(act, is_sent=False, db_file=DB_TARGET)
-                        database.add_crawled_activity(act, action_type="BASELINE", is_sent=False, db_file=DB_TARGET)
+                        database.record_seen_activity(act, is_sent=True, db_file=DB_TARGET)
+                        database.add_crawled_activity(act, action_type="BASELINE", is_sent=True, db_file=DB_TARGET)
                     msg_bl = f"📌 Baseline: đã ghi nhận {len(activities)} hoạt động đang có trên cổng IUH (không gửi Zalo vì không phải bài mới)."
                     print(msg_bl)
                     database.log_event("SYSTEM", msg_bl, db_file=DB_TARGET)
@@ -344,14 +344,7 @@ def run_bot():
                                 database.add_crawled_activity(act, action_type="REOPENED", is_sent=True, db_file=DB_TARGET)
                             continue
 
-                        # B. Hoạt động chưa từng được gửi thông báo thành công
-                        if not old_is_sent:
-                            database.log_event("ACTIVITY", f"🎉 Phát hiện hoạt động IUH CHƯA GỬI THÔNG BÁO: {act['title']} (+{act['points']} ĐRL)", db_file=DB_TARGET)
-                            ok = send_zalo_iuh(zalo, act, is_reopened=False)
-                            if ok:
-                                database.update_seen_is_sent(aid, is_sent=True, db_file=DB_TARGET)
-                                database.add_crawled_activity(act, action_type="NEW", is_sent=True, db_file=DB_TARGET)
-                            continue
+# Baseline activities are marked is_sent=True and never re-sent.
 
                         continue
 

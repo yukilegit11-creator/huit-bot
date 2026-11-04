@@ -98,10 +98,14 @@ flowchart TD
 - **Số điện thoại:** `0775000537`
 
 ### 3.2. Kênh Thử Nghiệm & Cô Lập Tuyệt Đối (Test Isolation)
-> ⚠️ **NGHIÊM CẤM:** Tất cả các thao tác bấm nút Test trên Web Dashboard, debug gửi tin, hoặc kiểm thử tính năng **CHỈ ĐƯỢC PHÉP** gửi tới 2 mục sau:
-- **Nhóm demo:** Thread ID `475259879796859360` (Type: `GROUP`)
+> ⚠️ **QUY ĐỊNH BẮT BUỘC:** Mọi thao tác bấm nút Test trên Web Dashboard, debug gửi tin, bắn tin mẫu, hoặc cảnh báo thử nghiệm **CHỈ ĐƯỢC PHÉP GỬI DUY NHẤT** tới:
 - **Cá nhân Admin:** Trần Lê Phát - Thread ID `7662918962461429024` (Type: `USER`)
-- **Tuyệt đối không gửi tin test vào các nhóm sinh viên thật.**
+- ⛔ **Tuyệt đối KHÔNG gửi tin test vào nhóm demo (`475259879796859360`)**.
+- ⛔ **Tuyệt đối KHÔNG gửi tin test/bản mẫu vào các nhóm sinh viên thật.**
+
+### 3.2.1. Cấu hình Tự động Đăng ký Bot 5 (OU)
+- Tính năng tự động đăng ký của Bot 5 đã được **TẮT HOÀN TOÀN** (`auto_register: false`).
+- Bot 5 chỉ đóng vai trò quét phát hiện sự kiện mới trên Cổng ĐRL OU và Fanpage để gửi thông báo kịp thời cho sinh viên (Thu Phương & Admin), không tự ý nộp đơn đăng ký.
 
 ### 3.3. Các Nhóm Chính Thức Nhận Thông Báo Của Sinh Viên
 | Bot | Tên hiển thị trong Zalo | Thread ID | Loại |
@@ -133,6 +137,10 @@ flowchart TD
 2. *Lỗi hoạt động UFM mới mở không nổ chuông Zalo do bot tự khóa chính mình.*
 
 ### 4.1. Nguyên tắc vàng của cơ chế chống lặp
+0. **Bảo vệ Cold-Start Baseline (Không spam khi khởi động lại):**
+   - Khi bot khởi động lần đầu hoặc cơ sở dữ liệu rỗng (`seen_total == 0`), toàn bộ bài/hoạt động hiện có trên cổng (UFM, IUH, OU) được lưu vào DB với `is_sent = True` và `status = 'BASELINE'`.
+   - Tuyệt đối không bắn thông báo cho các bài đã tồn tại từ trước chu kỳ đầu tiên.
+   - Nghiêm cấm mọi điều kiện kiểm tra lỏng lẻo kiểu `if not old_is_sent and is_now_open:` kích hoạt gửi lại các bài baseline.
 1. **`delivery_history` là Chân lý Duy nhất cho từng Người nhận (`target_id`):**
    - Bảng `delivery_history` lưu trữ chi tiết: `(post_id, zalo_target_id, status = 'SUCCESS')`.
    - Khi kiểm tra gửi cho nhóm $A$, bot chỉ hỏi: *"Nhóm $A$ đã nhận bài viết này thành công chưa?"*. Nếu chưa ➔ Bắt buộc phải gửi.

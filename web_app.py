@@ -781,10 +781,9 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
+    # CHỈ gửi thử nghiệm cho riêng Admin Trần Lê Phát (KHÔNG gửi nhóm demo hay sinh viên)
     test_targets = [
-        {"id": "475259879796859360", "name": "demo"},
-        {"id": "7662918962461429024", "name": "Yuki"}
+        {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
     ]
     sent_any = False
     for t in test_targets:
@@ -795,7 +794,7 @@ Chúc các bạn một ngày làm việc và học tập hiệu quả!""",
             print(f"Lỗi gửi test tới {t['name']}: {e}")
 
     if sent_any:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Admin Trần Lê Phát!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Yuki!")
 
@@ -1411,10 +1410,9 @@ Chúc các bạn theo dõi thuận lợi!""",
         "is_manual_test": True,
         "creation_time": datetime.now().timestamp()
     }
-    # CHỈ gửi thử nghiệm cho nhóm 'demo' và cá nhân 'Yuki' (KHÔNG gửi cho tất cả các nhóm)
+    # CHỈ gửi thử nghiệm cho riêng Admin Trần Lê Phát (KHÔNG gửi nhóm demo hay sinh viên)
     test_targets = [
-        {"id": "475259879796859360", "name": "demo"},
-        {"id": "7662918962461429024", "name": "Yuki"}
+        {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
     ]
     sent_any = False
     for t in test_targets:
@@ -1425,7 +1423,7 @@ Chúc các bạn theo dõi thuận lợi!""",
             print(f"Lỗi gửi test Bot 2 tới {t['name']}: {e}")
 
     if sent_any:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Admin Trần Lê Phát!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm tới nhóm demo hoặc Yuki!")
 
@@ -1643,12 +1641,11 @@ def api_bot3_test_zalo_alert():
         "details": f"Thời gian: {now_vn.strftime('%H:%M:%S %d/%m/%Y')}\nĐịa điểm: Hội trường E4 IUH\nYêu cầu: Tín hiệu thử nghiệm hoạt động hoàn hảo 100%."
     }
     test_targets = [
-        {"id": "475259879796859360", "name": "demo", "type": "GROUP"},
-        {"id": "7662918962461429024", "name": "Yuki", "type": "USER"}
+        {"id": "7662918962461429024", "name": "Trần Lê Phát", "type": "USER"}
     ]
     sent = send_zalo_iuh(zalo, test_act, is_reopened=False, custom_targets=test_targets)
     if sent:
-        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Yuki & nhóm demo!"}
+        return {"status": "ok", "message": "Đã bắn tin thử nghiệm thành công CHỈ cho riêng Admin Trần Lê Phát!"}
     else:
         raise HTTPException(status_code=500, detail="Không thể gửi tin thử nghiệm. Kiểm tra kết nối Zalo hoặc người nhận!")
 
